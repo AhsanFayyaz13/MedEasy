@@ -1,0 +1,146 @@
+/* ═══════════════════════════════════════════════
+   MedicineCard – Upgraded Styles
+   ═══════════════════════════════════════════════ */
+
+.medicine-card {
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s, box-shadow 0.25s;
+  background: #fff;
+  position: relative;
+}
+.medicine-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+.medicine-card.out-of-stock { opacity: 0.72; }
+
+/* Discount chip */
+.discount-chip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.18em 0.5em;
+  border-radius: 6px;
+  z-index: 3;
+}
+
+/* Image area */
+.card-img-link { display: block; text-decoration: none; position: relative; }
+.medicine-img-box {
+  height: 140px;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+.medicine-card:hover .medicine-img-box {
+  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+}
+.medicine-emoji { font-size: 3.2rem; }
+
+/* Badges */
+.rx-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 0.62rem;
+  z-index: 3;
+}
+.oos-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+/* Body */
+.med-category-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: #38bdf8;
+}
+.medicine-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0d1b2a;
+  text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+.medicine-name:hover { color: #38bdf8; }
+.medicine-brand {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  display: block;
+}
+
+/* Stars */
+.stars-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.star { font-size: 0.72rem; color: #d1d5db; }
+.star.filled { color: #f59e0b; }
+.review-count {
+  font-size: 0.67rem;
+  color: #9ca3af;
+  line-height: 1;
+}
+
+/* Price */
+.price-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.3rem; }
+.price {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0d1b2a;
+}
+.original-price {
+  font-size: 0.77rem;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+/* Stock badge */
+.stock-badge { font-size: 0.67rem; border-radius: 20px; }
+
+/* Add to cart button */
+.add-to-cart-btn {
+  background: linear-gradient(135deg, #0d1b2a, #1a3a5c) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: opacity 0.2s, transform 0.15s;
+  color: #fff !important;
+}
+.add-to-cart-btn:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+.add-to-cart-btn:disabled {
+  background: #9ca3af !important;
+  opacity: 0.7;
+}
+.add-to-cart-btn.in-cart {
+  background: linear-gradient(135deg, #059669, #34d399) !important;
+}

@@ -1,0 +1,225 @@
+/* ═══════════════════════════════════════════════════════════════
+   Auth.css – Shared styles for Login & Register pages
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Page wrapper ─────────────────────────────────────────────── */
+.auth-page {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdf4 100%);
+  min-height: calc(100vh - 72px); /* subtract navbar height */
+  display: flex;
+  align-items: center;
+  padding: 2rem 0 3rem;
+}
+.min-vh-auth {
+  min-height: calc(100vh - 180px);
+}
+
+/* ── Card ─────────────────────────────────────────────────────── */
+.auth-card {
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(13, 27, 42, 0.12), 0 4px 16px rgba(0,0,0,0.06);
+  overflow: hidden;
+  position: relative;
+}
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8, #34d399);
+}
+
+/* ── Header ───────────────────────────────────────────────────── */
+.auth-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+.auth-icon-badge {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.auth-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0d1b2a;
+  margin-bottom: 0.25rem;
+}
+.auth-subtitle {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+
+/* ── Alerts ───────────────────────────────────────────────────── */
+.auth-alert {
+  border-radius: 10px;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Input with icon ──────────────────────────────────────────── */
+.input-icon-wrap {
+  position: relative;
+}
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 0.9rem;
+  pointer-events: none;
+  z-index: 5;
+}
+.ps-icon {
+  padding-left: 2.25rem !important;
+}
+.pe-eye {
+  padding-right: 2.5rem !important;
+}
+
+/* Valid / invalid feedback adjustment */
+.input-icon-wrap .form-control.is-invalid ~ .invalid-feedback,
+.input-icon-wrap .form-control.is-valid  ~ .valid-feedback {
+  display: block;
+}
+
+/* ── Show/hide password toggle ────────────────────────────────── */
+.eye-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  z-index: 5;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+.eye-toggle:hover {
+  color: #38bdf8;
+}
+
+/* ── Forgot password link ─────────────────────────────────────── */
+.forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8rem;
+  color: #38bdf8;
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.forgot-link:hover {
+  color: #0284c7;
+  text-decoration: underline;
+}
+
+/* ── Role selector grid ───────────────────────────────────────── */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+.role-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.5rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+  background: #fff;
+  transition: all 0.2s;
+  text-align: center;
+  user-select: none;
+}
+.role-option:hover {
+  border-color: #38bdf8;
+  background: #f0f9ff;
+}
+.role-option.selected {
+  border-color: #38bdf8;
+  background: linear-gradient(135deg, #e0f2fe, #f0f9ff);
+  color: #0d1b2a;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+}
+
+/* ── Password strength ────────────────────────────────────────── */
+.strength-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.strength-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 99px;
+}
+.strength-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 72px;
+  text-align: right;
+}
+
+/* ── Required / optional labels ───────────────────────────────── */
+.required-star {
+  color: #ef4444;
+  margin-left: 2px;
+}
+.optional-label {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+/* ── Submit button ────────────────────────────────────────────── */
+.btn-auth {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1a3a5c 100%) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 700;
+  padding: 0.7rem;
+  font-size: 1rem;
+  color: #fff !important;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px rgba(13, 27, 42, 0.3);
+}
+.btn-auth:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(13, 27, 42, 0.35);
+}
+.btn-auth:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ── Bottom switch link ───────────────────────────────────────── */
+.auth-switch {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+.auth-switch a {
+  color: #38bdf8;
+  font-weight: 600;
+  text-decoration: none;
+}
+.auth-switch a:hover {
+  text-decoration: underline;
+}

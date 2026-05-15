@@ -1,0 +1,58 @@
+/* AppointmentBooking.css */
+.appt-page { background:#f8fafc; min-height:calc(100vh - 72px); }
+
+.appt-header   { margin-bottom:.25rem; }
+.appt-title    { font-size:1.8rem; font-weight:800; color:#0d1b2a; margin:0; display:flex; align-items:center; }
+.appt-subtitle { font-size:.9rem; color:#6b7280; margin:.25rem 0 0; }
+
+/* Booking card */
+.appt-card { border:none; border-radius:18px; box-shadow:0 4px 20px rgba(0,0,0,.07); }
+.appt-section-title { font-weight:800; color:#0d1b2a; font-size:1rem; display:flex; align-items:center; margin-bottom:1.25rem; }
+.appt-label { font-weight:600; font-size:.875rem; color:#374151; }
+.opt-label  { font-weight:400; font-size:.75rem; color:#9ca3af; }
+
+/* Doctor info card */
+.doc-info-card  { display:flex; align-items:center; gap:.85rem; background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:.85rem 1rem; }
+.doc-info-avatar{ font-size:2rem; }
+.doc-info-name  { font-weight:700; color:#0d1b2a; font-size:.9rem; }
+.doc-info-meta  { display:flex; gap:.85rem; font-size:.75rem; color:#374151; flex-wrap:wrap; margin-top:.2rem; }
+
+/* Slot grid */
+.slot-grid  { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.25rem; }
+.slot-btn   { padding:.4rem .9rem; border:1.5px solid #e2e8f0; border-radius:10px; background:#fff; color:#374151; font-weight:600; font-size:.82rem; cursor:pointer; transition:all .15s; }
+.slot-btn:hover  { border-color:#38bdf8; color:#0284c7; background:#f0f9ff; }
+.slot-btn.active { background:linear-gradient(135deg,#0d1b2a,#1a3a5c); border-color:transparent; color:#fff; }
+.slot-hint  { font-size:.8rem; color:#9ca3af; margin:.25rem 0 0; }
+.slot-error { font-size:.8rem; color:#ef4444; margin-top:.3rem; }
+
+/* Book button */
+.btn-book { background:linear-gradient(135deg,#0d1b2a,#1a3a5c)!important; border:none!important; border-radius:12px!important; font-weight:800!important; font-size:.95rem!important; padding:.75rem!important; color:#fff!important; box-shadow:0 4px 14px rgba(13,27,42,.28); transition:opacity .2s,transform .15s; }
+.btn-book:hover:not(:disabled) { opacity:.9; transform:translateY(-2px); }
+.btn-book:disabled { opacity:.55; }
+
+/* Success alert */
+.appt-success-alert { border-radius:12px; font-size:.875rem; }
+
+/* Loading / empty */
+.appt-loading { display:flex; justify-content:center; padding:3rem; }
+.appt-empty   { display:flex; flex-direction:column; align-items:center; gap:.5rem; padding:3rem 1rem; color:#9ca3af; font-size:.875rem; }
+.appt-empty-icon { font-size:3rem; }
+
+/* Appointment history cards */
+.appt-history-card { border:none; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.05); border-left:4px solid #e2e8f0; transition:box-shadow .2s,transform .2s; }
+.appt-history-card:hover { box-shadow:0 6px 20px rgba(0,0,0,.09); transform:translateY(-1px); }
+.appt-history-card.status-scheduled { border-left-color:#3b82f6; }
+.appt-history-card.status-completed { border-left-color:#10b981; }
+.appt-history-card.status-cancelled { border-left-color:#ef4444; opacity:.8; }
+
+.appt-history-top   { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.5rem; }
+.appt-doc-name      { font-weight:700; color:#0d1b2a; font-size:.9rem; }
+.appt-specialty     { font-size:.72rem; color:#9ca3af; }
+.appt-status-badge  { font-size:.72rem; border-radius:20px; padding:.3em .7em; display:inline-flex; align-items:center; gap:.3rem; text-transform:capitalize; white-space:nowrap; }
+
+.appt-history-meta { display:flex; align-items:center; gap:.85rem; font-size:.78rem; color:#6b7280; flex-wrap:wrap; }
+.apt-id            { background:#f1f5f9; padding:.1em .45em; border-radius:4px; font-size:.7rem; }
+.appt-reason       { font-size:.8rem; color:#374151; font-style:italic; margin:.4rem 0 0; }
+.appt-notes-box    { font-size:.78rem; color:#374151; background:#f0fdf4; border-radius:8px; padding:.4rem .65rem; margin:.4rem 0 0; }
+.appt-rx-box       { font-size:.78rem; color:#059669; display:flex; align-items:center; margin:.3rem 0 0; }
+.appt-history-actions { margin-top:.65rem; display:flex; gap:.5rem; }

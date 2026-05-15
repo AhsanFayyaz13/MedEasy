@@ -1,0 +1,215 @@
+/* ═══════════════════════════════════════════════
+   MedEasy Navbar Styles
+   ═══════════════════════════════════════════════ */
+
+.medeasy-navbar {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1a3a5c 100%);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.35);
+  padding: 0.55rem 0;
+  z-index: 1050;
+}
+
+/* ── Brand ─────────────────────────────────────── */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff !important;
+  text-decoration: none;
+  letter-spacing: -0.5px;
+}
+.brand-icon  { color: #38bdf8; font-size: 1.4rem; }
+.brand-accent { color: #38bdf8; }
+
+/* ── Nav links ─────────────────────────────────── */
+.nav-links .nav-link {
+  color: rgba(255, 255, 255, 0.78) !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.75rem !important;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.nav-links .nav-link:hover,
+.nav-links .nav-link.active {
+  color: #fff !important;
+  background: rgba(56, 189, 248, 0.15);
+}
+.nav-icon { font-size: 0.75rem; opacity: 0.8; }
+
+/* Dashboard link gets a special accent */
+.dashboard-link {
+  color: #38bdf8 !important;
+  font-weight: 600 !important;
+}
+.dashboard-link:hover,
+.dashboard-link.active {
+  background: rgba(56, 189, 248, 0.2) !important;
+  color: #7dd3fc !important;
+}
+
+/* ── Cart ──────────────────────────────────────── */
+.cart-link,
+.mobile-cart {
+  position: relative;
+  color: rgba(255, 255, 255, 0.85) !important;
+  display: flex;
+  align-items: center;
+  padding: 0.3rem 0.4rem;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+.cart-link:hover,
+.mobile-cart:hover { color: #38bdf8 !important; }
+.cart-badge {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  font-size: 0.6rem;
+  padding: 0.18em 0.42em;
+  min-width: 16px;
+}
+
+/* ── User dropdown trigger ─────────────────────── */
+.user-dropdown { position: relative; }
+
+.user-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 10px;
+  transition: background 0.2s;
+  user-select: none;
+}
+.user-toggle:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(56,189,248,0.35);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.user-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-role-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #0d1b2a;
+  border-radius: 20px;
+  padding: 0.1em 0.55em;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.toggle-arrow {
+  color: rgba(255,255,255,0.5);
+  font-size: 0.65rem;
+  transition: transform 0.2s;
+}
+.user-dropdown.show .toggle-arrow {
+  transform: rotate(180deg);
+}
+
+/* ── Dropdown menu ─────────────────────────────── */
+.user-menu {
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  padding: 0.5rem;
+  min-width: 210px;
+  margin-top: 6px !important;
+  animation: menuFadeIn 0.18s ease;
+}
+@keyframes menuFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.user-menu .dropdown-item {
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: background 0.15s;
+}
+.user-menu .dropdown-item:hover {
+  background: #f0f9ff;
+  color: #0d1b2a;
+}
+.menu-icon {
+  color: #38bdf8;
+  font-size: 0.85rem;
+  width: 16px;
+}
+.logout-item {
+  color: #ef4444 !important;
+}
+.logout-item:hover {
+  background: #fef2f2 !important;
+}
+.logout-item .menu-icon {
+  color: #ef4444;
+}
+
+.user-menu-header {
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+/* ── Auth buttons ──────────────────────────────── */
+.auth-btn {
+  border-radius: 20px !important;
+  font-size: 0.83rem;
+  padding: 0.28rem 1rem !important;
+  transition: all 0.2s;
+}
+.register-btn {
+  background: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+  color: #0d1b2a !important;
+  font-weight: 700;
+}
+.register-btn:hover {
+  background: #7dd3fc !important;
+  border-color: #7dd3fc !important;
+  transform: translateY(-1px);
+}
+
+/* ── Toggler ───────────────────────────────────── */
+.navbar-toggler { border-color: rgba(255,255,255,0.3) !important; }
+.navbar-toggler-icon { filter: invert(1); }

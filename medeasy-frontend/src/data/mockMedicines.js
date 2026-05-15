@@ -1,0 +1,322 @@
+/**
+ * mockMedicines.js
+ * ─────────────────────────────────────────────────────────────────
+ * Comprehensive mock dataset used by MedicineList and MedicineDetail
+ * until the Django REST API is connected.
+ *
+ * Each medicine matches the expected API shape:
+ * {
+ *   id, name, brand, category, subcategory,
+ *   price, original_price, discount_pct,
+ *   stock,          ← integer (0 = out of stock)
+ *   rating,         ← 0–5 float
+ *   reviews_count,
+ *   requires_prescription,
+ *   description, usage, side_effects, storage,
+ *   manufacturer, country_of_origin,
+ *   image,          ← emoji used as placeholder
+ *   tags[]
+ * }
+ */
+
+const MEDICINES = [
+  {
+    id: 1,
+    name: 'Paracetamol 500mg',
+    brand: 'Panadol',
+    category: 'Analgesics',
+    subcategory: 'Pain Relief',
+    price: 50,
+    original_price: 65,
+    discount_pct: 23,
+    stock: 250,
+    rating: 4.2,
+    reviews_count: 348,
+    requires_prescription: false,
+    description:
+      'Paracetamol 500mg is a widely used analgesic and antipyretic. It relieves mild-to-moderate pain including headache, toothache, backache, and reduces fever effectively with minimal side effects when taken at recommended doses.',
+    usage:
+      'Adults: 500–1000 mg every 4–6 hours as needed. Maximum 4 g per day. Take with or without food.',
+    side_effects:
+      'Generally well-tolerated. Rare: skin rash, liver damage with overdose. Avoid alcohol.',
+    storage: 'Store below 30°C. Keep away from direct sunlight and moisture.',
+    manufacturer: 'GSK Pakistan Ltd.',
+    country_of_origin: 'Pakistan',
+    image: '💊',
+    tags: ['fever', 'headache', 'pain', 'paracetamol'],
+  },
+  {
+    id: 2,
+    name: 'Amoxicillin 250mg',
+    brand: 'Amoxil',
+    category: 'Antibiotics',
+    subcategory: 'Penicillins',
+    price: 180,
+    original_price: 210,
+    discount_pct: 14,
+    stock: 90,
+    rating: 4.6,
+    reviews_count: 194,
+    requires_prescription: true,
+    description:
+      'Amoxicillin is a broad-spectrum penicillin antibiotic effective against a wide range of bacterial infections including respiratory tract, urinary tract, skin, and ear infections.',
+    usage:
+      'Adults: 250–500 mg three times daily for 5–10 days as prescribed. Complete the full course.',
+    side_effects:
+      'Nausea, diarrhoea, skin rash. Rare: allergic reactions. Do not use if allergic to penicillin.',
+    storage: 'Store at room temperature (15–25°C). Keep dry.',
+    manufacturer: 'PharmEvo Pvt. Ltd.',
+    country_of_origin: 'Pakistan',
+    image: '🧪',
+    tags: ['antibiotic', 'infection', 'bacteria', 'respiratory'],
+  },
+  {
+    id: 3,
+    name: 'Omeprazole 20mg',
+    brand: 'Risek',
+    category: 'Gastroenterology',
+    subcategory: 'Proton Pump Inhibitors',
+    price: 95,
+    original_price: 115,
+    discount_pct: 17,
+    stock: 175,
+    rating: 4.0,
+    reviews_count: 122,
+    requires_prescription: false,
+    description:
+      'Omeprazole 20mg reduces stomach acid production and is used to treat gastric ulcers, GERD, acid reflux, and Zollinger-Ellison syndrome. Provides sustained acid suppression.',
+    usage:
+      'Adults: 20 mg once daily before meals for 4–8 weeks. Extended therapy as directed by physician.',
+    side_effects:
+      'Headache, nausea, diarrhoea, abdominal pain. Long-term use: low magnesium, vitamin B12 deficiency.',
+    storage: 'Store below 25°C. Keep in original packaging.',
+    manufacturer: 'AGP Ltd.',
+    country_of_origin: 'Pakistan',
+    image: '🔬',
+    tags: ['gastric', 'acid', 'GERD', 'ulcer'],
+  },
+  {
+    id: 4,
+    name: 'Cetirizine 10mg',
+    brand: 'Zyrtec',
+    category: 'Antihistamines',
+    subcategory: 'Allergy Relief',
+    price: 65,
+    original_price: 80,
+    discount_pct: 19,
+    stock: 310,
+    rating: 4.3,
+    reviews_count: 287,
+    requires_prescription: false,
+    description:
+      'Cetirizine 10mg is a non-drowsy second-generation antihistamine that provides 24-hour relief from allergic rhinitis, hay fever, urticaria, and other allergic conditions.',
+    usage: 'Adults: 10 mg once daily. Can be taken with or without food.',
+    side_effects:
+      'Mild drowsiness, dry mouth, headache. Less sedating than first-generation antihistamines.',
+    storage: 'Store at room temperature. Keep away from moisture.',
+    manufacturer: 'Pfizer Pakistan Ltd.',
+    country_of_origin: 'Pakistan',
+    image: '🌿',
+    tags: ['allergy', 'antihistamine', 'hay fever', 'itching'],
+  },
+  {
+    id: 5,
+    name: 'Metformin 500mg',
+    brand: 'Glucophage',
+    category: 'Diabetes',
+    subcategory: 'Biguanides',
+    price: 120,
+    original_price: 145,
+    discount_pct: 17,
+    stock: 0,
+    rating: 4.7,
+    reviews_count: 403,
+    requires_prescription: true,
+    description:
+      'Metformin 500mg is the first-line oral anti-diabetic agent for type 2 diabetes. It lowers blood glucose by reducing hepatic glucose production and improving insulin sensitivity.',
+    usage:
+      'Adults: 500 mg twice or three times daily with meals. Dose adjusted by physician. Max 2550 mg/day.',
+    side_effects:
+      'GI upset, nausea, diarrhoea (usually resolve after a few weeks). Rare: lactic acidosis.',
+    storage: 'Store at room temperature, away from heat and moisture.',
+    manufacturer: 'Merck Healthcare',
+    country_of_origin: 'Germany',
+    image: '🩸',
+    tags: ['diabetes', 'metformin', 'blood sugar', 'type 2'],
+  },
+  {
+    id: 6,
+    name: 'Amlodipine 5mg',
+    brand: 'Norvasc',
+    category: 'Cardiology',
+    subcategory: 'Calcium Channel Blockers',
+    price: 140,
+    original_price: 165,
+    discount_pct: 15,
+    stock: 82,
+    rating: 4.8,
+    reviews_count: 156,
+    requires_prescription: true,
+    description:
+      'Amlodipine 5mg is a long-acting calcium channel blocker used to treat hypertension and stable angina. It relaxes blood vessels allowing the heart to pump more efficiently.',
+    usage:
+      'Adults: 5 mg once daily. May increase to 10 mg/day after 1–2 weeks. Take at same time each day.',
+    side_effects:
+      'Ankle oedema, flushing, headache, palpitations. Contact doctor if severe swelling occurs.',
+    storage: 'Store at 15–25°C away from light.',
+    manufacturer: 'Pfizer Pakistan Ltd.',
+    country_of_origin: 'Pakistan',
+    image: '❤️',
+    tags: ['blood pressure', 'hypertension', 'heart', 'cardiology'],
+  },
+  {
+    id: 7,
+    name: 'Vitamin D3 5000 IU',
+    brand: 'D-Vit',
+    category: 'Vitamins & Supplements',
+    subcategory: 'Fat-Soluble Vitamins',
+    price: 280,
+    original_price: 320,
+    discount_pct: 13,
+    stock: 400,
+    rating: 4.5,
+    reviews_count: 512,
+    requires_prescription: false,
+    description:
+      'Vitamin D3 5000 IU soft-gel capsules support calcium absorption, bone health, immune function, and muscle strength. Suitable for individuals with documented vitamin D deficiency.',
+    usage: 'Adults: 1 capsule daily with a main meal containing fat.',
+    side_effects:
+      'Generally safe at recommended doses. Excess: hypercalcaemia, nausea. Do not exceed without medical advice.',
+    storage: 'Store in a cool, dry place below 25°C.',
+    manufacturer: 'Sanofi Pakistan',
+    country_of_origin: 'France',
+    image: '☀️',
+    tags: ['vitamin d', 'supplement', 'bone', 'immune'],
+  },
+  {
+    id: 8,
+    name: 'Atorvastatin 20mg',
+    brand: 'Lipitor',
+    category: 'Cardiology',
+    subcategory: 'Statins',
+    price: 320,
+    original_price: 380,
+    discount_pct: 16,
+    stock: 65,
+    rating: 4.6,
+    reviews_count: 198,
+    requires_prescription: true,
+    description:
+      'Atorvastatin 20mg is an HMG-CoA reductase inhibitor (statin) used to lower LDL cholesterol and triglycerides, and to reduce the risk of cardiovascular events.',
+    usage:
+      'Adults: 10–80 mg once daily at any time. Regular liver function monitoring recommended.',
+    side_effects:
+      'Muscle pain/weakness (myopathy), elevated liver enzymes, headache. Report unexplained muscle pain immediately.',
+    storage: 'Store at room temperature, protect from light and moisture.',
+    manufacturer: 'Pfizer Pakistan Ltd.',
+    country_of_origin: 'Pakistan',
+    image: '🫀',
+    tags: ['cholesterol', 'statin', 'heart', 'lipitor'],
+  },
+  {
+    id: 9,
+    name: 'Salbutamol Inhaler 100mcg',
+    brand: 'Ventolin',
+    category: 'Respiratory',
+    subcategory: 'Bronchodilators',
+    price: 450,
+    original_price: 520,
+    discount_pct: 13,
+    stock: 38,
+    rating: 4.9,
+    reviews_count: 289,
+    requires_prescription: true,
+    description:
+      'Salbutamol inhaler provides rapid relief of bronchospasm in asthma and COPD. Acts within minutes to open airways, making breathing easier for up to 4–6 hours.',
+    usage:
+      '1–2 puffs every 4–6 hours as needed. Shake well before use. Rinse mouth after inhalation.',
+    side_effects:
+      'Tremor, palpitations, headache, muscle cramps. Overuse may reduce effectiveness.',
+    storage: 'Store below 30°C. Do not puncture or incinerate even if apparently empty.',
+    manufacturer: 'GSK Pakistan Ltd.',
+    country_of_origin: 'Pakistan',
+    image: '💨',
+    tags: ['asthma', 'inhaler', 'bronchodilator', 'respiratory'],
+  },
+  {
+    id: 10,
+    name: 'Ibuprofen 400mg',
+    brand: 'Brufen',
+    category: 'Analgesics',
+    subcategory: 'NSAIDs',
+    price: 75,
+    original_price: 90,
+    discount_pct: 17,
+    stock: 195,
+    rating: 4.1,
+    reviews_count: 231,
+    requires_prescription: false,
+    description:
+      'Ibuprofen 400mg is an NSAID with analgesic, anti-inflammatory, and antipyretic properties. Effective for muscular pain, dental pain, dysmenorrhoea, and fever.',
+    usage:
+      'Adults: 400 mg every 6–8 hours with food. Do not exceed 1200 mg/day without prescription.',
+    side_effects:
+      'GI upset, peptic ulcer risk, dizziness. Avoid if history of ulcers or kidney disease.',
+    storage: 'Store below 30°C. Keep away from moisture.',
+    manufacturer: 'Abbott Laboratories Pakistan',
+    country_of_origin: 'Pakistan',
+    image: '🩹',
+    tags: ['pain', 'inflammation', 'NSAID', 'fever'],
+  },
+  {
+    id: 11,
+    name: 'Loratadine 10mg',
+    brand: 'Claritin',
+    category: 'Antihistamines',
+    subcategory: 'Allergy Relief',
+    price: 55,
+    original_price: 70,
+    discount_pct: 21,
+    stock: 220,
+    rating: 4.0,
+    reviews_count: 167,
+    requires_prescription: false,
+    description:
+      'Loratadine 10mg is a non-sedating antihistamine providing 24-hour relief from allergy symptoms such as sneezing, runny nose, itchy eyes, and skin reactions.',
+    usage: 'Adults & children ≥6 yrs: 10 mg once daily. Do not double dose.',
+    side_effects: 'Headache, dry mouth, fatigue. Non-sedating at recommended doses.',
+    storage: 'Store at room temperature. Keep dry.',
+    manufacturer: 'Bayer Pakistan',
+    country_of_origin: 'Germany',
+    image: '🌸',
+    tags: ['allergy', 'antihistamine', 'non-drowsy', 'rhinitis'],
+  },
+  {
+    id: 12,
+    name: 'Zinc 20mg Tablets',
+    brand: 'Zincovit',
+    category: 'Vitamins & Supplements',
+    subcategory: 'Minerals',
+    price: 160,
+    original_price: 190,
+    discount_pct: 16,
+    stock: 300,
+    rating: 4.3,
+    reviews_count: 143,
+    requires_prescription: false,
+    description:
+      'Zinc 20mg supports immune function, wound healing, DNA synthesis, and normal growth. Particularly useful during recovery from illness or in zinc-deficient individuals.',
+    usage: 'Adults: 1 tablet daily with food. Avoid taking on an empty stomach.',
+    side_effects: 'Nausea, stomach upset if taken without food. Avoid excessive intake.',
+    storage: 'Store in a cool, dry place. Keep out of reach of children.',
+    manufacturer: 'Sami Pharmaceuticals',
+    country_of_origin: 'Pakistan',
+    image: '⚡',
+    tags: ['zinc', 'immune', 'supplement', 'mineral'],
+  },
+];
+
+export default MEDICINES;
+
+/** Unique categories derived from the mock data */
+export const CATEGORIES = [...new Set(MEDICINES.map((m) => m.category))].sort();

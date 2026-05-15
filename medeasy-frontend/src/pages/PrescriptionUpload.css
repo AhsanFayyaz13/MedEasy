@@ -1,0 +1,424 @@
+/* ═══════════════════════════════════════════════════════════════
+   PrescriptionUpload Page – Complete Styles
+   ═══════════════════════════════════════════════════════════════ */
+
+.prescription-page {
+  background: #f8fafc;
+  min-height: calc(100vh - 72px);
+}
+
+/* ── Page header ──────────────────────────────────────────────── */
+.rx-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+.rx-page-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #0d1b2a;
+  margin: 0;
+}
+.rx-page-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0;
+  max-width: 520px;
+}
+.rx-info-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.rx-info-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+/* ── Upload card ──────────────────────────────────────────────── */
+.rx-upload-card {
+  border: none;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+}
+.rx-section-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0d1b2a;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Drop zone ────────────────────────────────────────────────── */
+.rx-drop-zone {
+  border: 2px dashed #d1d5db;
+  border-radius: 14px;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rx-drop-zone:hover,
+.rx-drop-zone.dragging {
+  border-color: #38bdf8;
+  background: #f0f9ff;
+}
+.rx-drop-zone.has-error {
+  border-color: #ef4444;
+  background: #fff5f5;
+}
+.rx-drop-zone.has-file {
+  border-style: solid;
+  border-color: #34d399;
+  background: #f0fdf4;
+  cursor: default;
+}
+
+/* Empty drop zone content */
+.dz-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  width: 100%;
+}
+.dz-upload-icon {
+  font-size: 2.8rem;
+  color: #38bdf8;
+  margin-bottom: 0.4rem;
+  line-height: 1;
+}
+.dz-primary-text   { font-weight: 600; color: #1a3a5c; font-size: 0.95rem; margin: 0; }
+.dz-secondary-text { font-size: 0.82rem; color: #9ca3af; margin: 0; }
+.dz-browse-link    { color: #38bdf8; font-weight: 700; }
+.dz-types          { font-size: 0.72rem; color: #9ca3af; margin: 0; }
+
+/* File preview inside drop zone */
+.dz-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  width: 100%;
+}
+.dz-img-preview {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #d1fae5;
+  flex-shrink: 0;
+}
+.dz-pdf-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #fecaca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dz-file-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dz-file-name {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #0d1b2a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dz-file-size { font-size: 0.75rem; color: #6b7280; }
+.dz-remove-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.dz-remove-btn:hover { background: #fee2e2; }
+
+/* Field error */
+.rx-field-error {
+  font-size: 0.8rem;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Form labels */
+.rx-label    { font-weight: 600; font-size: 0.875rem; color: #374151; }
+.rx-optional { font-weight: 400; font-size: 0.75rem; color: #9ca3af; }
+.rx-textarea { border-radius: 10px; font-size: 0.875rem; resize: vertical; }
+
+/* Upload alert */
+.rx-upload-alert { border-radius: 10px; font-size: 0.875rem; }
+
+/* Upload CTA button */
+.btn-rx-upload {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1a3a5c 100%) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 0.75rem !important;
+  color: #fff !important;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px rgba(13,27,42,0.28);
+}
+.btn-rx-upload:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(13,27,42,0.32);
+}
+.btn-rx-upload:disabled { opacity: 0.55; }
+
+/* ── Guidelines box ───────────────────────────────────────────── */
+.rx-guidelines {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+.rx-guidelines-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #92400e;
+  margin-bottom: 0.5rem;
+}
+.rx-guidelines-list {
+  padding-left: 1.2rem;
+  margin: 0;
+  font-size: 0.8rem;
+  color: #78350f;
+  line-height: 1.8;
+}
+
+/* ── History section ──────────────────────────────────────────── */
+.rx-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.rx-summary-label {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #0d1b2a;
+}
+.rx-count-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.rx-count-badge  {
+  font-size: 0.72rem;
+  border-radius: 20px;
+  padding: 0.3em 0.75em;
+  display: flex;
+  align-items: center;
+}
+
+/* Loading */
+.rx-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 3rem 1rem;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Empty history */
+.rx-history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  gap: 0.6rem;
+  text-align: center;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+.rx-empty-icon { font-size: 3.5rem; color: #d1d5db; margin-bottom: 0.5rem; }
+.rx-history-empty h5 { font-weight: 700; color: #0d1b2a; }
+.rx-history-empty p  { color: #6b7280; max-width: 280px; margin: 0; font-size: 0.875rem; }
+
+/* ── Prescription history card ────────────────────────────────── */
+.rx-history-card {
+  display: flex;
+  gap: 1rem;
+  background: #fff;
+  border-radius: 14px;
+  border-left: 4px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  margin-bottom: 1rem;
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.rx-history-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.09);
+  transform: translateY(-1px);
+}
+.rx-history-card.status-verified { border-left-color: #34d399; }
+.rx-history-card.status-rejected { border-left-color: #f87171; }
+.rx-history-card.status-pending  { border-left-color: #fbbf24; }
+
+/* Icon column */
+.rx-card-icon-wrap {
+  width: 56px;
+  min-width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+  flex-shrink: 0;
+}
+
+/* Body */
+.rx-card-body {
+  flex: 1;
+  min-width: 0;
+  padding: 1rem 1rem 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Top row */
+.rx-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.rx-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rx-file-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #0d1b2a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+.rx-file-meta { font-size: 0.72rem; color: #9ca3af; }
+.rx-id-label  { font-size: 0.72rem; color: #9ca3af; }
+.rx-id-label code { background: #f1f5f9; padding: 0.1em 0.4em; border-radius: 4px; font-size: 0.78rem; }
+
+/* Status badge */
+.rx-status-badge {
+  font-size: 0.72rem;
+  border-radius: 20px;
+  padding: 0.3em 0.75em;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Notes / reviewer */
+.rx-notes {
+  font-size: 0.8rem;
+  color: #374151;
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+.rx-reviewer {
+  font-size: 0.78rem;
+  color: #059669;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Rejection alert */
+.rx-reject-alert {
+  border-radius: 8px;
+  font-size: 0.8rem;
+  margin: 0.25rem 0;
+  padding: 0.5rem 0.75rem !important;
+}
+
+/* Linked orders */
+.rx-linked-orders {
+  font-size: 0.78rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+.rx-order-link {
+  color: #38bdf8;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+.rx-order-link:hover { text-decoration: underline; }
+
+/* Actions row */
+.rx-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+.rx-reupload-hint {
+  font-size: 0.75rem;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.rx-del-btn { border-radius: 8px !important; font-size: 0.78rem !important; font-weight: 600 !important; }
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 576px) {
+  .rx-card-icon-wrap { width: 44px; min-width: 44px; }
+  .rx-file-name      { max-width: 200px; }
+  .rx-history-card   { border-radius: 12px; }
+}

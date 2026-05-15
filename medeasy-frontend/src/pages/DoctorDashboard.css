@@ -1,0 +1,72 @@
+/* DoctorDashboard.css */
+.doc-page { background:#f0f4f8; min-height:calc(100vh - 72px); }
+
+.doc-header { display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:.75rem; }
+.doc-title  { font-size:1.8rem; font-weight:800; color:#0d1b2a; margin:0; display:flex; align-items:center; }
+.doc-subtitle { color:#6b7280; margin:0; font-size:.9rem; }
+
+/* Stat cards */
+.doc-stat-card { border:none; border-radius:16px; box-shadow:0 4px 16px rgba(0,0,0,.07); overflow:hidden; position:relative; }
+.doc-stat-card::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--doc-accent,#38bdf8); }
+.doc-stat-card .card-body { padding:1.25rem 1.25rem 1.25rem 1.5rem; display:flex; flex-direction:column; gap:.2rem; }
+.doc-stat-icon { font-size:1.4rem; color:var(--doc-accent,#38bdf8); }
+.doc-stat-num  { font-size:2rem; font-weight:900; color:#0d1b2a; line-height:1; }
+.doc-stat-label{ font-size:.78rem; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:.4px; }
+
+/* Main card */
+.doc-card { border:none; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+
+/* Toolbar */
+.doc-toolbar { display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; }
+.doc-tabs    { flex-wrap:wrap; gap:.3rem; }
+.doc-tab     { border-radius:20px!important; font-size:.78rem!important; font-weight:600!important; padding:.3rem .85rem!important; color:#374151!important; background:#f1f5f9!important; border:1px solid #e2e8f0!important; }
+.doc-tab:hover { border-color:#38bdf8!important; }
+.nav-pills .nav-link.active.doc-tab { background:linear-gradient(135deg,#0d1b2a,#1a3a5c)!important; color:#fff!important; border-color:transparent!important; }
+.doc-tab-count { margin-left:.35rem; background:rgba(255,255,255,.25); border-radius:20px; padding:.05em .45em; font-size:.68rem; font-weight:800; }
+.nav-pills .nav-link:not(.active) .doc-tab-count { background:#e2e8f0; color:#6b7280; }
+
+.doc-search-wrap { position:relative; }
+.doc-search-icon { position:absolute; left:.75rem; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:.8rem; }
+.doc-search { padding:.4rem .75rem .4rem 2.1rem; border:1px solid #e2e8f0; border-radius:10px; font-size:.875rem; outline:none; width:210px; }
+.doc-search:focus { border-color:#38bdf8; }
+.doc-loading { display:flex; justify-content:center; padding:3rem; }
+
+/* Table */
+.doc-table { font-size:.875rem; margin:0; }
+.doc-table thead th { background:#f8fafc; color:#374151; font-weight:700; font-size:.72rem; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #e2e8f0; padding:.75rem 1rem; }
+.doc-table tbody td { padding:.75rem 1rem; vertical-align:middle; }
+
+.patient-cell   { display:flex; align-items:center; gap:.65rem; }
+.patient-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#38bdf8,#818cf8); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.9rem; flex-shrink:0; }
+.patient-name   { font-weight:700; color:#0d1b2a; font-size:.875rem; }
+.patient-email  { font-size:.7rem; color:#9ca3af; }
+.apt-date       { color:#374151; font-size:.82rem; white-space:nowrap; }
+.time-badge     { font-size:.75rem; border-radius:8px!important; padding:.3em .65em!important; background:#f1f5f9!important; }
+.apt-reason     { color:#6b7280; font-size:.8rem; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.status-pill    { font-size:.7rem; border-radius:20px; padding:.3em .7em; text-transform:capitalize; display:inline-flex; align-items:center; gap:.3rem; }
+.apt-actions    { display:flex; gap:.4rem; flex-wrap:wrap; }
+.btn-complete   { background:linear-gradient(135deg,#059669,#10b981)!important; border:none!important; border-radius:8px!important; font-size:.75rem!important; font-weight:700!important; color:#fff!important; }
+
+/* Modal */
+.doc-modal-header { background:#f8fafc; border-bottom:1px solid #f1f5f9; }
+.doc-modal-header .modal-title { font-weight:800; font-size:1rem; color:#0d1b2a; display:flex; align-items:center; }
+.modal-apt-id  { font-family:monospace; font-size:.78rem; color:#9ca3af; font-weight:400; }
+
+.modal-patient-info   { display:flex; align-items:center; gap:1rem; background:#f8fafc; border-radius:12px; padding:1rem; }
+.modal-patient-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#38bdf8,#818cf8); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:1.3rem; flex-shrink:0; }
+.modal-patient-name   { font-weight:800; color:#0d1b2a; font-size:1rem; }
+.modal-patient-meta   { font-size:.78rem; color:#6b7280; }
+.modal-patient-reason { font-size:.8rem; color:#374151; font-style:italic; margin-top:.2rem; }
+.doc-label            { font-weight:600; font-size:.875rem; color:#374151; }
+
+.rx-pad { border:2px solid #d1fae5; border-radius:12px; overflow:hidden; }
+.rx-pad-header { display:flex; align-items:center; background:#d1fae5; padding:.6rem 1rem; font-size:.85rem; color:#065f46; }
+.rx-pad-date   { color:#6b7280; font-size:.75rem; }
+.rx-textarea   { border:none!important; border-radius:0!important; font-family:monospace; font-size:.85rem; background:#f0fdf4; resize:vertical; }
+
+.btn-complete-save { background:linear-gradient(135deg,#059669,#10b981)!important; border:none!important; border-radius:10px!important; font-weight:700!important; color:#fff!important; }
+
+.rx-view-box     { background:#f0fdf4; border:1px solid #d1fae5; border-radius:12px; padding:1rem; }
+.rx-view-header  { display:flex; justify-content:space-between; font-size:.82rem; color:#374151; margin-bottom:.75rem; }
+.rx-view-text    { white-space:pre-wrap; font-family:monospace; font-size:.85rem; color:#0d1b2a; margin:0; }
+.rx-view-notes   { font-size:.85rem; }

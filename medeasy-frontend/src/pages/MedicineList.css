@@ -1,0 +1,97 @@
+/* ═══════════════════════════════════════════════
+   MedicineList Page Styles
+   ═══════════════════════════════════════════════ */
+
+.medicine-list-page {
+  background: #f8fafc;
+  min-height: calc(100vh - 72px);
+}
+
+/* Header */
+.ml-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0d1b2a;
+  margin: 0;
+}
+.page-subtitle {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 0;
+}
+.clear-btn {
+  border-radius: 20px !important;
+  font-size: 0.82rem;
+}
+
+/* Search group */
+.search-group .search-icon-wrap {
+  background: #fff;
+  border-right: none;
+  color: #9ca3af;
+}
+.search-input {
+  border-left: none !important;
+  box-shadow: none !important;
+}
+.search-input:focus { border-color: #38bdf8 !important; }
+.clear-search {
+  border-color: #ced4da;
+  color: #9ca3af;
+  padding: 0 0.6rem;
+}
+
+/* Filter selects */
+.filter-select {
+  border-radius: 8px !important;
+  font-size: 0.875rem;
+  border-color: #e2e8f0;
+  box-shadow: none !important;
+}
+.filter-select:focus { border-color: #38bdf8 !important; }
+
+/* Toggle switches */
+.filter-switch {
+  font-size: 0.82rem;
+  color: #374151;
+  user-select: none;
+}
+.filter-switch .form-check-input:checked {
+  background-color: #38bdf8;
+  border-color: #38bdf8;
+}
+
+/* Active filter chips */
+.active-filters { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.filter-tag {
+  font-size: 0.75rem;
+  border-radius: 20px;
+  padding: 0.3em 0.7em;
+  font-weight: 600;
+}
+
+/* Empty / error / loading states */
+.loading-state,
+.empty-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 1rem;
+  text-align: center;
+  gap: 0.5rem;
+}
+.empty-emoji,
+.error-emoji { font-size: 3.5rem; margin-bottom: 0.5rem; }
+.empty-state h5,
+.error-state h5 { font-weight: 700; color: #0d1b2a; }
+.empty-state p,
+.error-state p { color: #6b7280; max-width: 300px; }

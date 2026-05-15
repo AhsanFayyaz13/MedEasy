@@ -1,0 +1,85 @@
+/* ═══════════════════════════════════════════════
+   Shared Page & Dashboard Styles
+   ═══════════════════════════════════════════════ */
+
+/* Page title used across all pages */
+.page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0d1b2a;
+  margin-bottom: 0.5rem;
+}
+.page-subtitle {
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+.section-heading {
+  font-weight: 700;
+  color: #1a3a5c;
+  margin-bottom: 1rem;
+}
+.item-count {
+  font-size: 1.1rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Primary button used across pages */
+.btn-primary-custom {
+  background: linear-gradient(135deg, #0d1b2a, #1a3a5c) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  transition: opacity 0.2s, transform 0.15s;
+  color: #fff !important;
+  text-decoration: none;
+}
+.btn-primary-custom:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+/* Dashboard Stats */
+.dashboard-page {
+  background: #f8fafc;
+  min-height: calc(100vh - 140px);
+}
+.stat-card {
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+  border-left: 5px solid var(--accent, #38bdf8);
+  transition: transform 0.2s;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+}
+.stat-icon {
+  font-size: 1.6rem;
+  color: var(--accent, #38bdf8);
+  margin-bottom: 0.5rem;
+}
+.stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0d1b2a;
+}
+.stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+.dashboard-card {
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+}
+.dashboard-table thead th {
+  background: #f1f5f9;
+  border: none;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+}
