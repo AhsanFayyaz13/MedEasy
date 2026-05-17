@@ -9,6 +9,7 @@ import {
 } from 'react-icons/fa';
 import { useToast } from '../context/ToastContext';
 import { fetchDoctors, bookAppointment, fetchMyAppointments, cancelAppointment } from '../services/appointmentService';
+import ReviewSection from '../components/ReviewSection';
 import './AppointmentBooking.css';
 
 const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-PK',
@@ -271,6 +272,18 @@ export default function AppointmentBooking() {
             )}
           </Col>
         </Row>
+
+        {/* ═══ Doctor Reviews ═════════════════════════════ */}
+        {selectedDoc && (
+          <Row className="mt-5">
+            <Col>
+              <hr />
+              <h4 className="mb-4">Reviews for {selectedDoc.name}</h4>
+              <ReviewSection targetType="doctor" targetId={selectedDoc.id} />
+            </Col>
+          </Row>
+        )}
+
       </Container>
     </div>
   );

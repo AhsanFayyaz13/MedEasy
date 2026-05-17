@@ -5,7 +5,8 @@ import {
 } from 'react-bootstrap';
 import { FaSearch, FaTimes, FaSlidersH, FaSortAmountDown } from 'react-icons/fa';
 import MedicineCard from '../components/MedicineCard';
-import MEDICINES, { CATEGORIES } from '../data/mockMedicines';
+import api from '../services/api';
+const CATEGORIES = ['Analgesics', 'Antibiotics', 'Antihistamines', 'Vitamins', 'First Aid', 'Cardiovascular', 'Supplements'];
 import './MedicineList.css';
 
 // ─── Sort options ─────────────────────────────────────────────────────────────
@@ -17,24 +18,32 @@ const SORT_OPTIONS = [
   { value: 'name',       label: 'Name A–Z'             },
 ];
 
-// ─── Simulated async fetch ────────────────────────────────────────────────────
 function useMedicines() {
   const [data,    setData]    = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
   useEffect(() => {
-    // Simulate network latency (replace with api.get('/medicines/') later)
-    const timer = setTimeout(() => {
+    let isMounted = true;
+    const fetchMeds = async () => {
       try {
-        setData(MEDICINES);
-      } catch (e) {
-        setError('Failed to load medicines. Please try again.');
+        const res = await api.get('/medicines?limit=100');
+        if (isMounted) {
+          const mapped = res.data.medicines.map(m => ({
+            ...m,
+            id: m._id,
+            requires_prescription: m.requiresPrescription // Map camelCase to snake_case for UI
+          }));
+          setData(mapped);
+        }
+      } catch (err) {
+        if (isMounted) setError('Failed to load medicines. Please try again.');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
-    }, 700);
-    return () => clearTimeout(timer);
+    };
+    fetchMeds();
+    return () => { isMounted = false; };
   }, []);
 
   return { data, loading, error };

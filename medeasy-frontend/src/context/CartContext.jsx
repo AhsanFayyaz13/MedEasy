@@ -55,24 +55,26 @@ export function CartProvider({ children }) {
     let result = 'added';
 
     setCartItems((prev) => {
-      const existing = prev.find((i) => i.medicineId === medicine.id);
+      const medId = medicine._id || medicine.id;
+      const existing = prev.find((i) => i.medicineId === medId);
 
       if (existing) {
         const newQty = existing.quantity + qty;
         const capped = Math.min(newQty, medicine.stock ?? Infinity);
         result = capped < newQty ? 'capped' : 'updated';
         return prev.map((i) =>
-          i.medicineId === medicine.id ? { ...i, quantity: capped } : i
+          i.medicineId === medId ? { ...i, quantity: capped } : i
         );
       }
 
       // New item
       const quantity = Math.min(qty, medicine.stock ?? qty);
+      const medId = medicine._id || medicine.id;
       return [
         ...prev,
         {
-          medicineId:  medicine.id,
-          id:          medicine.id,       // kept for legacy compat
+          medicineId:  medId,
+          id:          medId,       // kept for legacy compat
           name:        medicine.name,
           brand:       medicine.brand ?? '',
           image:       medicine.image ?? '💊',

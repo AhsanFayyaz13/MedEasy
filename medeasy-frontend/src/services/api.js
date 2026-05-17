@@ -6,7 +6,7 @@ import axios from 'axios';
  * falling back to the local Django dev server.
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,7 +17,7 @@ const api = axios.create({
 // Attach the JWT access token from localStorage to every request.
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('medeasy_access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -33,8 +33,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Clear stored credentials and redirect to login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('medeasy_access_token');
+      localStorage.removeItem('medeasy_refresh_token');
+      localStorage.removeItem('medeasy_user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

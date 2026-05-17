@@ -11,29 +11,46 @@ import {
 } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
-import MEDICINES from '../data/mockMedicines';
+import api from '../services/api';
 import './MedicineDetail.css';
 
-// ─── Simulated fetch by id ────────────────────────────────────────────────────
 function useMedicine(id) {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
     setLoading(true);
     setError(null);
-    // Simulate network delay (replace with api.get(`/medicines/${id}/`) later)
-    const timer = setTimeout(() => {
-      const found = MEDICINES.find((m) => m.id === Number(id));
-      if (found) {
-        setData(found);
-      } else {
-        setError('Medicine not found.');
+    const fetchMed = async () => {
+      try {
+        const { data: med } = await api.get(`/medicines/${id}`);
+        if (isMounted) {
+          setData({
+            ...med,
+            id: med._id,
+            requires_prescription: med.requiresPrescription,
+            image: med.imageUrl || '💊',
+            discount_pct: 0,
+            original_price: med.price,
+            rating: 5,
+            reviews_count: 1,
+            country_of_origin: 'N/A',
+            usage: 'Take as directed by your physician.',
+            side_effects: 'Consult your doctor for details.',
+            storage: 'Store in a cool, dry place.',
+            tags: [med.category]
+          });
+        }
+      } catch (err) {
+        if (isMounted) setError('Medicine not found.');
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    };
+    fetchMed();
+    return () => { isMounted = false; };
   }, [id]);
 
   return { data, loading, error };

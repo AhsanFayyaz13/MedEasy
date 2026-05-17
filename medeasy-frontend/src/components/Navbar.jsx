@@ -18,6 +18,7 @@ import {
   FaCalendarAlt,
   FaFileUpload,
   FaChevronDown,
+  FaBell,
 } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -25,18 +26,18 @@ import './Navbar.css';
 
 // ─── Role config: label, dashboard path, icon ─────────────────────────────────
 const ROLE_META = {
-  pharmacist: { label: 'Pharmacist',  dashPath: '/pharmacist', icon: <FaPills /> },
-  doctor:     { label: 'Doctor',       dashPath: '/doctor',     icon: <FaUserCircle /> },
-  admin:      { label: 'Admin',         dashPath: '/admin',      icon: <FaTachometerAlt /> },
-  patient:    { label: 'Patient',       dashPath: null,           icon: <FaUserCircle /> },
+  pharmacist: { label: 'Pharmacist', dashPath: '/pharmacist', icon: <FaPills /> },
+  doctor: { label: 'Doctor', dashPath: '/doctor', icon: <FaUserCircle /> },
+  admin: { label: 'Admin', dashPath: '/admin', icon: <FaTachometerAlt /> },
+  patient: { label: 'Patient', dashPath: null, icon: <FaUserCircle /> },
 };
 
 // ─── Role badge ───────────────────────────────────────────────────────────────
 const ROLE_BADGE_COLOR = {
   pharmacist: '#34d399',
-  doctor:     '#818cf8',
-  admin:      '#f59e0b',
-  patient:    '#38bdf8',
+  doctor: '#818cf8',
+  admin: '#f59e0b',
+  patient: '#38bdf8',
 };
 
 export default function AppNavbar() {
@@ -126,63 +127,65 @@ export default function AppNavbar() {
 
             {isAuthenticated ? (
               /* ── User dropdown ─────────────────────────────────── */
-              <Dropdown align="end" className="user-dropdown">
-                <Dropdown.Toggle as="div" className="user-toggle" id="user-menu">
-                  <div className="user-avatar">
-                    {user?.name?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div className="user-info d-none d-lg-block">
-                    <span className="user-name">{user?.name || 'Account'}</span>
-                    <span
-                      className="user-role-badge"
-                      style={{ background: ROLE_BADGE_COLOR[userRole] || '#38bdf8' }}
-                    >
-                      {roleMeta.label}
-                    </span>
-                  </div>
-                  <FaChevronDown className="toggle-arrow d-none d-lg-block" />
-                </Dropdown.Toggle>
+              <div className="d-flex align-items-center ms-2 gap-3">
+                <Dropdown align="end" className="user-dropdown">
+                  <Dropdown.Toggle as="div" className="user-toggle" id="user-menu">
+                    <div className="user-avatar">
+                      {user?.name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div className="user-info d-none d-lg-block">
+                      <span className="user-name">{user?.name || 'Account'}</span>
+                      <span
+                        className="user-role-badge"
+                        style={{ background: ROLE_BADGE_COLOR[userRole] || '#38bdf8' }}
+                      >
+                        {roleMeta.label}
+                      </span>
+                    </div>
+                    <FaChevronDown className="toggle-arrow d-none d-lg-block" />
+                  </Dropdown.Toggle>
 
-                <Dropdown.Menu className="user-menu">
-                  {/* Mobile role info */}
-                  <div className="user-menu-header d-lg-none">
-                    <strong>{user?.name}</strong>
-                    <span className="d-block text-muted small">{user?.email}</span>
-                    <Badge
-                      style={{ background: ROLE_BADGE_COLOR[userRole] }}
-                      className="mt-1"
-                    >
-                      {roleMeta.label}
-                    </Badge>
-                  </div>
-                  <Dropdown.Divider className="d-lg-none" />
+                  <Dropdown.Menu className="user-menu">
+                    {/* Mobile role info */}
+                    <div className="user-menu-header d-lg-none">
+                      <strong>{user?.name}</strong>
+                      <span className="d-block text-muted small">{user?.email}</span>
+                      <Badge
+                        style={{ background: ROLE_BADGE_COLOR[userRole] }}
+                        className="mt-1"
+                      >
+                        {roleMeta.label}
+                      </Badge>
+                    </div>
+                    <Dropdown.Divider className="d-lg-none" />
 
-                  <Dropdown.Item as={Link} to="/profile" onClick={closeNav}>
-                    <FaUserCircle className="menu-icon" /> My Profile
-                  </Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/orders" onClick={closeNav}>
-                    <FaClipboardList className="menu-icon" /> Order History
-                  </Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/prescriptions/upload" onClick={closeNav}>
-                    <FaFileUpload className="menu-icon" /> Upload Prescription
-                  </Dropdown.Item>
+                    <Dropdown.Item as={Link} to="/profile" onClick={closeNav}>
+                      <FaUserCircle className="menu-icon" /> My Profile
+                    </Dropdown.Item>
+                    <Dropdown.Item as={Link} to="/orders" onClick={closeNav}>
+                      <FaClipboardList className="menu-icon" /> Order History
+                    </Dropdown.Item>
+                    <Dropdown.Item as={Link} to="/prescriptions/upload" onClick={closeNav}>
+                      <FaFileUpload className="menu-icon" /> Upload Prescription
+                    </Dropdown.Item>
 
-                  {/* Role dashboard shortcut in dropdown */}
-                  {roleMeta.dashPath && (
-                    <>
-                      <Dropdown.Divider />
-                      <Dropdown.Item as={Link} to={roleMeta.dashPath} onClick={closeNav}>
-                        <FaTachometerAlt className="menu-icon" /> {roleMeta.label} Dashboard
-                      </Dropdown.Item>
-                    </>
-                  )}
+                    {/* Role dashboard shortcut in dropdown */}
+                    {roleMeta.dashPath && (
+                      <>
+                        <Dropdown.Divider />
+                        <Dropdown.Item as={Link} to={roleMeta.dashPath} onClick={closeNav}>
+                          <FaTachometerAlt className="menu-icon" /> {roleMeta.label} Dashboard
+                        </Dropdown.Item>
+                      </>
+                    )}
 
-                  <Dropdown.Divider />
-                  <Dropdown.Item onClick={handleLogout} className="logout-item">
-                    <FaSignOutAlt className="menu-icon" /> Logout
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
+                    <Dropdown.Divider />
+                    <Dropdown.Item onClick={handleLogout} className="logout-item">
+                      <FaSignOutAlt className="menu-icon" /> Logout
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
+              </div>
             ) : (
               /* ── Auth buttons ──────────────────────────────────── */
               <div className="d-flex gap-2">

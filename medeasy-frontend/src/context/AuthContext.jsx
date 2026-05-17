@@ -20,16 +20,8 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false';
-const delay    = (ms) => new Promise((r) => setTimeout(r, ms));
+const USE_MOCK = false;
 
-// ─── Mock user accounts (frontend-only dev login) ─────────────────────────────
-const MOCK_USERS = [
-  { id: 1, name: 'Ahmed Khan',    email: 'patient@medeasy.pk',    password: 'patient123',    role: 'patient'    },
-  { id: 2, name: 'Dr. Sara Ali', email: 'doctor@medeasy.pk',     password: 'doctor123',     role: 'doctor'     },
-  { id: 3, name: 'Admin User',   email: 'admin@medeasy.pk',      password: 'admin123',      role: 'admin'      },
-  { id: 4, name: 'Raza PharmD',  email: 'pharmacist@medeasy.pk', password: 'pharmacist123', role: 'pharmacist' },
-];
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 const STORAGE_KEYS = {
@@ -40,7 +32,7 @@ const STORAGE_KEYS = {
 
 function persistSession(accessToken, refreshToken, user) {
   localStorage.setItem(STORAGE_KEYS.ACCESS,  accessToken);
-  localStorage.setItem(STORAGE_KEYS.REFRESH, refreshToken);
+  if (refreshToken) localStorage.setItem(STORAGE_KEYS.REFRESH, refreshToken);
   localStorage.setItem(STORAGE_KEYS.USER,    JSON.stringify(user));
 }
 
@@ -96,29 +88,10 @@ export function AuthProvider({ children }) {
     setLoading(true);
     setAuthError(null);
     try {
-      // ── Mock login (no backend needed) ────────────────────────
-      if (USE_MOCK) {
-        await delay(600);
-        const found = MOCK_USERS.find(
-          (u) => u.email === email && u.password === password
-        );
-        if (!found) {
-          const msg = 'Invalid email or password. Please try again.';
-          setAuthError(msg);
-          throw new Error(msg);
-        }
-        const { password: _pw, ...userData } = found;
-        const fakeToken = 'mock-jwt-' + btoa(JSON.stringify(userData));
-        persistSession(fakeToken, 'mock-refresh', userData);
-        setToken(fakeToken);
-        setUser(userData);
-        return { user: userData, token: fakeToken, role: userData.role };
-      }
-
       // ── Real API login ─────────────────────────────────────────
-      const { data } = await api.post('/auth/login/', { email, password });
-      const { access, refresh, user: userData } = data;
-      persistSession(access, refresh, userData);
+      const { data } = await api.post('/auth/login', { email, password });
+      const { token: access, ...userData } = data;
+      persistSession(access, null, userData);
       setToken(access);
       setUser(userData);
       return { user: userData, token: access, role: userData.role };
@@ -143,14 +116,14 @@ export function AuthProvider({ children }) {
     setLoading(true);
     setAuthError(null);
     try {
-      const { data } = await api.post('/auth/register/', userData);
+      const { data } = await api.post('/auth/register', userData);
 
       // Some backends auto-login on register; handle both patterns:
       // 1. Returns tokens → auto-login
       // 2. Returns only user → require manual login
-      if (data.access) {
-        const { access, refresh, user: newUser } = data;
-        persistSession(access, refresh, newUser);
+      if (data.token) {
+        const { token: access, ...newUser } = data;
+        persistSession(access, null, newUser);
         setToken(access);
         setUser(newUser);
         return { user: newUser, token: access, role: newUser.role };
