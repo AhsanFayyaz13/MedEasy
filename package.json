@@ -1,0 +1,13 @@
+{
+    "name": "medeasy",
+    "version": "1.0.0",
+    "scripts": {
+        "install-all": "npm install --prefix frontend && npm install --prefix backend",
+        "start-frontend": "npm start --prefix frontend",
+        "start-backend": "npm run dev --prefix backend",
+        "start": "concurrently \"npm run start-backend\" \"npm run start-frontend\""
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    }
+}
