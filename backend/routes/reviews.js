@@ -8,6 +8,7 @@ const {
 const { protect } = require('../middleware/auth');
 
 router.route('/')
+  .get(getReviews)
   .post(protect, addReview);
 
 router.route('/:targetType/:targetId')

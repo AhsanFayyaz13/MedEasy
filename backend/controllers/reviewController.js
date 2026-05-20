@@ -6,12 +6,14 @@ const Review = require('../models/Review');
 exports.addReview = async (req, res) => {
   try {
     const { targetType, targetId, rating, comment } = req.body;
+    const normalizedTargetType = targetType || 'pharmacy';
+    const normalizedTargetId = targetId || '000000000000000000000000';
 
     // Check if user already reviewed this target
     const alreadyReviewed = await Review.findOne({
       userId: req.user._id,
-      targetId,
-      targetType
+      targetId: normalizedTargetId,
+      targetType: normalizedTargetType
     });
 
     if (alreadyReviewed) {
@@ -20,8 +22,8 @@ exports.addReview = async (req, res) => {
 
     const review = new Review({
       userId: req.user._id,
-      targetType,
-      targetId,
+      targetType: normalizedTargetType,
+      targetId: normalizedTargetId,
       rating: Number(rating),
       comment
     });
@@ -33,17 +35,26 @@ exports.addReview = async (req, res) => {
   }
 };
 
-// @desc    Get reviews for a specific target
+// @desc    Get reviews for a specific target or recent reviews
+// @route   GET /api/reviews
 // @route   GET /api/reviews/:targetType/:targetId
 // @access  Public
 exports.getReviews = async (req, res) => {
   try {
-    const { targetType, targetId } = req.params;
+    const { targetType: paramTargetType, targetId: paramTargetId } = req.params;
+    const { targetType: queryTargetType, targetId: queryTargetId, limit } = req.query;
 
-    const reviews = await Review.find({ targetType, targetId })
-      .populate('userId', 'name')
-      .sort({ createdAt: -1 });
+    const targetType = paramTargetType || queryTargetType;
+    const targetId = paramTargetId || queryTargetId;
+    const filter = {};
 
+    if (targetType) filter.targetType = targetType;
+    if (targetId) filter.targetId = targetId;
+
+    const query = Review.find(filter).populate('userId', 'name').sort({ createdAt: -1 });
+    if (limit) query.limit(Number(limit));
+
+    const reviews = await query;
     res.json(reviews);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -190,3 +190,20 @@ exports.cancelOrder = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Admin/Pharmacist: get all orders (with optional status filter)
+// @route   GET /api/orders/all
+// @access  Private (pharmacist/admin)
+exports.getAllOrders = async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.status && req.query.status !== 'all') filter.status = req.query.status;
+    const orders = await Order.find(filter)
+      .populate('userId', 'name email')
+      .populate('items.medicineId', 'name imageUrl requiresPrescription')
+      .sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

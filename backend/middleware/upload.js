@@ -25,8 +25,11 @@ const checkFileType = (file, cb) => {
   }
 };
 
+const MAX_FILE_BYTES = parseInt(process.env.MAX_UPLOAD_BYTES, 10) || 5 * 1024 * 1024; // 5MB default
+
 const upload = multer({
   storage,
+  limits: { fileSize: MAX_FILE_BYTES },
   fileFilter: function(req, file, cb) {
     checkFileType(file, cb);
   }
