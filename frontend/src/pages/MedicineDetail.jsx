@@ -11,6 +11,8 @@ import {
 } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import api from '../services/api';
 import './MedicineDetail.css';
 
@@ -88,6 +90,16 @@ export default function MedicineDetail() {
   const navigate          = useNavigate();
   const { addToCart, cartItems } = useCart();
   const { data: med, loading, error } = useMedicine(id);
+  const { isAuthenticated, userRole } = useAuth();
+  const { openLoginModal } = useAuthModal();
+
+  useEffect(() => {
+    if (isAuthenticated && userRole && userRole !== 'patient') {
+      if (userRole === 'admin') navigate('/admin', { replace: true });
+      else if (userRole === 'doctor') navigate('/doctor', { replace: true });
+      else if (userRole === 'pharmacist') navigate('/pharmacist', { replace: true });
+    }
+  }, [isAuthenticated, userRole, navigate]);
 
   const [qty, setQty]     = useState(1);
   const [added, setAdded] = useState(false);
@@ -103,6 +115,12 @@ export default function MedicineDetail() {
   };
 
   const handleAddToCart = () => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      openLoginModal();
+      return;
+    }
+
     if (!canAdd) return;
     const result = addToCart(med, qty);
     if (result === 'capped') {

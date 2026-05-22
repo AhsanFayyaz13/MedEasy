@@ -18,10 +18,10 @@ async function seed() {
 
   // Create users
   const users = [
-    { name: 'Admin User', email: 'admin@medeasy.local', password: 'AdminPass123', role: 'admin' },
-    { name: 'Pharmacist', email: 'pharm@medeasy.local', password: 'PharmPass123', role: 'pharmacist' },
-    { name: 'Dr. Doctor', email: 'doctor@medeasy.local', password: 'DoctorPass123', role: 'doctor' },
-    { name: 'Patient User', email: 'patient@medeasy.local', password: 'PatientPass123', role: 'patient' },
+    { name: 'Admin User', email: 'admin@medeasy.local', password: 'AdminPass123', role: 'admin', phone: '923001111111' },
+    { name: 'Pharmacist', email: 'pharm@medeasy.local', password: 'PharmPass123', role: 'pharmacist', phone: '923002222222' },
+    { name: 'Dr. Doctor', email: 'doctor@medeasy.local', password: 'DoctorPass123', role: 'doctor', phone: '923003333333' },
+    { name: 'Patient User', email: 'patient@medeasy.local', password: 'PatientPass123', role: 'patient', phone: '923004444444' },
   ];
 
   for (const u of users) {

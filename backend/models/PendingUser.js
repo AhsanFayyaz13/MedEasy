@@ -1,0 +1,20 @@
+const mongoose = require('mongoose');
+
+const pendingUserSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String },
+  phone: { type: String, required: true },
+  password: { type: String, required: true },
+  role: { 
+    type: String, 
+    enum: ['patient', 'pharmacist', 'doctor', 'admin'],
+    default: 'patient'
+  },
+  address: { type: String },
+  verificationCode: { type: String, required: true },
+  verificationCodeExpires: { type: Date, required: true },
+  verificationChannel: { type: String, enum: ['email', 'phone'], required: true },
+  createdAt: { type: Date, default: Date.now, expires: 900 } // TTL index: auto-deletes in 15 minutes (900 seconds)
+});
+
+module.exports = mongoose.model('PendingUser', pendingUserSchema);

@@ -79,17 +79,17 @@ export function AuthProvider({ children }) {
   // ── login ──────────────────────────────────────────────────────────────────
   /**
    * Authenticate a user.
-   * @param {string} email
+   * @param {string} identifier (email or phone)
    * @param {string} password
    * @returns {{ user, token, role }} on success
    * @throws  Error with a human-readable message on failure
    */
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (identifier, password) => {
     setLoading(true);
     setAuthError(null);
     try {
       // ── Real API login ─────────────────────────────────────────
-      const { data } = await api.post('/auth/login', { email, password });
+      const { data } = await api.post('/auth/login', { identifier, password });
       const { token: access, ...userData } = data;
       persistSession(access, null, userData);
       setToken(access);
@@ -97,7 +97,7 @@ export function AuthProvider({ children }) {
       return { user: userData, token: access, role: userData.role };
     } catch (err) {
       if (err.message && !err.response) throw err; // re-throw mock errors
-      const msg = parseApiError(err, 'Invalid email or password. Please try again.');
+      const msg = parseApiError(err, 'Invalid email/phone or password. Please try again.');
       setAuthError(msg);
       throw new Error(msg);
     } finally {
@@ -107,9 +107,9 @@ export function AuthProvider({ children }) {
 
   // ── register ───────────────────────────────────────────────────────────────
   /**
-   * Register a new user.
-   * @param {{ name, email, phone, password, role }} userData
-   * @returns {{ user, token, role }} on success
+   * Register a new user (creates pending user, triggers verification code).
+   * @param {{ name, email, phone, password, role, verificationChannel }} userData
+   * @returns {Object} response metadata containing pending verification info
    * @throws  Error with a human-readable message on failure
    */
   const register = useCallback(async (userData) => {
@@ -117,22 +117,45 @@ export function AuthProvider({ children }) {
     setAuthError(null);
     try {
       const { data } = await api.post('/auth/register', userData);
-
-      // Some backends auto-login on register; handle both patterns:
-      // 1. Returns tokens → auto-login
-      // 2. Returns only user → require manual login
-      if (data.token) {
-        const { token: access, ...newUser } = data;
-        persistSession(access, null, newUser);
-        setToken(access);
-        setUser(newUser);
-        return { user: newUser, token: access, role: newUser.role };
-      }
-
-      // Pattern 2: registration succeeded but no token yet
-      return { user: data.user ?? data, token: null, role: (data.user ?? data).role };
+      return data; // Returns message, normalized phone, and chosen channel
     } catch (err) {
       const msg = parseApiError(err, 'Registration failed. Please check your details and try again.');
+      setAuthError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ── verifyRegistration ──────────────────────────────────────────────────────
+  const verifyRegistration = useCallback(async (phone, code) => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const { data } = await api.post('/auth/verify-registration', { phone, code });
+      const { token: access, ...userData } = data;
+      persistSession(access, null, userData);
+      setToken(access);
+      setUser(userData);
+      return { user: userData, token: access, role: userData.role };
+    } catch (err) {
+      const msg = parseApiError(err, 'Verification failed. Please check the code and try again.');
+      setAuthError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ── resendVerification ──────────────────────────────────────────────────────
+  const resendVerification = useCallback(async (phone) => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const { data } = await api.post('/auth/resend-verification', { phone });
+      return data;
+    } catch (err) {
+      const msg = parseApiError(err, 'Failed to resend verification code.');
       setAuthError(msg);
       throw new Error(msg);
     } finally {
@@ -147,6 +170,48 @@ export function AuthProvider({ children }) {
     setToken(null);
     setAuthError(null);
   }, []);
+
+  // ── updateProfile ──────────────────────────────────────────────────────────
+  const updateProfile = useCallback(async (profileData) => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const { data } = await api.put('/auth/profile', profileData);
+      persistSession(token, null, data);
+      setUser(data);
+      return data;
+    } catch (err) {
+      const msg = parseApiError(err, 'Failed to update profile details.');
+      setAuthError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  // ── uploadProfilePhoto ─────────────────────────────────────────────────────
+  const uploadProfilePhoto = useCallback(async (file) => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const formData = new FormData();
+      formData.append('profilePhoto', file);
+      const { data } = await api.post('/auth/profile/photo', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      persistSession(token, null, data);
+      setUser(data);
+      return data;
+    } catch (err) {
+      const msg = parseApiError(err, 'Failed to upload profile photo.');
+      setAuthError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
 
   // ── clear transient error ──────────────────────────────────────────────────
   const clearAuthError = useCallback(() => setAuthError(null), []);
@@ -163,6 +228,10 @@ export function AuthProvider({ children }) {
     register,
     logout,
     clearAuthError,
+    verifyRegistration,
+    resendVerification,
+    updateProfile,
+    uploadProfilePhoto,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

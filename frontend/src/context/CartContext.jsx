@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
 
 /**
  * CartContext
@@ -38,7 +39,15 @@ function loadCart() {
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export function CartProvider({ children }) {
+  const { isAuthenticated } = useAuth();
   const [cartItems, setCartItems] = useState(loadCart);
+
+  // Clear cart if user is not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCartItems([]);
+    }
+  }, [isAuthenticated]);
 
   // Persist on every change
   useEffect(() => {

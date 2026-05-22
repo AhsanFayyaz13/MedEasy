@@ -18,25 +18,27 @@ function validate(fields) {
   else if (fields.name.trim().length < 2)
     errors.name = 'Name must be at least 2 characters.';
 
-  if (!fields.email.trim())
-    errors.email = 'Email address is required.';
-  else if (!EMAIL_RE.test(fields.email))
+  // Email is optional unless they select Email verification
+  if (fields.verificationChannel === 'email' && !fields.email.trim()) {
+    errors.email = 'Email address is required to receive verification code via email.';
+  } else if (fields.email.trim() && !EMAIL_RE.test(fields.email)) {
     errors.email = 'Please enter a valid email address.';
+  }
 
-  if (fields.phone && !PHONE_RE.test(fields.phone))
+  // Phone is mandatory
+  if (!fields.phone.trim())
+    errors.phone = 'Phone number is required.';
+  else if (!PHONE_RE.test(fields.phone))
     errors.phone = 'Please enter a valid phone number.';
 
   if (!fields.role)
     errors.role = 'Please select your role.';
 
+  // Simplified password: only require 8 characters minimum
   if (!fields.password)
     errors.password = 'Password is required.';
   else if (fields.password.length < 8)
     errors.password = 'Password must be at least 8 characters.';
-  else if (!/[A-Z]/.test(fields.password))
-    errors.password = 'Password must contain at least one uppercase letter.';
-  else if (!/\d/.test(fields.password))
-    errors.password = 'Password must contain at least one number.';
 
   if (!fields.confirmPassword)
     errors.confirmPassword = 'Please confirm your password.';
@@ -67,11 +69,20 @@ function passwordStrength(pwd) {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-const INITIAL = { name: '', email: '', phone: '', role: 'patient', password: '', confirmPassword: '' };
+const INITIAL = { name: '', email: '', phone: '', role: '', password: '', confirmPassword: '', verificationChannel: 'phone' };
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register, isAuthenticated, userRole, loading, authError, clearAuthError } = useAuth();
+  const { 
+    register, 
+    verifyRegistration, 
+    resendVerification, 
+    isAuthenticated, 
+    userRole, 
+    loading, 
+    authError, 
+    clearAuthError 
+  } = useAuth();
 
   // If already logged in, redirect
   useEffect(() => {
@@ -85,7 +96,14 @@ export default function Register() {
   const [touched,  setTouched]  = useState({});
   const [showPass, setShowPass] = useState(false);
   const [showConf, setShowConf] = useState(false);
-  const [success,  setSuccess]  = useState(false);
+
+  // Flow control states
+  const [roleStep,         setRoleStep]         = useState(true); // first ask "what you are?"
+  const [verificationStep, setVerificationStep] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [pendingPhone,     setPendingPhone]     = useState('');
+  const [resendTimer,      setResendTimer]      = useState(0);
+  const [success,          setSuccess]          = useState(false);
 
   const strength = passwordStrength(fields.password);
 
@@ -93,7 +111,7 @@ export default function Register() {
   useEffect(() => {
     if (authError) clearAuthError();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields]);
+  }, [fields, verificationCode]);
 
   // Live validate after touch
   useEffect(() => {
@@ -102,12 +120,36 @@ export default function Register() {
     }
   }, [fields, touched]);
 
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let interval = null;
+    if (verificationStep && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((t) => t - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [verificationStep, resendTimer]);
+
   const handleChange = (e) => {
-    setFields((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFields((prev) => {
+      const nextFields = { ...prev, [name]: value };
+      // If email is cleared, force channel back to phone
+      if (name === 'email' && !value.trim() && prev.verificationChannel === 'email') {
+        nextFields.verificationChannel = 'phone';
+      }
+      return nextFields;
+    });
   };
 
   const handleBlur = (e) => {
     setTouched((prev) => ({ ...prev, [e.target.name]: true }));
+  };
+
+  const selectRole = (role) => {
+    setFields((prev) => ({ ...prev, role }));
+    setRoleStep(false);
   };
 
   const handleSubmit = async (e) => {
@@ -119,30 +161,226 @@ export default function Register() {
     if (Object.keys(validationErrors).length > 0) return;
 
     try {
-      const { token, role } = await register({
+      const data = await register({
         name:     fields.name,
-        email:    fields.email,
-        phone:    fields.phone || undefined,
+        email:    fields.email.trim() || undefined,
+        phone:    fields.phone,
         role:     fields.role,
         password: fields.password,
+        verificationChannel: fields.verificationChannel,
       });
 
-      if (token) {
-        // Backend auto-logged us in
-        navigate(ROLE_DASHBOARD[role] || '/', { replace: true });
-      } else {
-        // Backend registered but didn't issue a token → show success and send to login
-        setSuccess(true);
-        setTimeout(() => navigate('/login', { state: { registered: true } }), 2500);
-      }
+      // On register success, set verification state
+      setPendingPhone(data.phone);
+      setVerificationStep(true);
+      setResendTimer(60);
+      setErrors({});
     } catch {
-      // Displayed via authError
+      // Handled by authError in useAuth
+    }
+  };
+
+  const handleVerifySubmit = async (e) => {
+    e.preventDefault();
+    if (!verificationCode || verificationCode.length !== 6) {
+      setErrors({ code: 'Please enter a valid 6-digit verification code.' });
+      return;
+    }
+
+    try {
+      const { role } = await verifyRegistration(pendingPhone, verificationCode);
+      setSuccess(true);
+      setTimeout(() => {
+        navigate(ROLE_DASHBOARD[role] || '/', { replace: true });
+      }, 1500);
+    } catch {
+      // Handled by authError in useAuth
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendTimer > 0) return;
+    try {
+      await resendVerification(pendingPhone);
+      setResendTimer(60);
+      setErrors({});
+    } catch {
+      // Handled by authError in useAuth
     }
   };
 
   const isValid   = (name) => touched[name] && !errors[name];
   const isInvalid = (name) => touched[name] && !!errors[name];
 
+  // ─── Step 1: Render Role Selection ("what you are?") ───────────────────────
+  if (roleStep) {
+    return (
+      <div className="auth-page">
+        <Container>
+          <Row className="justify-content-center align-items-center min-vh-auth">
+            <Col xs={12} sm={10} md={8} lg={6}>
+              <Card className="auth-card">
+                <Card.Body className="p-4 p-md-5">
+                  <div className="auth-header">
+                    <div className="auth-icon-badge">👋</div>
+                    <h2 className="auth-title">Welcome to MedEasy</h2>
+                    <p className="auth-subtitle">Let&apos;s get started. Please choose your role:</p>
+                  </div>
+
+                  <div className="role-select-container">
+                    {[
+                      {
+                        value: 'patient',
+                        emoji: '💊',
+                        title: 'Register as Patient',
+                        desc: 'Search and order medicines, upload prescriptions, book doctor consultations, and track health schedules.',
+                      },
+                      {
+                        value: 'doctor',
+                        emoji: '🩺',
+                        title: 'Register as Doctor',
+                        desc: 'Provide online consultations, manage patient appointments, view prescriptions, and guide medical plans.',
+                      },
+                      {
+                        value: 'pharmacist',
+                        emoji: '🏪',
+                        title: 'Register as Pharmacist',
+                        desc: 'Fulfill medicine orders, manage stock inventories, confirm shipments, and verify prescriptions.',
+                      },
+                    ].map((role) => (
+                      <div
+                        key={role.value}
+                        className="role-select-card"
+                        onClick={() => selectRole(role.value)}
+                      >
+                        <div className="role-select-emoji">{role.emoji}</div>
+                        <div className="role-select-info">
+                          <div className="role-select-title">{role.title}</div>
+                          <div className="role-select-desc">{role.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="auth-switch mt-4 text-center">
+                    Already have an account? <Link to="/login">Sign In</Link>
+                  </p>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </Container>
+      </div>
+    );
+  }
+
+  // ─── Step 3: Render Verification Step ──────────────────────────────────────
+  if (verificationStep) {
+    return (
+      <div className="auth-page">
+        <Container>
+          <Row className="justify-content-center align-items-center min-vh-auth">
+            <Col xs={12} sm={10} md={8} lg={6}>
+              <Card className="auth-card">
+                <Card.Body className="p-4 p-md-5">
+
+                  {/* Header */}
+                  <div className="auth-header">
+                    <div className="auth-icon-badge">🔑</div>
+                    <h2 className="auth-title">Verify Your Account</h2>
+                    <p className="auth-subtitle">
+                      Enter the 6-digit code sent to your{' '}
+                      <strong>{fields.verificationChannel === 'email' ? 'email' : 'phone number'}</strong>:
+                      <br />
+                      <span className="text-primary font-monospace fs-5">
+                        {fields.verificationChannel === 'email' ? fields.email : pendingPhone}
+                      </span>
+                    </p>
+                  </div>
+
+                  {/* API error */}
+                  {authError && (
+                    <Alert variant="danger" className="auth-alert" dismissible onClose={clearAuthError}>
+                      <strong>Verification failed:</strong> {authError}
+                    </Alert>
+                  )}
+
+                  {/* Success */}
+                  {success && (
+                    <Alert variant="success" className="auth-alert">
+                       Verification successful! Opening your dashboard…
+                    </Alert>
+                  )}
+
+                  <Form noValidate onSubmit={handleVerifySubmit}>
+                    <Form.Group className="mb-4" controlId="otpCode">
+                      <Form.Label className="text-center w-100 font-semibold mb-2">Verification Code</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="123456"
+                        maxLength={6}
+                        className="text-center font-monospace fs-4"
+                        style={{ letterSpacing: '0.3em' }}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                        isInvalid={!!errors.code}
+                      />
+                      <Form.Control.Feedback type="invalid" className="text-center">{errors.code}</Form.Control.Feedback>
+                    </Form.Group>
+
+                    <Button
+                      type="submit"
+                      className="btn-auth w-100 mb-3"
+                      disabled={loading || success}
+                    >
+                      {loading ? (
+                        <>
+                          <Spinner animation="border" size="sm" className="me-2" />
+                          Verifying…
+                        </>
+                      ) : (
+                        'Verify Account'
+                      )}
+                    </Button>
+                  </Form>
+
+                  <div className="text-center mt-3">
+                    <p className="mb-2 text-muted">Didn&apos;t receive the code?</p>
+                    <Button
+                      variant="link"
+                      className="p-0 text-decoration-none font-semibold text-primary"
+                      onClick={handleResend}
+                      disabled={resendTimer > 0 || loading}
+                    >
+                      {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Verification Code'}
+                    </Button>
+                  </div>
+
+                  <hr className="my-4" />
+
+                  <div className="text-center">
+                    <Button
+                      variant="link"
+                      className="text-muted p-0 font-sm text-decoration-none"
+                      onClick={() => {
+                        setVerificationStep(false);
+                        setVerificationCode('');
+                        clearAuthError();
+                      }}
+                    >
+                      ← Back to Registration (Edit details)
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </Container>
+      </div>
+    );
+  }
+
+  // ─── Step 2: Render Details Registration Form ──────────────────────────────
   return (
     <div className="auth-page">
       <Container>
@@ -151,24 +389,33 @@ export default function Register() {
             <Card className="auth-card">
               <Card.Body className="p-4 p-md-5">
 
+                {/* Role Switcher Back Link */}
+                <button
+                  type="button"
+                  className="change-role-btn"
+                  onClick={() => {
+                    setRoleStep(true);
+                    clearAuthError();
+                  }}
+                >
+                  ← Registering as <span className="text-capitalize font-bold">{fields.role}</span> (Change)
+                </button>
+
                 {/* Header */}
                 <div className="auth-header">
-                  <div className="auth-icon-badge">✨</div>
-                  <h2 className="auth-title">Create Account</h2>
-                  <p className="auth-subtitle">Join MedEasy for a healthier life</p>
+                  <div className="auth-icon-badge">
+                    {fields.role === 'patient' && '💊'}
+                    {fields.role === 'doctor' && '🩺'}
+                    {fields.role === 'pharmacist' && '🏪'}
+                  </div>
+                  <h2 className="auth-title">Complete Registration</h2>
+                  <p className="auth-subtitle">Create your new account details</p>
                 </div>
 
                 {/* API error */}
                 {authError && (
                   <Alert variant="danger" className="auth-alert" dismissible onClose={clearAuthError}>
                     <strong>Registration failed:</strong> {authError}
-                  </Alert>
-                )}
-
-                {/* Success */}
-                {success && (
-                  <Alert variant="success" className="auth-alert">
-                    🎉 Account created! Redirecting to login…
                   </Alert>
                 )}
 
@@ -181,7 +428,7 @@ export default function Register() {
                       <Form.Control
                         type="text"
                         name="name"
-                        placeholder="John Doe"
+                        placeholder="Enter your name"
                         className="ps-icon"
                         value={fields.name}
                         onChange={handleChange}
@@ -194,9 +441,30 @@ export default function Register() {
                     </div>
                   </Form.Group>
 
-                  {/* Email */}
+                  {/* Phone (mandatory) */}
+                  <Form.Group className="mb-3" controlId="regPhone">
+                    <Form.Label>Phone Number <span className="required-star">*</span></Form.Label>
+                    <div className="input-icon-wrap">
+                      <FaPhone className="input-icon" />
+                      <Form.Control
+                        type="tel"
+                        name="phone"
+                        placeholder="03000000000"
+                        className="ps-icon"
+                        value={fields.phone}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        isValid={isValid('phone')}
+                        isInvalid={isInvalid('phone')}
+                        autoComplete="tel"
+                      />
+                      <Form.Control.Feedback type="invalid">{errors.phone}</Form.Control.Feedback>
+                    </div>
+                  </Form.Group>
+
+                  {/* Email (optional) */}
                   <Form.Group className="mb-3" controlId="regEmail">
-                    <Form.Label>Email Address <span className="required-star">*</span></Form.Label>
+                    <Form.Label>Email Address <span className="optional-label">(optional)</span></Form.Label>
                     <div className="input-icon-wrap">
                       <FaEnvelope className="input-icon" />
                       <Form.Control
@@ -215,56 +483,40 @@ export default function Register() {
                     </div>
                   </Form.Group>
 
-                  {/* Phone (optional) */}
-                  <Form.Group className="mb-3" controlId="regPhone">
-                    <Form.Label>Phone Number <span className="optional-label">(optional)</span></Form.Label>
-                    <div className="input-icon-wrap">
-                      <FaPhone className="input-icon" />
-                      <Form.Control
-                        type="tel"
-                        name="phone"
-                        placeholder="+92 300 0000000"
-                        className="ps-icon"
-                        value={fields.phone}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isValid={isValid('phone')}
-                        isInvalid={isInvalid('phone')}
-                        autoComplete="tel"
-                      />
-                      <Form.Control.Feedback type="invalid">{errors.phone}</Form.Control.Feedback>
-                    </div>
-                  </Form.Group>
-
-                  {/* Role */}
-                  <Form.Group className="mb-3" controlId="regRole">
-                    <Form.Label>I am a <span className="required-star">*</span></Form.Label>
+                  {/* Verification Channel selection */}
+                  <Form.Group className="mb-3" controlId="verificationChannel">
+                    <Form.Label>Verify Account Via <span className="required-star">*</span></Form.Label>
                     <div className="role-grid">
                       {[
-                        { value: 'patient',    label: '🤒 Patient'    },
-                        { value: 'doctor',     label: '👨‍⚕️ Doctor'     },
-                        { value: 'pharmacist', label: '💊 Pharmacist'  },
-                      ].map(({ value, label }) => (
+                        { value: 'phone', label: ' Phone / SMS' },
+                        { value: 'email', label: ' Email Address', disabled: !fields.email.trim() },
+                      ].map(({ value, label, disabled }) => (
                         <label
                           key={value}
-                          className={`role-option ${fields.role === value ? 'selected' : ''}`}
-                          htmlFor={`role-${value}`}
+                          className={`role-option ${fields.verificationChannel === value ? 'selected' : ''} ${disabled ? 'disabled-label' : ''}`}
+                          htmlFor={`channel-${value}`}
+                          style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                         >
                           <input
                             type="radio"
-                            id={`role-${value}`}
-                            name="role"
+                            id={`channel-${value}`}
+                            name="verificationChannel"
                             value={value}
-                            checked={fields.role === value}
-                            onChange={handleChange}
+                            checked={fields.verificationChannel === value}
+                            onChange={(e) => {
+                              if (!disabled) handleChange(e);
+                            }}
                             className="d-none"
+                            disabled={disabled}
                           />
                           {label}
                         </label>
                       ))}
                     </div>
-                    {isInvalid('role') && (
-                      <div className="invalid-feedback d-block">{errors.role}</div>
+                    {fields.verificationChannel === 'email' && !fields.email.trim() && (
+                      <div className="invalid-feedback d-block mt-1">
+                        You must enter an email address to verify via email.
+                      </div>
                     )}
                   </Form.Group>
 
@@ -332,13 +584,17 @@ export default function Register() {
                   <Button
                     type="submit"
                     className="btn-auth w-100"
-                    disabled={loading || success}
+                    disabled={loading}
                     id="register-submit-btn"
                   >
-                    {loading
-                      ? <><Spinner animation="border" size="sm" className="me-2" />Creating account…</>
-                      : 'Create Account'
-                    }
+                    {loading ? (
+                      <>
+                        <Spinner animation="border" size="sm" className="me-2" />
+                        Creating account…
+                      </>
+                    ) : (
+                      'Create Account'
+                    )}
                   </Button>
                 </Form>
 

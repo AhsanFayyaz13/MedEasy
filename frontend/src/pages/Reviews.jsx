@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { FaStar, FaRegStar } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import './Reviews.css';
 import { fetchReviews, postReview } from '../services/reviewService';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +18,17 @@ function StarDisplay({ rating }) {
 }
 
 export default function Reviews() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, userRole } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated && userRole && userRole !== 'patient') {
+      if (userRole === 'admin') navigate('/admin', { replace: true });
+      else if (userRole === 'doctor') navigate('/doctor', { replace: true });
+      else if (userRole === 'pharmacist') navigate('/pharmacist', { replace: true });
+    }
+  }, [isAuthenticated, userRole, navigate]);
+
   const { toast } = useToast();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);

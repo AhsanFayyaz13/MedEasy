@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Container, Row, Col, Card, Table, Badge,
-  Button, Form, Nav, ProgressBar, Alert,
+  Button, Form, Nav, ProgressBar, Alert, Modal,
 } from 'react-bootstrap';
 import {
   FaUsers, FaChartBar, FaBoxes, FaFileMedical,
   FaUserShield, FaTrash, FaDownload, FaExclamationTriangle,
   FaCheckCircle, FaClock, FaTimesCircle, FaTrophy,
   FaMoneyBillWave, FaShoppingCart, FaSyncAlt,
+  FaCalendarCheck, FaSlidersH, FaPlus, FaPlusCircle, FaSearch, FaHistory,
+  FaUserCheck,
 } from 'react-icons/fa';
 import {
   Chart as ChartJS, CategoryScale, LinearScale,
@@ -20,6 +23,7 @@ import {
   INVENTORY_KPI, LOW_STOCK_ITEMS, RX_KPI, RX_BY_MONTH,
 } from '../data/mockAdminData';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import './AdminDashboard.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler, Title, Tooltip, Legend);
@@ -29,7 +33,21 @@ const ROLES = ['patient','doctor','pharmacist','admin'];
 const ROLE_COLOR = { patient:'primary', doctor:'info', pharmacist:'success', admin:'danger' };
 const STATUS_COLOR = { active:'success', suspended:'warning' };
 const fmtRs = (n) => `Rs. ${n.toLocaleString()}`;
+const fmtDate = (d) => {
+  if (!d) return '—';
+  try {
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-PK', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+  } catch (e) {
+    return d;
+  }
+};
 const pdfPlaceholder = (label) => alert(`PDF download for "${label}" will be available once backend is connected.`);
+
+const CHART_OPTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { position:'top' }, title: { display: false } },
+  scales: { y: { beginAtZero: true, grid: { color:'#f1f5f9' } }, x: { grid:{ display:false } } },
+};
 
 /* ─── KPI card ───────────────────────────────────────────────── */
 function KpiCard({ label, value, icon, color, sub }) {
@@ -45,12 +63,87 @@ function KpiCard({ label, value, icon, color, sub }) {
   );
 }
 
+/* ═══════════════ TAB 0 – OVERVIEW (LANDING) ═══════════════════ */
+function OverviewTab({ setActive, stats }) {
+  const { user } = useAuth();
+  const barData = {
+    labels: MONTHLY_SALES.labels,
+    datasets: [
+      { label:'Revenue (Rs.)', data: MONTHLY_SALES.revenue, backgroundColor:'rgba(167, 139, 250, 0.7)', borderRadius:8, borderSkipped:false },
+      { label:'Orders',        data: MONTHLY_SALES.orders,  backgroundColor:'rgba(56, 189, 248, 0.7)', borderRadius:8, borderSkipped:false },
+    ],
+  };
+
+  const shortcuts = [
+    { label: 'User Management', tab: 'users', icon: <FaUsers size={24} />, bg: '#e0f2fe', color: '#0369a1', desc: 'Manage patients, doctors & roles' },
+    { label: 'Medicine Catalog', tab: 'medicines', icon: <FaBoxes size={24} />, bg: '#f0fdf4', color: '#15803d', desc: 'Pricing controls & inventory stock' },
+    { label: 'Appointments', tab: 'appointments', icon: <FaCalendarCheck size={24} />, bg: '#ecfeff', color: '#0891b2', desc: 'Hospital-wide doctor schedules' },
+    { label: 'Order Tracking', tab: 'orders', icon: <FaShoppingCart size={24} />, bg: '#fffbeb', color: '#b45309', desc: 'Logistics tracking & refunds' },
+    { label: 'Sales Reports', tab: 'reports', icon: <FaChartBar size={24} />, bg: '#faf5ff', color: '#7e22ce', desc: 'Sales trend graphs & leaderboards' },
+    { label: 'System Settings', tab: 'settings', icon: <FaSlidersH size={24} />, bg: '#f8fafc', color: '#475569', desc: 'Commission, courier selection' },
+  ];
+
+  return (
+    <div className="adm-overview">
+      {/* Landing Welcome */}
+      <div className="adm-welcome-banner mb-4">
+        <h2>Welcome back, {user?.name || 'Administrator'}!</h2>
+        <p>Real-time analytics monitor and cross-platform medical logistics panel.</p>
+      </div>
+
+      {/* KPI Cards Grid */}
+      <Row className="g-3 mb-4">
+        <Col sm={6} xl={3}><KpiCard label="Total Platform Users" value="5,200" icon={<FaUsers />} color="#818cf8" sub="+12% from last month" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Orders Today" value={stats.ordersCount} icon={<FaShoppingCart />} color="#38bdf8" sub="Processing" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Revenue MTD" value="Rs. 2.4M" icon={<FaMoneyBillWave />} color="#10b981" sub="Target: Rs. 3.0M" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Platform Appointments" value={stats.aptsCount} icon={<FaCalendarCheck />} color="#f59e0b" sub="Active hospital bookings" /></Col>
+      </Row>
+
+      {/* Tactile Shortcut Grid */}
+      <h5 className="fw-bold mb-3 text-dark">Tactile Command Center</h5>
+      <Row className="g-3 mb-4">
+        {shortcuts.map(s => (
+          <Col md={4} sm={6} key={s.label}>
+            <Card className="adm-shortcut-card shadow-sm clickable h-100" onClick={() => setActive(s.tab)}>
+              <Card.Body className="d-flex align-items-center gap-3">
+                <div className="adm-shortcut-icon" style={{ backgroundColor: s.bg, color: s.color }}>
+                  {s.icon}
+                </div>
+                <div>
+                  <h6 className="fw-bold text-dark mb-1">{s.label}</h6>
+                  <p className="text-muted extra-small mb-0">{s.desc}</p>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
+      {/* Mini sales trend chart */}
+      <Card className="adm-chart-card mb-4 border-0 shadow-sm">
+        <Card.Body>
+          <h6 className="adm-chart-title"><FaChartBar className="me-2 text-primary" />MedEasy Sales & Logistics Trend</h6>
+          <div style={{ height: 250 }}>
+            <Bar data={barData} options={CHART_OPTS} />
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
+  );
+}
+
 /* ═══════════════ TAB 1 – USER MANAGEMENT ════════════════════ */
-function UsersTab() {
+function UsersTab({ users, setUsers }) {
   const { toast } = useToast();
-  const [users,   setUsers]   = useState([...MOCK_USERS]);
   const [search,  setSearch]  = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+
+  // Create User Modal States
+  const [showModal, setShowModal] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState('patient');
 
   const visible = users.filter(u => {
     const matchRole   = roleFilter === 'all' || u.role === roleFilter;
@@ -65,14 +158,42 @@ function UsersTab() {
   };
 
   const handleDelete = (id) => {
+    if (!window.confirm('Delete this user? This cannot be undone.')) return;
     setUsers(prev => prev.filter(u => u.id !== id));
-    toast.success('User removed');
+    toast.success('User removed from platform database');
   };
 
   const handleToggleStatus = (id) => {
     setUsers(prev => prev.map(u => u.id === id
       ? {...u, status: u.status === 'active' ? 'suspended' : 'active'}
       : u));
+    const target = users.find(u => u.id === id);
+    if (target) {
+      toast.success(`User Account is now ${target.status === 'active' ? 'Suspended' : 'Activated'}`);
+    }
+  };
+
+  const handleCreateUser = (e) => {
+    e.preventDefault();
+    if (!newName.trim() || !newEmail.trim() || !newPassword.trim()) return;
+
+    const newUser = {
+      id: Math.max(...users.map(u => u.id), 0) + 1,
+      name: newName,
+      email: newEmail,
+      role: newRole,
+      status: 'active',
+      orders: 0,
+      joined: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    };
+
+    setUsers(prev => [newUser, ...prev]);
+    toast.success(`Account for ${newName} as ${newRole} created successfully!`);
+    setShowModal(false);
+    setNewName('');
+    setNewEmail('');
+    setNewPassword('');
+    setNewRole('patient');
   };
 
   const counts = ROLES.reduce((a, r) => ({...a, [r]: users.filter(u=>u.role===r).length}), {});
@@ -80,13 +201,18 @@ function UsersTab() {
   return (
     <>
       {/* Summary pills */}
-      <div className="adm-user-summary mb-3">
-        <span className="adm-user-total">{users.length} total users</span>
-        {ROLES.map(r => (
-          <Badge key={r} bg={ROLE_COLOR[r]} className="adm-role-pill" onClick={() => setRoleFilter(r)} role="button">
-            {counts[r]} {r}s
-          </Badge>
-        ))}
+      <div className="adm-section-toolbar mb-3">
+        <div className="adm-user-summary">
+          <span className="adm-user-total">{users.length} total users</span>
+          {ROLES.map(r => (
+            <Badge key={r} bg={ROLE_COLOR[r]} className="adm-role-pill" onClick={() => setRoleFilter(r)} role="button">
+              {counts[r]} {r}s
+            </Badge>
+          ))}
+        </div>
+        <Button className="btn-adm-save d-flex align-items-center gap-2" onClick={() => setShowModal(true)}>
+          <FaPlusCircle /> Create New User
+        </Button>
       </div>
 
       {/* Toolbar */}
@@ -149,76 +275,357 @@ function UsersTab() {
           </tbody>
         </Table>
       </div>
+
+      {/* Create User Modal */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+        <Modal.Header closeButton className="ph-modal-header">
+          <Modal.Title className="fw-bold"><FaPlusCircle className="me-2 text-primary" /> Create User Account</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleCreateUser}>
+            <Form.Group className="mb-3">
+              <Form.Label>Full Name *</Form.Label>
+              <Form.Control required placeholder="Ahmed Raza" value={newName} onChange={e => setNewName(e.target.value)} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Email Address *</Form.Label>
+              <Form.Control required type="email" placeholder="ahmed@example.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Secure Password *</Form.Label>
+              <Form.Control required type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Access Level Role *</Form.Label>
+              <Form.Select value={newRole} onChange={e => setNewRole(e.target.value)}>
+                <option value="patient">Patient</option>
+                <option value="doctor">Doctor</option>
+                <option value="pharmacist">Pharmacist</option>
+                <option value="admin">Platform Admin</option>
+              </Form.Select>
+            </Form.Group>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <Button variant="outline-secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+              <Button type="submit" className="btn-adm-save">Register Account</Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </>
   );
 }
 
-/* ═══════════════ TAB 2 – SALES REPORTS ══════════════════════ */
-const CHART_OPTS = {
-  responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { position:'top' }, title: { display: false } },
-  scales: { y: { beginAtZero: true, grid: { color:'#f1f5f9' } }, x: { grid:{ display:false } } },
-};
+/* ═══════════════ TAB 1.5 – PROFESSIONAL VERIFICATIONS ════════ */
+function VerificationsTab({ users, setUsers }) {
+  const { toast } = useToast();
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [search, setSearch] = useState('');
 
-function SalesTab() {
-  const barData = {
-    labels: MONTHLY_SALES.labels,
-    datasets: [
-      { label:'Revenue (Rs.)', data: MONTHLY_SALES.revenue, backgroundColor:'rgba(56,189,248,0.7)', borderRadius:8, borderSkipped:false },
-      { label:'Orders',        data: MONTHLY_SALES.orders,  backgroundColor:'rgba(129,140,248,0.7)', borderRadius:8, borderSkipped:false },
-    ],
+  // Filter professionals whose profiles are NOT verified yet
+  const pending = users.filter(u => 
+    (u.role === 'doctor' || u.role === 'pharmacist') && 
+    u.isVerifiedProfile === false &&
+    (u.name.toLowerCase().includes(search.toLowerCase()) || 
+     u.email.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const handleApprove = (id) => {
+    const target = users.find(u => u.id === id);
+    if (!target) return;
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, isVerifiedProfile: true } : u));
+    toast.success(`Success! ${target.name} has been verified and can now practice on the platform.`);
+    setShowModal(false);
+    setSelectedUser(null);
+  };
+
+  const handleReject = (id) => {
+    const target = users.find(u => u.id === id);
+    if (!target) return;
+    if (!window.confirm(`Are you sure you want to decline the registration of ${target.name}?`)) return;
+    setUsers(prev => prev.filter(u => u.id !== id));
+    toast.error(`Registration for ${target.name} declined and request archived.`);
+    setShowModal(false);
+    setSelectedUser(null);
+  };
+
+  const openDetailsModal = (user) => {
+    setSelectedUser(user);
+    setShowModal(true);
   };
 
   return (
     <>
       <div className="adm-section-toolbar mb-3">
-        <h5 className="adm-section-title">Sales Overview</h5>
-        <Button variant="outline-secondary" size="sm" onClick={() => pdfPlaceholder('Sales Report')}>
-          <FaDownload className="me-1" />Export PDF
-        </Button>
+        <h5 className="adm-section-title"><FaUserCheck className="me-2 text-warning" /> Professional Account Auditing</h5>
+        <div className="adm-user-summary">
+          <span className="adm-user-total">{pending.length} pending requests</span>
+        </div>
       </div>
 
-      {/* KPI cards */}
-      <Row className="g-3 mb-4">
-        <Col sm={6} xl={3}><KpiCard label="Total Revenue"    value={fmtRs(SALES_KPI.totalRevenue)}  icon={<FaMoneyBillWave />} color="#10b981" sub="All time" /></Col>
-        <Col sm={6} xl={3}><KpiCard label="Total Orders"     value={SALES_KPI.totalOrders}           icon={<FaShoppingCart />}  color="#38bdf8" sub="All time" /></Col>
-        <Col sm={6} xl={3}><KpiCard label="Avg Order Value"  value={fmtRs(SALES_KPI.avgOrderValue)}  icon={<FaChartBar />}      color="#f59e0b" sub="Per order" /></Col>
-        <Col sm={6} xl={3}><KpiCard label="Returning Rate"   value={`${SALES_KPI.returningRate}%`}  icon={<FaSyncAlt />}       color="#a78bfa" sub="Customers" /></Col>
-      </Row>
+      {/* Search Toolbar */}
+      <div className="adm-toolbar mb-3">
+        <input className="adm-search" placeholder="Search pending professionals by name or email…"
+          value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
 
-      {/* Bar chart */}
-      <Card className="adm-chart-card mb-4">
-        <Card.Body>
-          <h6 className="adm-chart-title">Monthly Revenue & Orders</h6>
-          <div style={{height:280}}>
-            <Bar data={barData} options={CHART_OPTS} />
-          </div>
-        </Card.Body>
-      </Card>
+      <div className="adm-table-wrap">
+        <Table hover responsive className="adm-table">
+          <thead>
+            <tr>
+              <th>#ID</th>
+              <th>Applicant</th>
+              <th>Role</th>
+              <th>Academic Credentials</th>
+              <th>PMC/PCP License</th>
+              <th>Location</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pending.length === 0 && (
+              <tr>
+                <td colSpan={7} className="text-center text-muted py-5">
+                  <div className="d-flex flex-column align-items-center gap-2">
+                    <FaCheckCircle size={40} className="text-success mb-2" />
+                    <h6 className="fw-bold text-dark">All Caught Up!</h6>
+                    <p className="extra-small text-muted mb-0">No professional registrations are currently pending verification.</p>
+                  </div>
+                </td>
+              </tr>
+            )}
+            {pending.map((u, i) => (
+              <tr key={u.id}>
+                <td className="text-muted small">#U-{u.id}</td>
+                <td>
+                  <div className="adm-user-cell">
+                    <div className="adm-user-av" style={{background: u.role === 'doctor' ? '#6366f1' : '#10b981'}}>
+                      {u.name[0]}
+                    </div>
+                    <div>
+                      <div className="adm-user-name">{u.name}</div>
+                      <div className="adm-user-email">{u.email}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <Badge bg={u.role === 'doctor' ? 'info' : 'success'} className="cat-badge text-capitalize">
+                    {u.role}
+                  </Badge>
+                </td>
+                <td>
+                  <div className="fw-bold small">{u.degree || u.degreeName || '—'}</div>
+                  <div className="text-muted extra-small">{u.degreePlace || '—'}</div>
+                </td>
+                <td>
+                  <code>{u.pmcRegistration || u.licenseNumber || '—'}</code>
+                </td>
+                <td className="text-muted small">
+                  {u.clinicAddress || u.address || '—'}
+                </td>
+                <td>
+                  <div className="d-flex gap-2">
+                    <Button size="sm" variant="outline-primary" onClick={() => openDetailsModal(u)}>
+                      View Details
+                    </Button>
+                    <Button size="sm" variant="success" className="py-1" onClick={() => handleApprove(u.id)}>
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="outline-danger" onClick={() => handleReject(u.id)}>
+                      Decline
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
 
-      {/* Top medicines table */}
-      <Card className="adm-table-card">
-        <Card.Header className="adm-card-header">
-          <h6 className="adm-chart-title mb-0"><FaTrophy className="me-2 text-warning" />Top Selling Medicines</h6>
-        </Card.Header>
+      {/* Details Audit Modal */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
+        <Modal.Header closeButton className="ph-modal-header">
+          <Modal.Title className="fw-bold">
+            <FaUserCheck className="me-2 text-warning" /> 
+            Professional Credentials Audit
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          {selectedUser && (
+            <div>
+              {/* Profile Card Header */}
+              <div className="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                <div className="adm-user-av" style={{ width: 64, height: 64, fontSize: '1.75rem', background: selectedUser.role === 'doctor' ? '#6366f1' : '#10b981' }}>
+                  {selectedUser.name[0]}
+                </div>
+                <div>
+                  <h4 className="fw-bold text-dark mb-1">{selectedUser.name}</h4>
+                  <p className="text-muted mb-0 small">{selectedUser.email} | Phone: {selectedUser.phone || 'N/A'}</p>
+                  <Badge bg={selectedUser.role === 'doctor' ? 'info' : 'success'} className="cat-badge text-capitalize mt-2">
+                    Pending {selectedUser.role} Profile Verification
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Detail Panels */}
+              <Row className="g-4">
+                <Col md={6}>
+                  <Card className="h-100 border-0 shadow-sm bg-light">
+                    <Card.Body>
+                      <h6 className="fw-bold text-primary mb-3">Academic & Experience</h6>
+                      <div className="mb-2">
+                        <span className="text-muted extra-small d-block">DEGREE TITLE</span>
+                        <strong className="text-dark small">{selectedUser.degree || selectedUser.degreeName || '—'}</strong>
+                      </div>
+                      <div className="mb-2">
+                        <span className="text-muted extra-small d-block">INSTITUTION</span>
+                        <strong className="text-dark small">{selectedUser.degreePlace || '—'}</strong>
+                      </div>
+                      {selectedUser.role === 'doctor' && (
+                        <>
+                          <div className="mb-2">
+                            <span className="text-muted extra-small d-block">SPECIALTY</span>
+                            <strong className="text-dark small">{selectedUser.specialty || '—'}</strong>
+                          </div>
+                          <div className="mb-2">
+                            <span className="text-muted extra-small d-block">PRACTICE EXPERIENCE</span>
+                            <strong className="text-dark small">{selectedUser.experience || 0} Years</strong>
+                          </div>
+                        </>
+                      )}
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                <Col md={6}>
+                  <Card className="h-100 border-0 shadow-sm bg-light">
+                    <Card.Body>
+                      <h6 className="fw-bold text-primary mb-3">Professional Licensing</h6>
+                      <div className="mb-3">
+                        <span className="text-muted extra-small d-block">LICENSE / PMC REGISTRATION</span>
+                        <code className="fs-6 fw-bold text-danger">{selectedUser.pmcRegistration || selectedUser.licenseNumber || '—'}</code>
+                      </div>
+                      <div className="mb-3">
+                        <span className="text-muted extra-small d-block">PRACTICE LOCATION</span>
+                        <strong className="text-dark small">{selectedUser.clinicAddress || selectedUser.address || '—'}</strong>
+                      </div>
+                      {selectedUser.role === 'doctor' && (
+                        <div className="mb-2">
+                          <span className="text-muted extra-small d-block">CONSULTATION FEE</span>
+                          <strong className="text-dark small">Rs. {selectedUser.consultationFee?.toLocaleString() || 0}</strong>
+                        </div>
+                      )}
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                {/* Uploaded Documents Attachment */}
+                <Col md={12}>
+                  <Card className="border-0 shadow-sm bg-light">
+                    <Card.Body>
+                      <h6 className="fw-bold text-primary mb-3">Uploaded Verification Proofs</h6>
+                      <div className="p-3 border rounded bg-white d-flex align-items-center justify-content-between">
+                        <div className="d-flex align-items-center gap-3">
+                          <FaFileMedical className="text-danger" size={32} />
+                          <div>
+                            <strong className="d-block small">Professional_License_Certificate.pdf</strong>
+                            <span className="text-muted extra-small">Digitally signed & hashed (2.4 MB)</span>
+                          </div>
+                        </div>
+                        <Button variant="outline-secondary" size="sm" onClick={() => pdfPlaceholder('Professional License')}>
+                          <FaDownload className="me-1" /> View PDF
+                        </Button>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+
+              {/* Footer Actions */}
+              <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                <Button variant="outline-secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+                <Button variant="outline-danger" onClick={() => handleReject(selectedUser.id)}>Decline Applicant</Button>
+                <Button variant="success" className="px-4" onClick={() => handleApprove(selectedUser.id)}>Verify & Approve</Button>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
+    </>
+  );
+}
+
+/* ═══════════════ TAB 2 – MEDICINE MANAGEMENT ═════════════════ */
+function MedicinesTab({ medicines, setMedicines }) {
+  const { toast } = useToast();
+  const [search, setSearch] = useState('');
+
+  const visible = medicines.filter(m => 
+    m.name.toLowerCase().includes(search.toLowerCase()) || 
+    m.category.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handlePriceChange = (id, newPrice) => {
+    setMedicines(prev => prev.map(m => m.id === id ? { ...m, price: Number(newPrice) } : m));
+  };
+
+  const handleStockChange = (id, newStock) => {
+    setMedicines(prev => prev.map(m => m.id === id ? { ...m, stock: Number(newStock) } : m));
+  };
+
+  const handleRemove = (id) => {
+    if (!window.confirm('Remove this medicine from catalog?')) return;
+    setMedicines(prev => prev.filter(m => m.id !== id));
+    toast.success('Medicine removed from public catalog listings');
+  };
+
+  return (
+    <>
+      <div className="adm-section-toolbar mb-3">
+        <h5 className="adm-section-title"><FaBoxes className="me-2 text-primary" />Medicine Inventory Pricing & Stock Control</h5>
+      </div>
+
+      <div className="adm-toolbar mb-3">
+        <div className="adm-search-wrap" style={{ flex: 1 }}>
+          <input className="adm-search w-100" placeholder="Search medicines by name or therapeutic class..." value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      </div>
+
+      <Card className="adm-table-card border-0 shadow-sm">
         <div className="adm-table-wrap">
-          <Table hover responsive className="adm-table">
-            <thead><tr><th>Medicine</th><th>Category</th><th>Units Sold</th><th>Revenue</th><th>Share</th></tr></thead>
+          <Table hover className="adm-table">
+            <thead>
+              <tr><th>#</th><th>Medicine Name</th><th>Category</th><th>Price (Rs.)</th><th>Current Stock</th><th>Availability</th><th>Actions</th></tr>
+            </thead>
             <tbody>
-              {TOP_MEDICINES.map((m, i) => {
-                const maxRev = Math.max(...TOP_MEDICINES.map(x=>x.revenue));
-                return (
-                  <tr key={m.name}>
-                    <td><span className="top-rank me-2">#{i+1}</span>{m.name}</td>
-                    <td><Badge bg="secondary" className="cat-badge">{m.category}</Badge></td>
-                    <td>{m.units.toLocaleString()}</td>
-                    <td className="fw-bold">{fmtRs(m.revenue)}</td>
-                    <td style={{minWidth:120}}>
-                      <ProgressBar now={Math.round(m.revenue/maxRev*100)} className="adm-progress" />
-                    </td>
-                  </tr>
-                );
-              })}
+              {visible.length === 0 && <tr><td colSpan={7} className="text-center py-4">No medicines match search.</td></tr>}
+              {visible.map((m, idx) => (
+                <tr key={m.id} className={m.stock === 0 ? 'row-danger' : m.stock < 10 ? 'row-warn' : ''}>
+                  <td className="text-muted small">{idx + 1}</td>
+                  <td className="fw-bold">{m.name}</td>
+                  <td><Badge bg="secondary" className="cat-badge">{m.category}</Badge></td>
+                  <td>
+                    <Form.Control type="number" size="sm" className="adm-inline-input" value={m.price} onChange={e => handlePriceChange(m.id, e.target.value)} />
+                  </td>
+                  <td>
+                    <Form.Control type="number" size="sm" className="adm-inline-input" value={m.stock} onChange={e => handleStockChange(m.id, e.target.value)} />
+                  </td>
+                  <td>
+                    {m.stock === 0 ? (
+                      <Badge bg="danger">Out of Stock</Badge>
+                    ) : m.stock < 10 ? (
+                      <Badge bg="warning" text="dark">Low Stock</Badge>
+                    ) : (
+                      <Badge bg="success">In Stock</Badge>
+                    )}
+                  </td>
+                  <td>
+                    <Button size="sm" variant="outline-danger" onClick={() => handleRemove(m.id)}>
+                      <FaTrash /> Remove
+                    </Button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </Table>
         </div>
@@ -227,52 +634,71 @@ function SalesTab() {
   );
 }
 
-/* ═══════════════ TAB 3 – INVENTORY REPORTS ══════════════════ */
-function InventoryTab() {
+/* ═══════════════ TAB 3 – APPOINTMENT OVERSIGHT ═══════════════ */
+function AppointmentsTab({ apts, setApts }) {
+  const { toast } = useToast();
+  const [showModal, setShowModal] = useState(false);
+  const [selectedApt, setSelectedApt] = useState(null);
+  const [newDate, setNewDate] = useState('');
+  const [newTime, setNewTime] = useState('10:00 AM');
+
+  const handleCancelOverride = (id) => {
+    if (!window.confirm('Force cancel this appointment? This sends a notification to the patient and doctor.')) return;
+    setApts(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' } : a));
+    toast.success('Appointment cancelled by Administrator Override');
+  };
+
+  const openRescheduleModal = (apt) => {
+    setSelectedApt(apt);
+    setNewDate(apt.date);
+    setNewTime(apt.time);
+    setShowModal(true);
+  };
+
+  const handleRescheduleSave = (e) => {
+    e.preventDefault();
+    if (!selectedApt) return;
+    setApts(prev => prev.map(a => a.id === selectedApt.id ? { ...a, date: newDate, time: newTime } : a));
+    toast.success(`Appointment #APT-${selectedApt.id} rescheduled to ${newDate} at ${newTime}`);
+    setShowModal(false);
+    setSelectedApt(null);
+  };
+
   return (
     <>
       <div className="adm-section-toolbar mb-3">
-        <h5 className="adm-section-title">Inventory Overview</h5>
-        <Button variant="outline-secondary" size="sm" onClick={() => pdfPlaceholder('Inventory Report')}>
-          <FaDownload className="me-1" />Export PDF
-        </Button>
+        <h5 className="adm-section-title"><FaCalendarCheck className="me-2 text-primary" /> Hospital-wide Appointment Oversight</h5>
       </div>
 
-      <Row className="g-3 mb-4">
-        <Col sm={6} lg={3}><KpiCard label="Total Products"    value={INVENTORY_KPI.totalProducts}                    icon={<FaBoxes />}             color="#38bdf8" /></Col>
-        <Col sm={6} lg={3}><KpiCard label="Total Units"       value={INVENTORY_KPI.totalStockUnits.toLocaleString()} icon={<FaChartBar />}          color="#10b981" /></Col>
-        <Col sm={6} lg={3}><KpiCard label="Stock Value"       value={fmtRs(INVENTORY_KPI.totalStockValue)}           icon={<FaMoneyBillWave />}     color="#f59e0b" /></Col>
-        <Col sm={6} lg={3}><KpiCard label="Low / Out of Stock" value={`${INVENTORY_KPI.lowStockCount} / ${INVENTORY_KPI.outOfStockCount}`} icon={<FaExclamationTriangle />} color="#ef4444" /></Col>
-      </Row>
-
-      {/* Low-stock alert */}
-      {LOW_STOCK_ITEMS.filter(i=>i.stock===0).length > 0 && (
-        <Alert variant="danger" className="adm-alert mb-3">
-          <FaTimesCircle className="me-2" />
-          <strong>{LOW_STOCK_ITEMS.filter(i=>i.stock===0).length} medicine(s) are completely out of stock.</strong> Reorder immediately.
-        </Alert>
-      )}
-
-      <Card className="adm-table-card">
-        <Card.Header className="adm-card-header">
-          <h6 className="adm-chart-title mb-0"><FaExclamationTriangle className="me-2 text-warning" />Low & Out-of-Stock Items</h6>
-        </Card.Header>
+      <Card className="adm-table-card border-0 shadow-sm">
         <div className="adm-table-wrap">
-          <Table hover responsive className="adm-table">
-            <thead><tr><th>Medicine</th><th>Category</th><th>Current Stock</th><th>Threshold</th><th>Price</th><th>Suggested Reorder</th><th>Status</th></tr></thead>
+          <Table hover className="adm-table">
+            <thead>
+              <tr><th>#ID</th><th>Patient</th><th>Assigned Doctor</th><th>Date & Time</th><th>Reason</th><th>Status</th><th>Oversight Actions</th></tr>
+            </thead>
             <tbody>
-              {LOW_STOCK_ITEMS.map(item => (
-                <tr key={item.id} className={item.stock===0?'row-danger':'row-warn'}>
-                  <td className="fw-bold">{item.name}</td>
-                  <td><Badge bg="secondary" className="cat-badge">{item.category}</Badge></td>
-                  <td className={item.stock===0?'text-danger fw-bold':'text-warning fw-bold'}>{item.stock}</td>
-                  <td className="text-muted">{item.threshold}</td>
-                  <td>{fmtRs(item.price)}</td>
-                  <td><Badge bg="info" text="dark">{item.reorderQty} units</Badge></td>
+              {apts.length === 0 && <tr><td colSpan={7} className="text-center py-4">No active appointments found.</td></tr>}
+              {apts.map(a => (
+                <tr key={a.id}>
+                  <td className="text-muted small">#APT-{a.id}</td>
+                  <td className="fw-bold">{a.patientName}</td>
+                  <td>{a.doctorName}</td>
+                  <td>{fmtDate(a.date)} at <Badge bg="light" text="dark">{a.time}</Badge></td>
+                  <td className="text-muted small">{a.reason || 'General Follow-up'}</td>
                   <td>
-                    {item.stock===0
-                      ? <Badge bg="danger">Out of Stock</Badge>
-                      : <Badge bg="warning" text="dark">Low Stock</Badge>}
+                    <Badge bg={STATUS_COLOR[a.status] || 'secondary'} text={a.status === 'scheduled' ? 'dark' : undefined}>
+                      {a.status}
+                    </Badge>
+                  </td>
+                  <td>
+                    {a.status === 'scheduled' ? (
+                      <div className="d-flex gap-2">
+                        <Button size="sm" variant="outline-primary" onClick={() => openRescheduleModal(a)}>Reschedule</Button>
+                        <Button size="sm" variant="outline-danger" onClick={() => handleCancelOverride(a.id)}>Force Cancel</Button>
+                      </div>
+                    ) : (
+                      <span className="text-muted extra-small">No action available</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -281,45 +707,93 @@ function InventoryTab() {
         </div>
       </Card>
 
-      {/* Full inventory summary */}
-      <Card className="adm-table-card mt-4">
-        <Card.Header className="adm-card-header">
-          <h6 className="adm-chart-title mb-0">All Medicines – Stock Summary</h6>
-        </Card.Header>
+      {/* Reschedule Modal */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+        <Modal.Header closeButton className="ph-modal-header">
+          <Modal.Title className="fw-bold"><FaClock className="me-2 text-primary" /> Reschedule Appointment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleRescheduleSave}>
+            <Form.Group className="mb-3">
+              <Form.Label>Patient: <strong>{selectedApt?.patientName}</strong></Form.Label>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>New Consultation Date</Form.Label>
+              <Form.Control type="date" required value={newDate} onChange={e => setNewDate(e.target.value)} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Consultation Time Slot</Form.Label>
+              <Form.Select value={newTime} onChange={e => setNewTime(e.target.value)}>
+                <option value="09:00 AM">09:00 AM</option>
+                <option value="10:00 AM">10:00 AM</option>
+                <option value="11:30 AM">11:30 AM</option>
+                <option value="02:00 PM">02:00 PM</option>
+                <option value="03:30 PM">03:30 PM</option>
+              </Form.Select>
+            </Form.Group>
+            <div className="d-flex justify-content-end gap-2 mt-4">
+              <Button variant="outline-secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+              <Button type="submit" className="btn-adm-save">Update Appointment</Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+    </>
+  );
+}
+
+/* ═══════════════ TAB 4 – ORDER MANAGEMENT ════════════════════ */
+function OrdersTab({ orders, setOrders }) {
+  const { toast } = useToast();
+
+  const handleRefund = (id) => {
+    if (!window.confirm(`Issue complete refund for Order #${id} and flag dispute resolved?`)) return;
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'cancelled', paymentStatus: 'refunded' } : o));
+    toast.success(`Dispute resolved. Refund of Rs. ${orders.find(o => o.id === id)?.totalAmount.toLocaleString()} credited successfully!`);
+  };
+
+  return (
+    <>
+      <div className="adm-section-toolbar mb-3">
+        <h5 className="adm-section-title"><FaShoppingCart className="me-2 text-primary" /> Active Logistics Tracking & Dispute Resolution</h5>
+      </div>
+
+      <Card className="adm-table-card border-0 shadow-sm">
         <div className="adm-table-wrap">
-          <Table hover responsive className="adm-table">
-            <thead><tr><th>ID</th><th>Medicine</th><th>Category</th><th>Price</th><th>Stock Level</th></tr></thead>
+          <Table hover className="adm-table">
+            <thead>
+              <tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Total Items</th><th>Total Amount</th><th>Logistics Status</th><th>Payment</th><th>Actions</th></tr>
+            </thead>
             <tbody>
-              {[
-                {id:1,name:'Paracetamol 500mg',  cat:'Analgesics',        price:50,  stock:250},
-                {id:2,name:'Amoxicillin 250mg',   cat:'Antibiotics',       price:180, stock:90 },
-                {id:3,name:'Omeprazole 20mg',      cat:'Gastroenterology',  price:95,  stock:175},
-                {id:4,name:'Cetirizine 10mg',      cat:'Antihistamines',    price:65,  stock:310},
-                {id:5,name:'Metformin 500mg',      cat:'Diabetes',          price:120, stock:0  },
-                {id:6,name:'Amlodipine 5mg',       cat:'Cardiology',        price:140, stock:82 },
-                {id:7,name:'Vitamin D3 5000IU',    cat:'Vitamins',          price:280, stock:400},
-                {id:8,name:'Atorvastatin 20mg',    cat:'Cardiology',        price:320, stock:65 },
-                {id:9,name:'Salbutamol Inhaler',   cat:'Respiratory',       price:450, stock:8  },
-                {id:10,name:'Ibuprofen 400mg',     cat:'Analgesics',        price:75,  stock:195},
-                {id:11,name:'Loratadine 10mg',     cat:'Antihistamines',    price:55,  stock:220},
-                {id:12,name:'Zinc 20mg Tablets',   cat:'Vitamins',          price:160, stock:300},
-              ].map(m => {
-                const pct = Math.min(100, Math.round(m.stock/400*100));
-                return (
-                  <tr key={m.id}>
-                    <td className="text-muted small">{m.id}</td>
-                    <td className="fw-600">{m.name}</td>
-                    <td><Badge bg="secondary" className="cat-badge">{m.cat}</Badge></td>
-                    <td>Rs.{m.price}</td>
-                    <td style={{minWidth:160}}>
-                      <div className="d-flex align-items-center gap-2">
-                        <ProgressBar now={pct} style={{flex:1,height:8}} variant={m.stock===0?'danger':m.stock<10?'warning':'success'} />
-                        <span className="small fw-bold" style={{minWidth:30}}>{m.stock}</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              {orders.length === 0 && <tr><td colSpan={8} className="text-center py-4">No platform orders logged.</td></tr>}
+              {orders.map(o => (
+                <tr key={o.id}>
+                  <td><code>{o.id}</code></td>
+                  <td className="fw-bold">{o.shippingAddress?.firstName} {o.shippingAddress?.lastName}</td>
+                  <td className="text-muted small">{new Date(o.createdAt).toLocaleDateString('en-PK')}</td>
+                  <td>{o.items.length} items</td>
+                  <td className="fw-bold">Rs. {o.totalAmount.toLocaleString()}</td>
+                  <td>
+                    <Badge bg={o.status === 'delivered' ? 'success' : o.status === 'cancelled' ? 'danger' : 'warning'}>
+                      {o.status}
+                    </Badge>
+                  </td>
+                  <td>
+                    <Badge bg={o.paymentStatus === 'paid' ? 'success' : o.paymentStatus === 'refunded' ? 'info' : 'warning'} text={o.paymentStatus !== 'paid' ? 'dark' : undefined}>
+                      {o.paymentStatus || 'pending'}
+                    </Badge>
+                  </td>
+                  <td>
+                    {o.status !== 'cancelled' ? (
+                      <Button size="sm" variant="danger" className="rounded-8 py-1" onClick={() => handleRefund(o.id)}>
+                        Refund / Cancel
+                      </Button>
+                    ) : (
+                      <span className="text-muted extra-small">Resolved</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </Table>
         </div>
@@ -328,120 +802,273 @@ function InventoryTab() {
   );
 }
 
-/* ═══════════════ TAB 4 – PRESCRIPTION ANALYTICS ════════════ */
-function PrescriptionTab() {
-  const lineData = {
-    labels: RX_BY_MONTH.labels,
+/* ═══════════════ TAB 5 – REPORTS & ANALYTICS ════════════════ */
+function ReportsTab() {
+  const barData = {
+    labels: MONTHLY_SALES.labels,
     datasets: [
-      { label:'Uploads',  data:RX_BY_MONTH.uploads,  borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,.12)', tension:.4, fill:true, pointRadius:4 },
-      { label:'Verified', data:RX_BY_MONTH.verified, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.12)', tension:.4, fill:true, pointRadius:4 },
+      { label:'Revenue (Rs.)', data: MONTHLY_SALES.revenue, backgroundColor:'rgba(56,189,248,0.7)', borderRadius:8, borderSkipped:false },
+      { label:'Orders',        data: MONTHLY_SALES.orders,  backgroundColor:'rgba(129,140,248,0.7)', borderRadius:8, borderSkipped:false },
     ],
   };
 
-  const verifyRate   = RX_KPI.verificationRate;
-  const rejectRate   = Math.round(RX_KPI.rejected / RX_KPI.totalUploads * 100);
-  const pendingRate  = Math.round(RX_KPI.pending  / RX_KPI.totalUploads * 100);
+  const doctorsList = [
+    { name: 'Dr. Sara Ali', dept: 'Cardiology', cases: 42, rating: 4.9 },
+    { name: 'Dr. Usman Tariq', dept: 'Pediatrics', cases: 38, rating: 4.8 },
+    { name: 'Dr. Farhan Qureshi', dept: 'Dermatology', cases: 31, rating: 4.7 },
+  ];
 
   return (
     <>
       <div className="adm-section-toolbar mb-3">
-        <h5 className="adm-section-title">Prescription Analytics</h5>
-        <Button variant="outline-secondary" size="sm" onClick={() => pdfPlaceholder('Prescription Report')}>
+        <h5 className="adm-section-title">MedEasy Health Platform Analytics</h5>
+        <Button variant="outline-secondary" size="sm" onClick={() => pdfPlaceholder('Sales Report')}>
           <FaDownload className="me-1" />Export PDF
         </Button>
       </div>
 
-      <Row className="g-3 mb-4">
-        <Col sm={6} lg={3}><KpiCard label="Total Uploads"   value={RX_KPI.totalUploads}            icon={<FaFileMedical />}  color="#38bdf8" /></Col>
-        <Col sm={6} lg={3}><KpiCard label="Verified"        value={RX_KPI.verified}                icon={<FaCheckCircle />}  color="#10b981" sub={`${verifyRate}% rate`} /></Col>
-        <Col sm={6} lg={3}><KpiCard label="Rejected"        value={RX_KPI.rejected}                icon={<FaTimesCircle />}  color="#ef4444" sub={`${rejectRate}% rate`} /></Col>
-        <Col sm={6} lg={3}><KpiCard label="Avg Review Time" value={RX_KPI.avgReviewTime}           icon={<FaClock />}        color="#f59e0b" sub="Per prescription" /></Col>
+      {/* Bar chart */}
+      <Card className="adm-chart-card mb-4 border-0 shadow-sm">
+        <Card.Body>
+          <h6 className="adm-chart-title">Monthly Revenue & Orders</h6>
+          <div style={{height:285}}>
+            <Bar data={barData} options={CHART_OPTS} />
+          </div>
+        </Card.Body>
+      </Card>
+
+      <Row className="g-4">
+        {/* Top doctors leaderboard */}
+        <Col lg={6}>
+          <Card className="adm-table-card border-0 shadow-sm">
+            <Card.Header className="adm-card-header bg-transparent pt-3 border-0">
+              <h6 className="adm-chart-title mb-0"><FaTrophy className="me-2 text-warning" /> Platform Top Doctor Leaderboard</h6>
+            </Card.Header>
+            <div className="adm-table-wrap">
+              <Table hover className="adm-table">
+                <thead><tr><th>Doctor Name</th><th>Speciality</th><th>Cases Solved</th><th>Rating</th></tr></thead>
+                <tbody>
+                  {doctorsList.map((doc, idx) => (
+                    <tr key={doc.name}>
+                      <td><span className="top-rank me-2">#{idx+1}</span><strong>{doc.name}</strong></td>
+                      <td><Badge bg="info" className="cat-badge">{doc.dept}</Badge></td>
+                      <td className="fw-bold">{doc.cases} consultations</td>
+                      <td>⭐ {doc.rating}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </Card>
+        </Col>
+
+        {/* Top medicines table */}
+        <Col lg={6}>
+          <Card className="adm-table-card border-0 shadow-sm">
+            <Card.Header className="adm-card-header bg-transparent pt-3 border-0">
+              <h6 className="adm-chart-title mb-0"><FaTrophy className="me-2 text-warning" /> Top Selling Pharmaceutics</h6>
+            </Card.Header>
+            <div className="adm-table-wrap">
+              <Table hover className="adm-table">
+                <thead><tr><th>Medicine</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+                <tbody>
+                  {TOP_MEDICINES.slice(0, 3).map((m, i) => (
+                    <tr key={m.name}>
+                      <td><span className="top-rank me-2">#{i+1}</span>{m.name}</td>
+                      <td><Badge bg="secondary" className="cat-badge">{m.category}</Badge></td>
+                      <td>{m.units.toLocaleString()} units</td>
+                      <td className="fw-bold">{fmtRs(m.revenue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </Card>
+        </Col>
       </Row>
-
-      {/* Status breakdown */}
-      <Card className="adm-chart-card mb-4">
-        <Card.Body>
-          <h6 className="adm-chart-title">Verification Breakdown</h6>
-          <div className="rx-breakdown">
-            {[
-              { label:'Verified',  count: RX_KPI.verified, pct: verifyRate,  color:'success' },
-              { label:'Rejected',  count: RX_KPI.rejected, pct: rejectRate,  color:'danger'  },
-              { label:'Pending',   count: RX_KPI.pending,  pct: pendingRate, color:'warning' },
-            ].map(b => (
-              <div key={b.label} className="rx-breakdown-row">
-                <span className="rx-b-label">{b.label}</span>
-                <ProgressBar now={b.pct} variant={b.color} className="rx-b-bar" />
-                <span className="rx-b-pct">{b.pct}%</span>
-                <Badge bg={b.color} text={b.color==='warning'?'dark':undefined}>{b.count}</Badge>
-              </div>
-            ))}
-          </div>
-        </Card.Body>
-      </Card>
-
-      {/* Line chart */}
-      <Card className="adm-chart-card">
-        <Card.Body>
-          <h6 className="adm-chart-title">Monthly Upload Trends</h6>
-          <div style={{height:260}}>
-            <Line data={lineData} options={CHART_OPTS} />
-          </div>
-        </Card.Body>
-      </Card>
     </>
   );
 }
 
-/* ═══════════════ MAIN DASHBOARD ════════════════════════════ */
-const TABS = [
-  { key:'users',         label:'User Management',       icon:<FaUsers /> },
-  { key:'sales',         label:'Sales Reports',         icon:<FaChartBar /> },
-  { key:'inventory',     label:'Inventory Reports',     icon:<FaBoxes /> },
-  { key:'prescriptions', label:'Prescription Analytics',icon:<FaFileMedical /> },
-];
+/* ═══════════════ TAB 6 – SYSTEM CONFIGS (SETTINGS) ═══════════ */
+function SettingsTab() {
+  const { toast } = useToast();
+  const [commission, setCommission] = useState(15);
+  const [maintenance, setMaintenance] = useState(false);
+  const [couriers, setCouriers] = useState({
+    leopard: true,
+    tcs: true,
+    mp: false,
+    rider: true
+  });
 
-const GLOBAL_STATS = [
-  { label:'Total Users',    value:'1,240',  color:'#38bdf8', icon:<FaUsers /> },
-  { label:'Revenue (May)',  value:'Rs. 95k', color:'#10b981', icon:<FaMoneyBillWave /> },
-  { label:'Orders Today',   value:'67',      color:'#f59e0b', icon:<FaShoppingCart /> },
-  { label:'Pending Rx',     value:'7',       color:'#a78bfa', icon:<FaFileMedical /> },
+  const handleSaveConfigs = () => {
+    toast.success('Platform configurations saved successfully. Nodes updated.');
+  };
+
+  return (
+    <Card className="doc-card shadow-sm border-0">
+      <Card.Body className="p-4">
+        <h5 className="fw-bold text-dark mb-4"><FaSlidersH className="text-primary me-2" /> Global System Variables</h5>
+
+        <Form.Group className="mb-4">
+          <Form.Label className="doc-label">Platform Consultation Commission Rate (%)</Form.Label>
+          <div className="d-flex align-items-center gap-3">
+            <Form.Range style={{ flex: 1 }} min={5} max={30} value={commission} onChange={e => setCommission(e.target.value)} />
+            <span className="fw-bold text-primary" style={{ width: '45px' }}>{commission}%</span>
+          </div>
+          <span className="text-muted extra-small">Platform transaction fee cut deducted automatically from Doctor consult booking prices.</span>
+        </Form.Group>
+
+        <Form.Group className="mb-4">
+          <Form.Label className="doc-label">Authorized Shipping Courier Partners</Form.Label>
+          <div className="d-flex flex-column gap-2 mt-2">
+            {[
+              { key: 'leopard', label: 'Leopard Courier Services -- Standard Dispatch' },
+              { key: 'tcs', label: 'TCS Express Logistics -- Premium Urgent delivery' },
+              { key: 'mp', label: 'M&P Pakistan -- Cash On Delivery Integration' },
+              { key: 'rider', label: 'Rider Logistics -- Local Suburb Delivery' }
+            ].map(c => (
+              <Form.Check type="switch" id={`switch-${c.key}`} key={c.key} label={c.label} checked={couriers[c.key]} onChange={e => setCouriers(prev => ({ ...prev, [c.key]: e.target.checked }))} />
+            ))}
+          </div>
+        </Form.Group>
+
+        <Form.Group className="mb-4 pb-3 border-bottom">
+          <Form.Label className="doc-label text-danger">Platform Operational Status Flags</Form.Label>
+          <Form.Check type="switch" id="maintenance-flag" className="text-dark small fw-bold" label="Under Maintenance Mode (Suspends public checkout)" checked={maintenance} onChange={e => setMaintenance(e.target.checked)} />
+        </Form.Group>
+
+        <div className="d-flex justify-content-end">
+          <Button className="btn-adm-save py-2 px-4 rounded-10" onClick={handleSaveConfigs}>
+            Save Platform Configurations
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+}
+
+/* ═══════════════ MAIN ADMIN DASHBOARD ═════════════════════════ */
+const TABS = [
+  { key: 'overview',      label: 'Dashboard Overview',   icon: <FaChartBar /> },
+  { key: 'verifications', label: 'Verification Requests', icon: <FaUserCheck />, hiddenFromSidebar: true },
+  { key: 'users',         label: 'User Management',       icon: <FaUsers />, hiddenFromSidebar: true },
+  { key: 'medicines',     label: 'Medicine Management',   icon: <FaBoxes /> },
+  { key: 'appointments',  label: 'Appointment Oversight', icon: <FaClock /> },
+  { key: 'orders',        label: 'Order Management',      icon: <FaShoppingCart /> },
+  { key: 'reports',       label: 'Reports & Analytics',   icon: <FaTrophy /> },
+  { key: 'settings',      label: 'System Settings',       icon: <FaSlidersH /> },
 ];
 
 export default function AdminDashboard() {
-  const [active, setActive] = useState('users');
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const tabParam = queryParams.get('tab') || 'overview';
+
+  const [active, setActive] = useState(tabParam);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setActive(tabParam);
+  }, [tabParam]);
+
+  // Parent State so changes in one tab persist / display across other tabs
+  const [users, setUsers] = useState([
+    ...MOCK_USERS,
+    {
+      id: 11,
+      name: 'Dr. Usama Qureshi',
+      email: 'usama@medeasy.pk',
+      role: 'doctor',
+      status: 'active',
+      isVerifiedProfile: false,
+      joined: 'May 2026',
+      orders: 0,
+      specialty: 'Cardiology',
+      pmcRegistration: 'PMC-88392-D',
+      degree: 'MBBS, FCPS',
+      degreePlace: 'King Edward Medical University',
+      experience: 8,
+      clinicAddress: 'Heart Care Clinic, DHA Phase 5, Lahore',
+      consultationFee: 1500,
+    },
+    {
+      id: 12,
+      name: 'Zainab Apothecary',
+      email: 'zainab.pharmd@medeasy.pk',
+      role: 'pharmacist',
+      status: 'active',
+      isVerifiedProfile: false,
+      joined: 'May 2026',
+      orders: 0,
+      pharmacyName: 'Zainab Family Pharmacy',
+      degreeName: 'Pharm.D',
+      degreePlace: 'Punjab University College of Pharmacy',
+      licenseNumber: 'PCP-55421-P',
+      address: 'Johar Town Phase 2, Lahore',
+    }
+  ]);
+  const [medicines, setMedicines] = useState([
+    { id: 1, name: 'Paracetamol 500mg', category: 'Analgesics', price: 50, stock: 250 },
+    { id: 2, name: 'Amoxicillin 250mg', category: 'Antibiotics', price: 180, stock: 90 },
+    { id: 3, name: 'Omeprazole 20mg', category: 'Gastroenterology', price: 95, stock: 175 },
+    { id: 4, name: 'Cetirizine 10mg', category: 'Antihistamines', price: 65, stock: 310 },
+    { id: 5, name: 'Metformin 500mg', category: 'Diabetes', price: 120, stock: 0 },
+    { id: 6, name: 'Amlodipine 5mg', category: 'Cardiology', price: 140, stock: 82 },
+  ]);
+  const [apts, setApts] = useState([
+    { id: 101, patientName: 'Ahmed Khan', doctorName: 'Dr. Sara Ali', date: '2026-05-22', time: '10:00 AM', reason: 'Fever checkup', status: 'scheduled' },
+    { id: 102, patientName: 'Ayesha Bibi', doctorName: 'Dr. Usman Tariq', date: '2026-05-22', time: '11:30 AM', reason: 'High blood pressure', status: 'scheduled' },
+    { id: 103, patientName: 'Muhammad Ali', doctorName: 'Dr. Sara Ali', date: '2026-05-23', time: '02:00 PM', reason: 'Skin rash', status: 'scheduled' },
+    { id: 104, patientName: 'Fatima Sana', doctorName: 'Dr. Usman Tariq', date: '2026-05-24', time: '09:00 AM', reason: 'General checkup', status: 'scheduled' },
+  ]);
+  const [orders, setOrders] = useState([
+    { id: 'ORD-9982', createdAt: new Date().toISOString(), totalAmount: 450, status: 'pending', paymentStatus: 'pending', items: [{ name: 'Panadol' }], shippingAddress: { firstName: 'Bilal', lastName: 'Siddiqui' } },
+    { id: 'ORD-4091', createdAt: new Date().toISOString(), totalAmount: 180, status: 'dispatched', paymentStatus: 'paid', items: [{ name: 'Disprin' }], shippingAddress: { firstName: 'Zainab', lastName: 'Fatima' } },
+    { id: 'ORD-1224', createdAt: new Date().toISOString(), totalAmount: 1250, status: 'delivered', paymentStatus: 'paid', items: [{ name: 'Amoxicillin' }], shippingAddress: { firstName: 'Ahmed', lastName: 'Khan' } },
+  ]);
+
+  const globalStats = {
+    ordersCount: orders.filter(o => o.status !== 'cancelled').length,
+    aptsCount: apts.filter(a => a.status === 'scheduled').length,
+  };
+
+  const activeTabDetails = TABS.find(t => t.key === active);
 
   return (
     <div className="adm-page">
-      <button className="adm-mobile-toggle d-lg-none" onClick={() => setMobileOpen(o=>!o)}>
-        ☰ Admin Menu
+      <button className="adm-mobile-toggle d-lg-none" onClick={() => setMobileOpen(o => !o)}>
+        ☰ Administrator Panel Menu
       </button>
 
       <div className="adm-layout">
         {/* ── Sidebar ── */}
-        <aside className={`adm-sidebar ${mobileOpen?'open':''}`}>
+        <aside className={`adm-sidebar ${mobileOpen ? 'open' : ''}`}>
           <div className="adm-sidebar-brand">
             <FaUserShield className="adm-brand-icon" />
             <div>
-              <div className="adm-brand-name">Admin Panel</div>
-              <div className="adm-brand-sub">MedEasy Control</div>
+              <div className="adm-brand-name">Admin Portal</div>
+              <div className="adm-brand-sub">Platform Control Center</div>
             </div>
           </div>
 
-          {/* Global KPI pills */}
+          {/* Quick Metrics */}
           <div className="adm-sidebar-kpis">
-            {GLOBAL_STATS.map(s => (
-              <div key={s.label} className="adm-sidebar-kpi">
-                <span className="adm-sidebar-kpi-val" style={{color:s.color}}>{s.value}</span>
-                <span className="adm-sidebar-kpi-label">{s.label}</span>
-              </div>
-            ))}
+            <div className="adm-sidebar-kpi">
+              <span className="adm-sidebar-kpi-val text-primary">{users.length}</span>
+              <span className="adm-sidebar-kpi-label">Total Accounts</span>
+            </div>
+            <div className="adm-sidebar-kpi">
+              <span className="adm-sidebar-kpi-val text-success">Rs. 2.4M</span>
+              <span className="adm-sidebar-kpi-label">Sales MTD</span>
+            </div>
           </div>
 
           <nav className="adm-nav">
-            {TABS.map(t => (
+            {TABS.filter(t => !t.hiddenFromSidebar).map(t => (
               <button key={t.key}
-                className={`adm-nav-item ${active===t.key?'active':''}`}
+                className={`adm-nav-item ${active === t.key ? 'active' : ''}`}
                 onClick={() => { setActive(t.key); setMobileOpen(false); }}>
                 <span className="adm-nav-icon">{t.icon}</span>
                 {t.label}
@@ -454,15 +1081,20 @@ export default function AdminDashboard() {
         <main className="adm-main">
           <div className="adm-main-header">
             <h1 className="adm-main-title">
-              {TABS.find(t=>t.key===active)?.icon}
-              <span className="ms-2">{TABS.find(t=>t.key===active)?.label}</span>
+              {activeTabDetails?.icon}
+              <span className="ms-2">{activeTabDetails?.label}</span>
             </h1>
+            <p className="doc-subtitle text-muted mt-1">MedEasy network monitoring board.</p>
           </div>
           <div className="adm-content">
-            {active==='users'         && <UsersTab />}
-            {active==='sales'         && <SalesTab />}
-            {active==='inventory'     && <InventoryTab />}
-            {active==='prescriptions' && <PrescriptionTab />}
+            {active === 'overview'      && <OverviewTab setActive={setActive} stats={globalStats} />}
+            {active === 'verifications' && <VerificationsTab users={users} setUsers={setUsers} />}
+            {active === 'users'         && <UsersTab users={users} setUsers={setUsers} />}
+            {active === 'medicines'    && <MedicinesTab medicines={medicines} setMedicines={setMedicines} />}
+            {active === 'appointments' && <AppointmentsTab apts={apts} setApts={setApts} />}
+            {active === 'orders'       && <OrdersTab orders={orders} setOrders={setOrders} />}
+            {active === 'reports'      && <ReportsTab />}
+            {active === 'settings'     && <SettingsTab />}
           </div>
         </main>
       </div>

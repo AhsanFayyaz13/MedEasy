@@ -3,6 +3,8 @@ import {
   Container, Row, Col, Form, InputGroup,
   Button, Spinner, Badge, Dropdown,
 } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { FaSearch, FaTimes, FaSlidersH, FaSortAmountDown } from 'react-icons/fa';
 import MedicineCard from '../components/MedicineCard';
 import api from '../services/api';
@@ -51,6 +53,17 @@ function useMedicines() {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function MedicineList() {
+  const navigate = useNavigate();
+  const { isAuthenticated, userRole } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated && userRole && userRole !== 'patient') {
+      if (userRole === 'admin') navigate('/admin', { replace: true });
+      else if (userRole === 'doctor') navigate('/doctor', { replace: true });
+      else if (userRole === 'pharmacist') navigate('/pharmacist', { replace: true });
+    }
+  }, [isAuthenticated, userRole, navigate]);
+
   const { data: medicines, loading, error } = useMedicines();
 
   const [query,        setQuery]        = useState('');

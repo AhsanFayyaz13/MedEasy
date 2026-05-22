@@ -25,8 +25,11 @@ export default function ProtectedRoute({ children, roles }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Logged in but wrong role → redirect to home
+  // Logged in but wrong role → redirect to their dashboard or home
   if (roles && roles.length > 0 && !roles.includes(userRole)) {
+    if (userRole === 'admin') return <Navigate to="/admin" replace />;
+    if (userRole === 'doctor') return <Navigate to="/doctor" replace />;
+    if (userRole === 'pharmacist') return <Navigate to="/pharmacist" replace />;
     return <Navigate to="/" replace />;
   }
 

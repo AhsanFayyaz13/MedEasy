@@ -3,15 +3,20 @@ import { Link } from 'react-router-dom';
 import { FaShoppingCart, FaStar, FaRegStar, FaStarHalfAlt } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import './MedicineCard.css';
 
 /**
  * MedicineCard – responsive Bootstrap card for a single medicine.
  * Fires a toast notification on "Add to Cart".
+ * Shows login modal if unauthenticated user tries to add to cart.
  */
 export default function MedicineCard({ medicine }) {
   const { addToCart, isInCart } = useCart();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const { openLoginModal } = useAuthModal();
 
   const {
     id,
@@ -48,6 +53,12 @@ export default function MedicineCard({ medicine }) {
 
   // ── Add to cart handler ────────────────────────────────────────
   const handleAdd = () => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      openLoginModal();
+      return;
+    }
+
     if (!canAdd) return;
     const result = addToCart(medicine, 1);
     if (result === 'capped') {

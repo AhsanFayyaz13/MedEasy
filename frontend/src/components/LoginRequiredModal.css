@@ -1,0 +1,94 @@
+.login-required-modal .modal-header {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1a3a52 100%);
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.login-required-modal .modal-title {
+  color: white;
+  font-weight: 600;
+  font-size: 1.3rem;
+}
+
+.login-required-modal .modal-body {
+  background-color: #f9fafb;
+}
+
+.auth-option {
+  background: white;
+  transition: all 0.3s ease;
+  border-color: #e5e7eb !important;
+}
+
+.auth-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #d1d5db !important;
+}
+
+.auth-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-option h6 {
+  color: #0284c7;
+  font-weight: 600;
+}
+
+.register-option h6 {
+  color: #059669;
+  font-weight: 600;
+}
+
+.login-required-modal .btn {
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.login-required-modal .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.login-required-modal .btn-primary {
+  background-color: #0284c7;
+  border-color: #0284c7;
+}
+
+.login-required-modal .btn-primary:hover {
+  background-color: #0369a1;
+  border-color: #0369a1;
+}
+
+.login-required-modal .btn-success {
+  background-color: #059669;
+  border-color: #059669;
+}
+
+.login-required-modal .btn-success:hover {
+  background-color: #047857;
+  border-color: #047857;
+}
+
+/* Close button styling */
+.login-required-modal .btn-close {
+  filter: invert(1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .login-required-modal .modal-body {
+    padding: 1.5rem;
+  }
+
+  .auth-option {
+    padding: 1.5rem !important;
+  }
+
+  .login-required-modal .modal-title {
+    font-size: 1.1rem;
+  }
+}

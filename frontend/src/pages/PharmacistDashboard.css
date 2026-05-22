@@ -162,3 +162,71 @@
 .rx-action-row { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
 .btn-approve   { background: linear-gradient(135deg, #059669, #10b981) !important; border: none !important; border-radius: 8px !important; font-size: 0.78rem !important; font-weight: 700 !important; color: #fff !important; flex: 1; }
 .rx-enlarge-placeholder { padding: 2rem; }
+
+/* ── Overview & Glassmorphism ─────────────────────────── */
+.ph-welcome-banner {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1e293b 100%);
+  color: #fff;
+  padding: 1.5rem 1.75rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(13, 27, 42, 0.15);
+}
+.ph-welcome-banner h2 { font-weight: 800; font-size: 1.5rem; margin: 0; }
+.ph-welcome-banner p { color: #94a3b8; margin: 0; font-size: 0.88rem; margin-top: 0.25rem; }
+
+.ph-glass-card {
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(12px);
+  border-radius: 16px !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ph-glass-card.clickable { cursor: pointer; }
+.ph-glass-card.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+  border-color: #38bdf8 !important;
+}
+
+.ph-glass-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bg-warning-light { background: #fffbeb; }
+.bg-info-light { background: #ecfeff; }
+.bg-danger-light { background: #fef2f2; }
+
+/* Timeline styling */
+.ph-timeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin-top: 0.5rem;
+}
+.ph-timeline-item {
+  position: relative;
+  align-items: center;
+}
+.ph-timeline-badge {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2.5px solid #fff;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+}
+.border-bottom-dashed {
+  border-bottom: 1px dashed #e2e8f0;
+}
+.extra-small {
+  font-size: 0.72rem;
+}
+.fw-900 { font-weight: 900; }
+.fw-600 { font-weight: 600; }
+

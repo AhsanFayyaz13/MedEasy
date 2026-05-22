@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { Container, Row, Col, Button, Badge } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   FaArrowRight,
   FaShieldAlt,
@@ -14,6 +15,7 @@ import {
 } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import './Home.css';
 
 // ─── Hardcoded sample medicines ───────────────────────────────────────────────
@@ -121,7 +123,7 @@ const FEATURES = [
   {
     icon: <FaTruck />,
     title: 'Same-Day Delivery',
-    desc:  'Order before 2 PM and receive your medicines the same day in Karachi, Lahore & Islamabad.',
+    desc:  'Order before 2 PM and receive your medicines the same day in Mailsi, Karachi, Lahore & Islamabad.',
     color: '#34d399',
   },
   {
@@ -167,11 +169,20 @@ function Stars({ rating }) {
 function HomeMedicineCard({ medicine }) {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const { openLoginModal } = useAuthModal();
 
   const canBuy = medicine.in_stock && !medicine.requires_prescription;
   const discount = Math.round(
     ((medicine.originalPrice - medicine.price) / medicine.originalPrice) * 100
   );
+
+  const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      openLoginModal();
+      return;
+    }
+    canBuy && addToCart(medicine);
+  };
 
   return (
     <div className={`home-med-card ${!medicine.in_stock ? 'oos' : ''}`}>
@@ -212,7 +223,7 @@ function HomeMedicineCard({ medicine }) {
 
         <button
           className={`med-cart-btn ${!canBuy ? 'disabled' : ''}`}
-          onClick={() => canBuy && addToCart(medicine)}
+          onClick={handleAddToCart}
           disabled={!canBuy}
           title={
             !medicine.in_stock
@@ -236,7 +247,16 @@ function HomeMedicineCard({ medicine }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Home() {
-  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const { isAuthenticated, user, userRole } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated && userRole && userRole !== 'patient') {
+      if (userRole === 'admin') navigate('/admin', { replace: true });
+      else if (userRole === 'doctor') navigate('/doctor', { replace: true });
+      else if (userRole === 'pharmacist') navigate('/pharmacist', { replace: true });
+    }
+  }, [isAuthenticated, userRole, navigate]);
 
   return (
     <div className="home-page">
@@ -312,7 +332,7 @@ export default function Home() {
           <div className="trust-items">
             {[
               { emoji: '✅', text: '100% Authentic'  },
-              { emoji: '🚚', text: 'Free Delivery ≥ Rs.500' },
+              { emoji: '🚚', text: 'Free Delivery ≥ Rs.1000' },
               { emoji: '🔒', text: 'Secure Checkout' },
               { emoji: '💬', text: '24/7 Support'   },
               { emoji: '🔄', text: 'Easy Returns'   },

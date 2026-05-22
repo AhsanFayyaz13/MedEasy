@@ -7,7 +7,7 @@ import {
   FaPills, FaClipboardList, FaFileMedical,
   FaPlus, FaEdit, FaTrash, FaExclamationTriangle,
   FaCheckCircle, FaTimesCircle, FaClock, FaEye,
-  FaTimes, FaSearch,
+  FaTimes, FaSearch, FaChartBar, FaHistory,
 } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -229,7 +229,7 @@ function MedicinesPage() {
 }
 
 /* ═══════════════════ ORDERS SUB-PAGE ═══════════════════════════ */
-function OrdersPage() {
+function OrdersPage({ mode = 'active' }) {
   const { toast } = useToast();
   const [orders,    setOrders]    = useState([]);
   const [loading,   setLoading]   = useState(true);
@@ -237,14 +237,18 @@ function OrdersPage() {
   const [detail,    setDetail]    = useState(null);
   const [updating,  setUpdating]  = useState(null);
 
-  const load = useCallback(async (status) => {
+  const load = useCallback(async () => {
     setLoading(true);
-    try { setOrders(await fetchAllOrders({ status })); }
+    try { 
+      const all = await fetchAllOrders(); 
+      setOrders(all);
+    }
     catch(e) { toast.error(e.message); }
     finally { setLoading(false); }
   }, [toast]);
 
-  useEffect(() => { load(filter); }, [filter, load]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setFilter('all'); }, [mode]);
 
   const handleStatus = async (orderId, newStatus) => {
     setUpdating(orderId);
@@ -256,15 +260,34 @@ function OrdersPage() {
     finally { setUpdating(null); }
   };
 
-  const TABS = ['all','pending','confirmed','dispatched','delivered','cancelled'];
+  const isHistory = mode === 'history';
+  const subTabs = isHistory 
+    ? ['all', 'delivered', 'cancelled'] 
+    : ['all', 'pending', 'confirmed', 'dispatched'];
+
+  const filteredOrders = orders.filter(o => {
+    if (isHistory) {
+      const isHistOrder = o.status === 'delivered' || o.status === 'cancelled';
+      if (!isHistOrder) return false;
+      if (filter === 'all') return true;
+      return o.status === filter;
+    } else {
+      const isActiveOrder = o.status === 'pending' || o.status === 'confirmed' || o.status === 'dispatched';
+      if (!isActiveOrder) return false;
+      if (filter === 'all') return true;
+      return o.status === filter;
+    }
+  });
 
   return (
     <>
       {/* Filter tabs */}
       <Nav variant="pills" className="ph-tabs mb-3" activeKey={filter} onSelect={setFilter}>
-        {TABS.map(t => (
+        {subTabs.map(t => (
           <Nav.Item key={t}>
-            <Nav.Link eventKey={t} className="ph-tab">{t.charAt(0).toUpperCase() + t.slice(1)}</Nav.Link>
+            <Nav.Link eventKey={t} className="ph-tab">
+              {t === 'all' ? (isHistory ? 'All History' : 'All Active') : (t.charAt(0).toUpperCase() + t.slice(1))}
+            </Nav.Link>
           </Nav.Item>
         ))}
       </Nav>
@@ -278,10 +301,10 @@ function OrdersPage() {
               <tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th>Update Status</th><th>Details</th></tr>
             </thead>
             <tbody>
-              {orders.length === 0 && (
+              {filteredOrders.length === 0 && (
                 <tr><td colSpan={7} className="text-center text-muted py-4">No orders found.</td></tr>
               )}
-              {orders.map(o => {
+              {filteredOrders.map(o => {
                 const cfg  = ORDER_STATUS_CFG[o.status] || ORDER_STATUS_CFG.pending;
                 const next = NEXT_STATUSES[o.status] || [];
                 return (
@@ -506,16 +529,130 @@ function PrescriptionsPage() {
   );
 }
 
+/* ═══════════════════ OVERVIEW PAGE ═════════════════════════════ */
+function OverviewPage({ setActiveSection }) {
+  const { user } = useAuth();
+  const [stats, setStats] = useState({ pending: 0, verification: 0, lowStock: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const [meds, ordersList, prescriptions] = await Promise.all([
+          fetchAllMedicines(),
+          fetchAllOrders(),
+          fetchPendingPrescriptions(),
+        ]);
+        const lowStockCount = meds.filter(m => m.stock < 10).length;
+        const pendingOrdersCount = ordersList.filter(o => o.status === 'pending' || o.status === 'confirmed' || o.status === 'dispatched').length;
+        const pendingRxCount = prescriptions.length;
+        setStats({
+          pending: pendingOrdersCount,
+          verification: pendingRxCount,
+          lowStock: lowStockCount
+        });
+      } catch (e) {
+        console.error("Failed to load overview stats:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadStats();
+  }, []);
+
+  const notifications = [
+    { time: '10 mins ago', text: 'Low stock alert: Amoxicillin 250mg is down to 8 units.', type: 'danger' },
+    { time: '45 mins ago', text: 'Order #ORD-9982 was verified and marked as Dispatched.', type: 'success' },
+    { time: '2 hours ago', text: 'Prescription #RX-4091 uploaded by Ahmed Khan was Approved.', type: 'info' },
+    { time: '4 hours ago', text: 'System: Database sync completed successfully.', type: 'primary' },
+  ];
+
+  return (
+    <div className="ph-overview">
+      {/* Welcome Banner */}
+      <div className="ph-welcome-banner mb-4">
+        <h2>Welcome back, {user?.name || 'Pharmacist'}!</h2>
+        <p>Here is an overview of today's active apothecary operations.</p>
+      </div>
+
+      {/* KPI Cards */}
+      <Row className="g-3 mb-4">
+        <Col md={4}>
+          <Card className="ph-glass-card shadow-sm clickable" onClick={() => setActiveSection('orders')}>
+            <Card.Body className="d-flex align-items-center gap-3">
+              <div className="ph-glass-icon bg-warning-light text-warning">
+                <FaClipboardList size={24} />
+              </div>
+              <div>
+                <h4 className="fw-900 mb-0">{loading ? '...' : stats.pending}</h4>
+                <div className="text-muted small">Pending Orders</div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={4}>
+          <Card className="ph-glass-card shadow-sm clickable" onClick={() => setActiveSection('prescriptions')}>
+            <Card.Body className="d-flex align-items-center gap-3">
+              <div className="ph-glass-icon bg-info-light text-info">
+                <FaFileMedical size={24} />
+              </div>
+              <div>
+                <h4 className="fw-900 mb-0">{loading ? '...' : stats.verification}</h4>
+                <div className="text-muted small">Awaiting Verification</div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={4}>
+          <Card className="ph-glass-card shadow-sm clickable" onClick={() => setActiveSection('medicines')}>
+            <Card.Body className="d-flex align-items-center gap-3">
+              <div className="ph-glass-icon bg-danger-light text-danger">
+                <FaPills size={24} />
+              </div>
+              <div>
+                <h4 className="fw-900 mb-0">{loading ? '...' : stats.lowStock}</h4>
+                <div className="text-muted small">Low Stock Items</div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Notifications timeline */}
+      <Card className="ph-glass-card shadow-sm mt-4">
+        <Card.Header className="bg-transparent border-0 pt-3">
+          <h5 className="fw-bold mb-0"><FaHistory className="me-2 text-primary" />Recent Apothecary Activity</h5>
+        </Card.Header>
+        <Card.Body>
+          <div className="ph-timeline">
+            {notifications.map((n, idx) => (
+              <div key={idx} className="ph-timeline-item d-flex gap-3 mb-3 pb-3 border-bottom-dashed">
+                <div className={`ph-timeline-badge bg-${n.type}`}></div>
+                <div className="flex-grow-1">
+                  <p className="mb-0 fw-600 text-dark small">{n.text}</p>
+                  <span className="text-muted extra-small">{n.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
+  );
+}
+
 /* ═══════════════════ SIDEBAR LAYOUT ════════════════════════════ */
 const SECTIONS = [
-  { key:'medicines',     label:'Manage Medicines',     icon:<FaPills /> },
-  { key:'orders',        label:'Manage Orders',         icon:<FaClipboardList /> },
-  { key:'prescriptions', label:'Verify Prescriptions',  icon:<FaFileMedical /> },
+  { key:'overview',      label:'Dashboard Overview',   icon:<FaChartBar /> },
+  { key:'orders',        label:'Manage Orders',        icon:<FaClipboardList /> },
+  { key:'prescriptions', label:'Verify Rx',            icon:<FaFileMedical /> },
+  { key:'medicines',     label:'Inventory',            icon:<FaPills /> },
+  { key:'history',       label:'Order History',        icon:<FaHistory /> },
 ];
 
 export default function PharmacistDashboard() {
   const { user } = useAuth();
-  const [active, setActive] = useState('medicines');
+  const [active, setActive] = useState('overview');
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const section = SECTIONS.find(s => s.key === active);
@@ -558,9 +695,11 @@ export default function PharmacistDashboard() {
           </div>
 
           <div className="ph-content">
+            {active === 'overview'      && <OverviewPage setActiveSection={setActive} />}
             {active === 'medicines'     && <MedicinesPage />}
-            {active === 'orders'        && <OrdersPage />}
+            {active === 'orders'        && <OrdersPage mode="active" />}
             {active === 'prescriptions' && <PrescriptionsPage />}
+            {active === 'history'       && <OrdersPage mode="history" />}
           </div>
         </main>
       </div>

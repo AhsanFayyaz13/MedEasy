@@ -8,12 +8,18 @@ import './Auth.css';
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^[+]?[\d\s\-().]{7,15}$/;
 
 function validate(fields) {
   const errors = {};
-  if (!fields.email.trim())            errors.email    = 'Email address is required.';
-  else if (!EMAIL_RE.test(fields.email)) errors.email  = 'Please enter a valid email address.';
-  if (!fields.password)                errors.password = 'Password is required.';
+  if (!fields.identifier.trim()) {
+    errors.identifier = 'Email address or Phone number is required.';
+  } else if (!EMAIL_RE.test(fields.identifier) && !PHONE_RE.test(fields.identifier)) {
+    errors.identifier = 'Please enter a valid email address or phone number.';
+  }
+  if (!fields.password) {
+    errors.password = 'Password is required.';
+  }
   return errors;
 }
 
@@ -34,7 +40,7 @@ export default function Login() {
   }, [isAuthenticated, userRole, navigate, from]);
 
   // Form state
-  const [fields,     setFields]     = useState({ email: '', password: '' });
+  const [fields,     setFields]     = useState({ identifier: '', password: '' });
   const [errors,     setErrors]     = useState({});
   const [showPass,   setShowPass]   = useState(false);
   const [touched,    setTouched]    = useState({});
@@ -63,13 +69,13 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Mark all fields touched to reveal any remaining errors
-    setTouched({ email: true, password: true });
+    setTouched({ identifier: true, password: true });
     const validationErrors = validate(fields);
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
     try {
-      const { role } = await login(fields.email, fields.password);
+      const { role } = await login(fields.identifier, fields.password);
       navigate(from || ROLE_DASHBOARD[role] || '/', { replace: true });
     } catch {
       // Error is displayed from authError state – no extra handling needed
@@ -111,24 +117,24 @@ export default function Login() {
                 
 
                 <Form noValidate onSubmit={handleSubmit}>
-                  {/* Email */}
-                  <Form.Group className="mb-3" controlId="loginEmail">
-                    <Form.Label>Email Address</Form.Label>
+                  {/* Identifier */}
+                  <Form.Group className="mb-3" controlId="loginIdentifier">
+                    <Form.Label>Email or Phone Number</Form.Label>
                     <div className="input-icon-wrap">
                       <FaEnvelope className="input-icon" />
                       <Form.Control
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
+                        type="text"
+                        name="identifier"
+                        placeholder="you@example.com or 03001234567"
                         className="ps-icon"
-                        value={fields.email}
+                        value={fields.identifier}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        isValid={isValid('email')}
-                        isInvalid={isInvalid('email')}
-                        autoComplete="email"
+                        isValid={isValid('identifier')}
+                        isInvalid={isInvalid('identifier')}
+                        autoComplete="username"
                       />
-                      <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>
+                      <Form.Control.Feedback type="invalid">{errors.identifier}</Form.Control.Feedback>
                     </div>
                   </Form.Group>
 
