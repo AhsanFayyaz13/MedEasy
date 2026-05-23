@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import api from '../services/api';
 import {
   Container, Row, Col, Card, Table, Badge,
   Button, Form, Nav, ProgressBar, Alert, Modal,
@@ -10,7 +11,7 @@ import {
   FaCheckCircle, FaClock, FaTimesCircle, FaTrophy,
   FaMoneyBillWave, FaShoppingCart, FaSyncAlt,
   FaCalendarCheck, FaSlidersH, FaPlus, FaPlusCircle, FaSearch, FaHistory,
-  FaUserCheck,
+  FaUserCheck, FaClipboardList,
 } from 'react-icons/fa';
 import {
   Chart as ChartJS, CategoryScale, LinearScale,
@@ -322,31 +323,136 @@ function VerificationsTab({ users, setUsers }) {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
 
-  // Filter professionals whose profiles are NOT verified yet
-  const pending = users.filter(u => 
-    (u.role === 'doctor' || u.role === 'pharmacist') && 
-    u.isVerifiedProfile === false &&
-    (u.name.toLowerCase().includes(search.toLowerCase()) || 
-     u.email.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Filter professionals whose profiles are NOT verified yet, or pharmacies with pending pharmacist audits
+  const pending = users.filter(u => {
+    const emailStr = u.email || '';
+    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || 
+                        emailStr.toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
 
-  const handleApprove = (id) => {
+    if (u.role === 'doctor' || u.role === 'pharmacist') {
+      return u.isVerifiedProfile === false;
+    }
+    if (u.role === 'pharmacy') {
+      return u.pharmacistDetails?.status === 'pending';
+    }
+    return false;
+  });
+
+  const handleApprove = async (id) => {
     const target = users.find(u => u.id === id);
     if (!target) return;
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, isVerifiedProfile: true } : u));
-    toast.success(`Success! ${target.name} has been verified and can now practice on the platform.`);
-    setShowModal(false);
-    setSelectedUser(null);
+    
+    try {
+      const isRealDbUser = typeof id === 'string' && id.length === 24; // Mongo id is 24 chars string
+      if (isRealDbUser) {
+        await api.put(`/admin/users/${id}/approve`);
+      }
+      
+      setUsers(prev => prev.map(u => u.id === id 
+        ? { 
+            ...u, 
+            isVerifiedProfile: true,
+            pharmacistDetails: u.pharmacistDetails ? { ...u.pharmacistDetails, status: 'approved' } : undefined
+          } 
+        : u
+      ));
+      
+      toast.success(`Success! ${target.name} has been verified and approved.`);
+
+      // Create notification
+      try {
+        const key = 'medeasy_notifications_' + target.id;
+        const rawAlerts = localStorage.getItem(key) || '[]';
+        const alerts = JSON.parse(rawAlerts);
+        if (target.role === 'pharmacy') {
+          alerts.unshift({
+            id: 'alert-' + Date.now(),
+            text: `Pharmacist Representative Approved! Your store representative ${target.pharmacistDetails?.name || 'pharmacist'} is now verified and active. 🌟`,
+            time: Date.now(),
+            emoji: '🌟',
+            unread: true,
+            link: '/pharmacist'
+          });
+        } else if (target.role === 'doctor') {
+          alerts.unshift({
+            id: 'alert-' + Date.now(),
+            text: `Congratulations Dr. ${target.name}! Your professional clinical profile has been verified and approved. 🩺`,
+            time: Date.now(),
+            emoji: '🩺',
+            unread: true,
+            link: '/doctor'
+          });
+        }
+        localStorage.setItem(key, JSON.stringify(alerts));
+      } catch (err) {
+        console.error(err);
+      }
+
+      setShowModal(false);
+      setSelectedUser(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to approve credentials.');
+    }
   };
 
-  const handleReject = (id) => {
+  const handleReject = async (id) => {
     const target = users.find(u => u.id === id);
     if (!target) return;
-    if (!window.confirm(`Are you sure you want to decline the registration of ${target.name}?`)) return;
-    setUsers(prev => prev.filter(u => u.id !== id));
-    toast.error(`Registration for ${target.name} declined and request archived.`);
-    setShowModal(false);
-    setSelectedUser(null);
+    
+    const reason = window.prompt(`Provide a decline reason for ${target.name}:`, 'Credentials did not pass our audit.');
+    if (reason === null) return; // cancelled prompt
+    
+    try {
+      const isRealDbUser = typeof id === 'string' && id.length === 24;
+      if (isRealDbUser) {
+        await api.put(`/admin/users/${id}/decline`, { reason });
+      }
+      
+      setUsers(prev => prev.map(u => u.id === id
+        ? {
+            ...u,
+            pharmacistDetails: u.pharmacistDetails ? { ...u.pharmacistDetails, status: 'declined', declineReason: reason } : undefined
+          }
+        : u
+      ));
+      
+      toast.error(`Credentials for ${target.name} declined.`);
+
+      // Create notification
+      try {
+        const key = 'medeasy_notifications_' + target.id;
+        const rawAlerts = localStorage.getItem(key) || '[]';
+        const alerts = JSON.parse(rawAlerts);
+        if (target.role === 'pharmacy') {
+          alerts.unshift({
+            id: 'alert-' + Date.now(),
+            text: `Pharmacist Representative Declined: ${reason}. Please update your representative details. ❌`,
+            time: Date.now(),
+            emoji: '❌',
+            unread: true,
+            link: '/pharmacist'
+          });
+        } else if (target.role === 'doctor') {
+          alerts.unshift({
+            id: 'alert-' + Date.now(),
+            text: `Professional Profile Declined: ${reason}. Please review and re-verify your documents. ❌`,
+            time: Date.now(),
+            emoji: '❌',
+            unread: true,
+            link: '/profile'
+          });
+        }
+        localStorage.setItem(key, JSON.stringify(alerts));
+      } catch (err) {
+        console.error(err);
+      }
+
+      setShowModal(false);
+      setSelectedUser(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to decline credentials.');
+    }
   };
 
   const openDetailsModal = (user) => {
@@ -421,7 +527,7 @@ function VerificationsTab({ users, setUsers }) {
                   <code>{u.pmcRegistration || u.licenseNumber || '—'}</code>
                 </td>
                 <td className="text-muted small">
-                  {u.clinicAddress || u.address || '—'}
+                  {u.pharmacyLocation || u.clinicAddress || u.address || '—'}
                 </td>
                 <td>
                   <div className="d-flex gap-2">
@@ -472,14 +578,33 @@ function VerificationsTab({ users, setUsers }) {
                 <Col md={6}>
                   <Card className="h-100 border-0 shadow-sm bg-light">
                     <Card.Body>
-                      <h6 className="fw-bold text-primary mb-3">Academic & Experience</h6>
+                      <h6 className="fw-bold text-primary mb-3">
+                        {selectedUser.role === 'pharmacy' ? 'Pharmacist Credentials' : 'Academic & Experience'}
+                      </h6>
+                      {selectedUser.role === 'pharmacy' && (
+                        <>
+                          {selectedUser.pharmacistDetails?.photo && (
+                            <div className="mb-3">
+                              <span className="text-muted extra-small d-block mb-2">PHARMACIST PHOTO</span>
+                              <img src={`http://localhost:5000${selectedUser.pharmacistDetails.photo}`} alt="Pharmacist representative" className="rounded border object-fit-cover shadow-sm" style={{ width: 70, height: 70, objectFit: 'cover' }} />
+                            </div>
+                          )}
+                          <div className="mb-2">
+                            <span className="text-muted extra-small d-block">LICENSED PHARMACIST</span>
+                            <strong className="text-dark small">
+                              {selectedUser.pharmacistDetails?.name || selectedUser.pharmacistName || '—'}
+                              {selectedUser.pharmacistDetails?.age && ` (Age: ${selectedUser.pharmacistDetails.age} years)`}
+                            </strong>
+                          </div>
+                        </>
+                      )}
                       <div className="mb-2">
                         <span className="text-muted extra-small d-block">DEGREE TITLE</span>
-                        <strong className="text-dark small">{selectedUser.degree || selectedUser.degreeName || '—'}</strong>
+                        <strong className="text-dark small">{selectedUser.pharmacistDetails?.degreeName || selectedUser.degree || selectedUser.degreeName || '—'}</strong>
                       </div>
                       <div className="mb-2">
                         <span className="text-muted extra-small d-block">INSTITUTION</span>
-                        <strong className="text-dark small">{selectedUser.degreePlace || '—'}</strong>
+                        <strong className="text-dark small">{selectedUser.pharmacistDetails?.degreePlace || selectedUser.degreePlace || '—'}</strong>
                       </div>
                       {selectedUser.role === 'doctor' && (
                         <>
@@ -500,14 +625,24 @@ function VerificationsTab({ users, setUsers }) {
                 <Col md={6}>
                   <Card className="h-100 border-0 shadow-sm bg-light">
                     <Card.Body>
-                      <h6 className="fw-bold text-primary mb-3">Professional Licensing</h6>
+                      <h6 className="fw-bold text-primary mb-3">
+                        {selectedUser.role === 'pharmacy' ? 'Pharmacy Details' : 'Professional Licensing'}
+                      </h6>
+                      {selectedUser.role === 'pharmacy' && (
+                        <div className="mb-2">
+                          <span className="text-muted extra-small d-block">STORE NAME</span>
+                          <strong className="text-dark small">{selectedUser.pharmacyName || '—'}</strong>
+                        </div>
+                      )}
                       <div className="mb-3">
-                        <span className="text-muted extra-small d-block">LICENSE / PMC REGISTRATION</span>
-                        <code className="fs-6 fw-bold text-danger">{selectedUser.pmcRegistration || selectedUser.licenseNumber || '—'}</code>
+                        <span className="text-muted extra-small d-block">
+                          {selectedUser.role === 'pharmacy' ? 'PCP REGISTRATION / LICENSE' : 'LICENSE / PMC REGISTRATION'}
+                        </span>
+                        <code className="fs-6 fw-bold text-danger">{selectedUser.pharmacistDetails?.licenseNumber || selectedUser.pmcRegistration || selectedUser.licenseNumber || '—'}</code>
                       </div>
                       <div className="mb-3">
                         <span className="text-muted extra-small d-block">PRACTICE LOCATION</span>
-                        <strong className="text-dark small">{selectedUser.clinicAddress || selectedUser.address || '—'}</strong>
+                        <strong className="text-dark small">{selectedUser.pharmacyLocation || selectedUser.clinicAddress || selectedUser.address || '—'}</strong>
                       </div>
                       {selectedUser.role === 'doctor' && (
                         <div className="mb-2">
@@ -519,10 +654,25 @@ function VerificationsTab({ users, setUsers }) {
                   </Card>
                 </Col>
 
-                {/* Uploaded Documents Attachment */}
+                {/* Uploaded Documents & Picture Preview Attachment */}
                 <Col md={12}>
                   <Card className="border-0 shadow-sm bg-light">
                     <Card.Body>
+                      {selectedUser.role === 'pharmacy' && selectedUser.pharmacyOutsidePicture && (
+                        <div className="mb-4 pb-3 border-bottom">
+                          <span className="text-muted extra-small d-block mb-2 fw-semibold">PHARMACY OUTSIDE SHOP PICTURE</span>
+                          <div className="position-relative overflow-hidden rounded border bg-white p-2" style={{ maxWidth: '100%', maxHeight: '300px', display: 'inline-block' }}>
+                            <img 
+                              src={`http://localhost:5000${selectedUser.pharmacyOutsidePicture}`} 
+                              alt="Pharmacy Outside View" 
+                              className="img-fluid rounded"
+                              style={{ maxHeight: '280px', objectFit: 'contain', transition: 'transform 0.3s' }}
+                              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            />
+                          </div>
+                        </div>
+                      )}
                       <h6 className="fw-bold text-primary mb-3">Uploaded Verification Proofs</h6>
                       <div className="p-3 border rounded bg-white d-flex align-items-center justify-content-between">
                         <div className="d-flex align-items-center gap-3">
@@ -949,15 +1099,420 @@ function SettingsTab() {
   );
 }
 
+/* ═══════════════ TAB 8 – RESOLUTION & AUDITS ═════════════════ */
+function AuditsTab() {
+  const { toast } = useToast();
+  const [subTab, setSubTab] = useState('suggestions'); // 'suggestions' | 'doctors' | 'pharmacies'
+
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [docReports, setDocReports] = useState([]);
+  const [pharmReviews, setPharmReviews] = useState([]);
+  const [pharmReports, setPharmReports] = useState([]);
+
+  const loadAllAudits = () => {
+    try {
+      const fb = JSON.parse(localStorage.getItem('medeasy_feedbacks') || '[]');
+      const dr = JSON.parse(localStorage.getItem('medeasy_doctor_reports') || '[]');
+      const pr = JSON.parse(localStorage.getItem('medeasy_pharmacy_reviews') || '[]');
+      const prep = JSON.parse(localStorage.getItem('medeasy_pharmacy_reports') || '[]');
+
+      // sort by time descending
+      setFeedbacks(fb.sort((a,b) => b.time - a.time));
+      setDocReports(dr.sort((a,b) => b.time - a.time));
+      setPharmReviews(pr.sort((a,b) => b.time - a.time));
+      setPharmReports(prep.sort((a,b) => b.time - a.time));
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    loadAllAudits();
+    const interval = setInterval(loadAllAudits, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleResolveFeedback = (id) => {
+    try {
+      const fb = JSON.parse(localStorage.getItem('medeasy_feedbacks') || '[]');
+      const updated = fb.filter(item => item.id !== id);
+      localStorage.setItem('medeasy_feedbacks', JSON.stringify(updated));
+      setFeedbacks(updated);
+      toast.success('Platform suggestion marked as reviewed.');
+    } catch (e) {
+      toast.error('Operation failed.');
+    }
+  };
+
+  const handleResolveDocReport = (id, action = 'resolve') => {
+    try {
+      const dr = JSON.parse(localStorage.getItem('medeasy_doctor_reports') || '[]');
+      const updated = dr.map(item => {
+        if (item.id === id) {
+          return { ...item, status: 'resolved', resolutionAction: action };
+        }
+        return item;
+      });
+      localStorage.setItem('medeasy_doctor_reports', JSON.stringify(updated));
+      setDocReports(updated);
+
+      const target = dr.find(item => item.id === id);
+
+      if (action === 'sanction') {
+        toast.warn(`Doctor ${target?.doctorName} has been sanctioned. Clinical account placed under suspension.`);
+        // Send notification alert to the Doctor
+        const key = 'medeasy_notifications_' + target?.doctorId;
+        const rawAlerts = localStorage.getItem(key) || '[]';
+        const alerts = JSON.parse(rawAlerts);
+        alerts.unshift({
+          id: 'alert-' + Date.now() + '-doc',
+          text: `⚠️ Platform Action: Your medical clinic account has been temporarily suspended by the Admin due to a clinical complaint regarding Appointment #APT-${target?.appointmentId}. Please contact medical support.`,
+          time: Date.now(),
+          emoji: '⚠️',
+          unread: true,
+          link: '/doctor'
+        });
+        localStorage.setItem(key, JSON.stringify(alerts));
+      } else {
+        toast.success('Clinical complaint has been successfully resolved.');
+      }
+    } catch (e) {
+      toast.error('Operation failed.');
+    }
+  };
+
+  const handleResolvePharmReport = (id, action = 'resolve') => {
+    try {
+      const prep = JSON.parse(localStorage.getItem('medeasy_pharmacy_reports') || '[]');
+      const updated = prep.map(item => {
+        if (item.id === id) {
+          return { ...item, status: 'resolved', resolutionAction: action };
+        }
+        return item;
+      });
+      localStorage.setItem('medeasy_pharmacy_reports', JSON.stringify(updated));
+      setPharmReports(updated);
+
+      const target = prep.find(item => item.id === id);
+
+      if (action === 'sanction') {
+        toast.warn(`Pharmacy store has been sanctioned. Store representative verification suspended.`);
+        // Send notification alert to Pharmacy Representative
+        const key = 'medeasy_notifications_pharmacist';
+        const rawAlerts = localStorage.getItem(key) || '[]';
+        const alerts = JSON.parse(rawAlerts);
+        alerts.unshift({
+          id: 'alert-' + Date.now() + '-pharm',
+          text: `⚠️ Platform Action: Your pharmacy store and pharmacist representative verification has been suspended due to fulfillment complaint regarding Order #${target?.orderId}.`,
+          time: Date.now(),
+          emoji: '⚠️',
+          unread: true,
+          link: '/pharmacist'
+        });
+        localStorage.setItem(key, JSON.stringify(alerts));
+      } else {
+        toast.success('Pharmacy logistics complaint resolved.');
+      }
+    } catch(e) {
+      toast.error('Operation failed.');
+    }
+  };
+
+  const handleResolveReview = (id) => {
+    try {
+      const pr = JSON.parse(localStorage.getItem('medeasy_pharmacy_reviews') || '[]');
+      const updated = pr.filter(item => item.id !== id);
+      localStorage.setItem('medeasy_pharmacy_reviews', JSON.stringify(updated));
+      setPharmReviews(updated);
+      toast.success('Pharmacy rating reviewed and archived.');
+    } catch(e) {
+      toast.error('Operation failed.');
+    }
+  };
+
+  return (
+    <div className="adm-audits mt-3 animate-fade-in">
+      {/* Sub-tabs Nav */}
+      <Nav variant="pills" className="mb-4 bg-light p-1.5 rounded-3 d-inline-flex gap-2">
+        <Nav.Item>
+          <Nav.Link 
+            active={subTab === 'suggestions'} 
+            onClick={() => setSubTab('suggestions')}
+            className="small px-4 py-2 fw-semibold rounded-3"
+            style={{ cursor: 'pointer' }}
+          >
+            💡 Suggestions & Feedbacks ({feedbacks.length})
+          </Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link 
+            active={subTab === 'doctors'} 
+            onClick={() => setSubTab('doctors')}
+            className="small px-4 py-2 fw-semibold rounded-3"
+            style={{ cursor: 'pointer' }}
+          >
+            🩺 Doctor Audits ({docReports.length})
+          </Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link 
+            active={subTab === 'pharmacies'} 
+            onClick={() => setSubTab('pharmacies')}
+            className="small px-4 py-2 fw-semibold rounded-3"
+            style={{ cursor: 'pointer' }}
+          >
+            🏪 Pharmacy Audits ({pharmReports.length + pharmReviews.length})
+          </Nav.Link>
+        </Nav.Item>
+      </Nav>
+
+      {/* Sub-tab 1: Platform Suggestions */}
+      {subTab === 'suggestions' && (
+        <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+          <Card.Body className="p-0">
+            <Table responsive hover className="mb-0 align-middle">
+              <thead className="table-light text-secondary small">
+                <tr>
+                  <th className="px-4 py-3">Patient</th>
+                  <th className="py-3">Type</th>
+                  <th className="py-3">Rating</th>
+                  <th className="py-3">Subject & Suggestions</th>
+                  <th className="py-3">Date</th>
+                  <th className="px-4 py-3 text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody className="small">
+                {feedbacks.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-5 text-muted">
+                      No platform suggestions or feedbacks submitted yet.
+                    </td>
+                  </tr>
+                ) : (
+                  feedbacks.map(f => (
+                    <tr key={f.id}>
+                      <td className="px-4 py-3 fw-bold text-dark">{f.patientName}<br/><span className="text-muted extra-small">{f.patientEmail}</span></td>
+                      <td className="py-3">
+                        <Badge bg={f.feedbackType === 'bug' ? 'danger' : f.feedbackType === 'compliment' ? 'success' : 'info'} className="text-capitalize">
+                          {f.feedbackType}
+                        </Badge>
+                      </td>
+                      <td className="py-3 fw-semibold text-warning">{'⭐'.repeat(f.rating)}</td>
+                      <td className="py-3">
+                        <strong className="text-dark d-block mb-1">{f.subject}</strong>
+                        <span className="text-muted d-block leading-relaxed" style={{ maxWidth: '400px' }}>{f.message}</span>
+                      </td>
+                      <td className="py-3 text-muted">{new Date(f.time).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-end">
+                        <Button variant="outline-success" size="sm" className="rounded-pill px-3" onClick={() => handleResolveFeedback(f.id)}>
+                          Mark Reviewed
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
+      )}
+
+      {/* Sub-tab 2: Doctor Clinical Audits */}
+      {subTab === 'doctors' && (
+        <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+          <Card.Body className="p-0">
+            <Table responsive hover className="mb-0 align-middle">
+              <thead className="table-light text-secondary small">
+                <tr>
+                  <th className="px-4 py-3">Patient Name</th>
+                  <th className="py-3">Doctor / Clinic</th>
+                  <th className="py-3">Appointment ID</th>
+                  <th className="py-3">Issue Category</th>
+                  <th className="py-3">Complaint Details</th>
+                  <th className="py-3">Status</th>
+                  <th className="px-4 py-3 text-end">Resolution Actions</th>
+                </tr>
+              </thead>
+              <tbody className="small">
+                {docReports.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-5 text-muted">
+                      No clinical reports against doctors found.
+                    </td>
+                  </tr>
+                ) : (
+                  docReports.map(r => (
+                    <tr key={r.id}>
+                      <td className="px-4 py-3 fw-bold text-dark">{r.patientName}<br/><span className="text-muted extra-small">{r.patientEmail}</span></td>
+                      <td className="py-3"><strong>{r.doctorName}</strong><br/><span className="text-muted extra-small">{r.specialty}</span></td>
+                      <td className="py-3"><code>#APT-{r.appointmentId}</code></td>
+                      <td className="py-3">
+                        <Badge bg="danger" className="text-uppercase small" style={{ fontSize: '0.65rem' }}>
+                          {r.issueType}
+                        </Badge>
+                      </td>
+                      <td className="py-3"><span className="text-muted d-block leading-relaxed" style={{ maxWidth: '300px' }}>{r.details}</span></td>
+                      <td className="py-3">
+                        <Badge bg={r.status === 'resolved' ? 'success' : 'warning'}>
+                          {r.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-end">
+                        {r.status !== 'resolved' ? (
+                          <div className="d-flex justify-content-end gap-1.5">
+                            <Button variant="outline-success" size="sm" className="rounded-8 px-2.5" onClick={() => handleResolveDocReport(r.id, 'resolve')}>
+                              Resolve
+                            </Button>
+                            <Button variant="danger" size="sm" className="rounded-8 px-2.5 text-white" onClick={() => handleResolveDocReport(r.id, 'sanction')}>
+                              Sanction
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-success fw-bold d-inline-flex align-items-center gap-1">
+                            Resolved {r.resolutionAction === 'sanction' && <Badge bg="danger">Sanctioned</Badge>}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
+      )}
+
+      {/* Sub-tab 3: Pharmacy Audits */}
+      {subTab === 'pharmacies' && (
+        <div className="d-flex flex-column gap-4 animate-fade-in">
+          {/* Section A: Pharmacy Complaints */}
+          <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+            <Card.Header className="bg-white border-0 py-3 px-4">
+              <h6 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                ⚠️ Formal Logistics & Fulfillment Complaints
+              </h6>
+            </Card.Header>
+            <Card.Body className="p-0">
+              <Table responsive hover className="mb-0 align-middle">
+                <thead className="table-light text-secondary small">
+                  <tr>
+                    <th className="px-4 py-3">Patient</th>
+                    <th className="py-3">Pharmacy / Order</th>
+                    <th className="py-3">Issue Category</th>
+                    <th className="py-3">Description</th>
+                    <th className="py-3">Status</th>
+                    <th className="px-4 py-3 text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="small">
+                  {pharmReports.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-4 text-muted">
+                        No logistics reports against pharmacies.
+                      </td>
+                    </tr>
+                  ) : (
+                    pharmReports.map(r => (
+                      <tr key={r.id}>
+                        <td className="px-4 py-3 fw-bold text-dark">{r.patientName}<br/><span className="text-muted extra-small">{r.patientEmail}</span></td>
+                        <td className="py-3"><strong>{r.pharmacyName}</strong><br/><span className="text-muted extra-small">Order #{r.orderId}</span></td>
+                        <td className="py-3">
+                          <Badge bg="danger" className="text-uppercase" style={{ fontSize: '0.65rem' }}>
+                            {r.issueType}
+                          </Badge>
+                        </td>
+                        <td className="py-3"><span className="text-muted d-block leading-relaxed" style={{ maxWidth: '300px' }}>{r.details}</span></td>
+                        <td className="py-3">
+                          <Badge bg={r.status === 'resolved' ? 'success' : 'warning'}>
+                            {r.status}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-end">
+                          {r.status !== 'resolved' ? (
+                            <div className="d-flex justify-content-end gap-1.5">
+                              <Button variant="outline-success" size="sm" className="rounded-8 px-2.5" onClick={() => handleResolvePharmReport(r.id, 'resolve')}>
+                                Resolve
+                              </Button>
+                              <Button variant="danger" size="sm" className="rounded-8 px-2.5 text-white" onClick={() => handleResolvePharmReport(r.id, 'sanction')}>
+                                Sanction
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-success fw-bold">
+                              Resolved {r.resolutionAction === 'sanction' && <Badge bg="danger">Sanctioned</Badge>}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
+
+          {/* Section B: Pharmacy Reviews */}
+          <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
+            <Card.Header className="bg-white border-0 py-3 px-4">
+              <h6 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                ⭐ Pharmacy Experience & Pharmacist Behavior Ratings
+              </h6>
+            </Card.Header>
+            <Card.Body className="p-0">
+              <Table responsive hover className="mb-0 align-middle">
+                <thead className="table-light text-secondary small">
+                  <tr>
+                    <th className="px-4 py-3">Patient</th>
+                    <th className="py-3">Order ID</th>
+                    <th className="py-3">Fulfillment Partner</th>
+                    <th className="py-3">Rating</th>
+                    <th className="py-3">Comments</th>
+                    <th className="px-4 py-3 text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="small">
+                  {pharmReviews.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-4 text-muted">
+                        No pharmacy delivery reviews left yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    pharmReviews.map(r => (
+                      <tr key={r.id}>
+                        <td className="px-4 py-3 fw-bold text-dark">{r.patientName}<br/><span className="text-muted extra-small">{r.patientEmail}</span></td>
+                        <td className="py-3"><code>#{r.orderId}</code></td>
+                        <td className="py-3"><strong>{r.pharmacyName}</strong></td>
+                        <td className="py-3 fw-semibold text-warning">{'★'.repeat(r.rating)}</td>
+                        <td className="py-3"><span className="text-muted d-block leading-relaxed" style={{ maxWidth: '300px' }}>{r.comment}</span></td>
+                        <td className="px-4 py-3 text-end">
+                          <Button variant="outline-success" size="sm" className="rounded-pill px-3" onClick={() => handleResolveReview(r.id)}>
+                            Archive Review
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════ MAIN ADMIN DASHBOARD ═════════════════════════ */
 const TABS = [
   { key: 'overview',      label: 'Dashboard Overview',   icon: <FaChartBar /> },
-  { key: 'verifications', label: 'Verification Requests', icon: <FaUserCheck />, hiddenFromSidebar: true },
-  { key: 'users',         label: 'User Management',       icon: <FaUsers />, hiddenFromSidebar: true },
+  { key: 'users',         label: 'User Management',       icon: <FaUsers /> },
+  { key: 'verifications', label: 'Verification Requests', icon: <FaUserCheck /> },
   { key: 'medicines',     label: 'Medicine Management',   icon: <FaBoxes /> },
   { key: 'appointments',  label: 'Appointment Oversight', icon: <FaClock /> },
   { key: 'orders',        label: 'Order Management',      icon: <FaShoppingCart /> },
   { key: 'reports',       label: 'Reports & Analytics',   icon: <FaTrophy /> },
+  { key: 'audits',        label: 'Resolution & Audits',   icon: <FaClipboardList /> },
   { key: 'settings',      label: 'System Settings',       icon: <FaSlidersH /> },
 ];
 
@@ -1009,6 +1564,28 @@ export default function AdminDashboard() {
       address: 'Johar Town Phase 2, Lahore',
     }
   ]);
+
+  useEffect(() => {
+    async function fetchRealPending() {
+      try {
+        const { data } = await api.get('/admin/users/pending');
+        // Map real DB users so they conform to the frontend UI expectations
+        const realUsersMapped = data.map(u => ({
+          ...u,
+          id: u._id, // map Mongo _id to standard id
+          joined: new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        }));
+        setUsers(prev => {
+          // Avoid duplicating if they are already in the array
+          const filteredPrev = prev.filter(p => !data.some(d => d._id === p._id || d._id === p.id));
+          return [...filteredPrev, ...realUsersMapped];
+        });
+      } catch (err) {
+        console.error("Failed to load real pending professionals:", err);
+      }
+    }
+    fetchRealPending();
+  }, []);
   const [medicines, setMedicines] = useState([
     { id: 1, name: 'Paracetamol 500mg', category: 'Analgesics', price: 50, stock: 250 },
     { id: 2, name: 'Amoxicillin 250mg', category: 'Antibiotics', price: 180, stock: 90 },
@@ -1094,6 +1671,7 @@ export default function AdminDashboard() {
             {active === 'appointments' && <AppointmentsTab apts={apts} setApts={setApts} />}
             {active === 'orders'       && <OrdersTab orders={orders} setOrders={setOrders} />}
             {active === 'reports'      && <ReportsTab />}
+            {active === 'audits'       && <AuditsTab />}
             {active === 'settings'     && <SettingsTab />}
           </div>
         </main>

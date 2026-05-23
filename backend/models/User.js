@@ -7,21 +7,43 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { 
     type: String, 
-    enum: ['patient', 'pharmacist', 'doctor', 'admin'],
+    enum: ['patient', 'pharmacist', 'doctor', 'admin', 'pharmacy'],
     default: 'patient'
   },
   phone: { type: String, unique: true, required: true },
   profileImage: { type: String },
   address: { type: String },
   
-  // Profile verification status for professional roles (doctor, pharmacist)
+  // Profile verification status for professional roles (doctor, pharmacist, pharmacy)
   isVerifiedProfile: { type: Boolean, default: false },
 
-  // Pharmacist specific fields
+  // Pharmacy / Pharmacist specific fields
   pharmacyName: { type: String },
+  pharmacyLocation: { type: String },
+  pharmacyOutsidePicture: { type: String },
+  ownerName: { type: String },
+  pharmacistName: { type: String },
   degreeName: { type: String }, // e.g. Pharm.D, B.Pharm
   degreePlace: { type: String }, // Place/University of degree
   licenseNumber: { type: String }, // Pharmacy Council Registration
+
+  // Pharmacist representative details (added post-login and admin-verified)
+  pharmacistDetails: {
+    name: { type: String },
+    photo: { type: String },
+    licenseNumber: { type: String },
+    age: { type: Number },
+    degreeName: { type: String },
+    degreePlace: { type: String },
+    email: { type: String },
+    password: { type: String },
+    status: { 
+      type: String, 
+      enum: ['none', 'pending', 'approved', 'declined'], 
+      default: 'none' 
+    },
+    declineReason: { type: String }
+  },
 
   // Doctor specific fields
   specialty: { type: String },

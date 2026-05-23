@@ -194,7 +194,20 @@ export default function MedicineDetail() {
                 <Alert variant="warning" className="rx-alert mt-3 mb-0 py-2">
                   <FaExclamationTriangle className="me-2" />
                   <strong>Prescription Required.</strong>{' '}
-                  <Link to="/prescriptions/upload">Upload yours →</Link>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        openLoginModal();
+                      } else {
+                        navigate('/prescriptions/upload', { state: { requiredForMedicine: med.name } });
+                      }
+                    }}
+                    className="btn btn-link p-0 align-baseline text-decoration-underline"
+                    style={{ fontWeight: 600, color: '#b45309' }}
+                  >
+                    Upload yours →
+                  </button>
                 </Alert>
               )}
             </div>
@@ -211,8 +224,8 @@ export default function MedicineDetail() {
               )}
             </div>
 
-            <h1 className="detail-name">{med.name}</h1>
-            <p className="detail-brand">by <strong>{med.brand}</strong> · {med.manufacturer}</p>
+            <h1 className="detail-name">{med.brand || med.name}</h1>
+            <p className="detail-brand">{med.brand ? `${med.name} · ` : ''}by <strong>{med.manufacturer}</strong></p>
 
             {/* Stars */}
             <StarRow rating={med.rating} count={med.reviews_count} />
@@ -296,10 +309,28 @@ export default function MedicineDetail() {
 
             {/* Prescription CTA */}
             {med.requires_prescription && (
-              <div className="rx-cta">
-                <FaUpload className="me-2" />
-                This medicine requires a valid prescription.{' '}
-                <Link to="/prescriptions/upload" className="rx-link">Upload Prescription →</Link>
+              <div className="rx-cta d-flex flex-column align-items-start gap-3 p-4 rounded-3 mt-3 shadow-sm" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+                <div className="d-flex align-items-center gap-2" style={{ color: '#b45309' }}>
+                  <FaExclamationTriangle className="fs-5" />
+                  <strong className="fs-6">Prescription Required</strong>
+                </div>
+                <p className="mb-0 text-muted small leading-relaxed" style={{ textAlign: 'left' }}>
+                  This medicine requires a valid prescription verified by a licensed clinical pharmacist. 
+                  Please upload your doctor's prescription file. Once verified, this medicine will be enabled for checkout.
+                </p>
+                <Button 
+                  className="px-4 py-2 mt-1"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      openLoginModal();
+                    } else {
+                      navigate('/prescriptions/upload', { state: { requiredForMedicine: med.name } });
+                    }
+                  }}
+                  style={{ background: 'linear-gradient(135deg, #d97706, #b45309)', border: 'none', fontWeight: 700 }}
+                >
+                  <FaUpload className="me-2" /> Upload Doctor Prescription
+                </Button>
               </div>
             )}
 

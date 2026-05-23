@@ -4,6 +4,7 @@ import { FaStar, FaRegStar, FaUserCircle } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
+import { fetchMyAppointments } from '../services/appointmentService';
 import './ReviewSection.css';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false';
@@ -41,6 +42,36 @@ export default function ReviewSection({ targetType, targetId, initialReviews = [
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  // Verified checkup credential checking
+  const [hasCompletedCheckup, setHasCompletedCheckup] = useState(false);
+  const [checkingCredential, setCheckingCredential] = useState(true);
+
+  useEffect(() => {
+    if (targetType !== 'doctor' || !isAuthenticated) {
+      setHasCompletedCheckup(true);
+      setCheckingCredential(false);
+      return;
+    }
+
+    const checkCredential = async () => {
+      try {
+        const appointments = await fetchMyAppointments();
+        const found = appointments.some(
+          a => String(a.doctorId) === String(targetId) && a.status === 'completed'
+        );
+        setHasCompletedCheckup(found);
+      } catch (err) {
+        console.error("Error verifying doctor checkup credential:", err);
+        // Fallback to true in case of service error so user isn't locked out entirely
+        setHasCompletedCheckup(true);
+      } finally {
+        setCheckingCredential(false);
+      }
+    };
+
+    checkCredential();
+  }, [targetType, targetId, isAuthenticated]);
 
   // Fetch reviews (simulated or real)
   useEffect(() => {
@@ -138,7 +169,29 @@ export default function ReviewSection({ targetType, targetId, initialReviews = [
       </div>
 
       {/* Review Form */}
-      {canReview ? (
+      {!isAuthenticated ? (
+        <Alert variant="info" className="mb-5">
+          Please log in to leave a review.
+        </Alert>
+      ) : !canReview ? (
+        <Alert variant="info" className="mb-5">
+          Your account role does not permit leaving reviews for this item.
+        </Alert>
+      ) : checkingCredential ? (
+        <div className="text-center py-3 mb-5">
+          <Spinner animation="border" variant="primary" size="sm" />
+          <span className="ms-2 text-muted small">Verifying credentials...</span>
+        </div>
+      ) : !hasCompletedCheckup ? (
+        <Alert variant="warning" className="mb-5 border-0 shadow-sm p-4 rounded-4" style={{ background: '#fffbeb', borderLeft: '4px solid #f59e0b' }}>
+          <h6 className="fw-bold mb-2 d-flex align-items-center gap-2" style={{ color: '#b45309', fontSize: '1rem' }}>
+            🔒 Verified Consultation Required
+          </h6>
+          <p className="mb-0 text-muted small" style={{ lineHeight: '1.5' }}>
+            You can only leave reviews for doctors you have had a completed consultation appointment with. This ensures all doctor ratings and reviews are authentic and verified for our patients.
+          </p>
+        </Alert>
+      ) : (
         <div className="review-form-box mb-5 p-4 border rounded bg-white shadow-sm">
           <h5 className="mb-3">Write a Review</h5>
           {error && <Alert variant="danger">{error}</Alert>}
@@ -161,12 +214,6 @@ export default function ReviewSection({ targetType, targetId, initialReviews = [
             </Button>
           </Form>
         </div>
-      ) : (
-        <Alert variant="info" className="mb-5">
-          {!isAuthenticated 
-            ? 'Please log in to leave a review.' 
-            : 'Your account role does not permit leaving reviews for this item.'}
-        </Alert>
       )}
 
       {/* Reviews List */}

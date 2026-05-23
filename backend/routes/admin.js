@@ -4,7 +4,10 @@ const {
   salesReport,
   inventoryReport,
   userStats,
-  prescriptionAnalytics
+  prescriptionAnalytics,
+  listPendingProfessionals,
+  approveProfessional,
+  declineProfessional
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middleware/auth');
 
@@ -16,5 +19,9 @@ router.get('/sales', salesReport);
 router.get('/inventory', inventoryReport);
 router.get('/users', userStats);
 router.get('/prescriptions/analytics', prescriptionAnalytics);
+
+router.get('/users/pending', listPendingProfessionals);
+router.put('/users/:id/approve', approveProfessional);
+router.put('/users/:id/decline', declineProfessional);
 
 module.exports = router;

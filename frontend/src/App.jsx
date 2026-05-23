@@ -94,7 +94,7 @@ function AppContent() {
               ROLE-SPECIFIC DASHBOARDS
               ══════════════════════════════════════════════════════ */}
               <Route path="/pharmacist" element={
-                <ProtectedRoute roles={['pharmacist']}>
+                <ProtectedRoute roles={['pharmacist', 'pharmacy']}>
                   <PharmacistDashboard />
                 </ProtectedRoute>
               } />

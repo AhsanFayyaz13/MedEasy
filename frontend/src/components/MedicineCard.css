@@ -144,3 +144,10 @@
 .add-to-cart-btn.in-cart {
   background: linear-gradient(135deg, #059669, #34d399) !important;
 }
+.add-to-cart-btn.rx-btn {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
+}
+.add-to-cart-btn.rx-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  opacity: 0.95;
+}

@@ -55,6 +55,7 @@ function loadSession() {
 export const ROLE_DASHBOARD = {
   patient:    '/',
   pharmacist: '/dashboard/pharmacist',
+  pharmacy:   '/dashboard/pharmacist',
   doctor:     '/dashboard/doctor',
   admin:      '/dashboard/admin',
 };
@@ -213,6 +214,42 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
+  // ── updatePharmacistDetails ───────────────────────────────────────────────
+  const updatePharmacistDetails = useCallback(async (pharmacistData) => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const { data } = await api.put('/auth/profile/pharmacist', pharmacistData);
+      persistSession(token, null, data);
+      setUser(data);
+      return data;
+    } catch (err) {
+      const msg = parseApiError(err, 'Failed to update pharmacist details.');
+      setAuthError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  // ── removePharmacistDetails ───────────────────────────────────────────────
+  const removePharmacistDetails = useCallback(async () => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const { data } = await api.delete('/auth/profile/pharmacist');
+      persistSession(token, null, data);
+      setUser(data);
+      return data;
+    } catch (err) {
+      const msg = parseApiError(err, 'Failed to remove pharmacist details.');
+      setAuthError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
   // ── clear transient error ──────────────────────────────────────────────────
   const clearAuthError = useCallback(() => setAuthError(null), []);
 
@@ -232,6 +269,8 @@ export function AuthProvider({ children }) {
     resendVerification,
     updateProfile,
     uploadProfilePhoto,
+    updatePharmacistDetails,
+    removePharmacistDetails,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

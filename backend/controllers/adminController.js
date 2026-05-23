@@ -118,3 +118,65 @@ exports.prescriptionAnalytics = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.listPendingProfessionals = async (req, res) => {
+  try {
+    const pendingUsers = await User.find({
+      $or: [
+        { role: 'doctor', isVerifiedProfile: false },
+        { role: 'pharmacy', 'pharmacistDetails.status': 'pending' }
+      ]
+    }).select('-password');
+    res.json(pendingUsers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.approveProfessional = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role === 'doctor') {
+      user.isVerifiedProfile = true;
+    } else if (user.role === 'pharmacy') {
+      if (user.pharmacistDetails) {
+        user.pharmacistDetails.status = 'approved';
+      }
+      user.isVerifiedProfile = true;
+    }
+
+    await user.save();
+    res.json({ message: 'Approved successfully', user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.declineProfessional = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role === 'doctor') {
+      user.isVerifiedProfile = false;
+    } else if (user.role === 'pharmacy') {
+      if (user.pharmacistDetails) {
+        user.pharmacistDetails.status = 'declined';
+        user.pharmacistDetails.declineReason = reason || 'Credentials did not pass audit.';
+      }
+      user.isVerifiedProfile = false;
+    }
+
+    await user.save();
+    res.json({ message: 'Declined successfully', user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

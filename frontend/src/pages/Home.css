@@ -363,6 +363,14 @@
   cursor: not-allowed;
   background: #9ca3af;
 }
+.med-cart-btn.rx-btn {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
+}
+.med-cart-btn.rx-btn:hover:not(.disabled) {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
 
 /* ══════════════════════════════════════════════════════════════
    CATEGORY CARDS

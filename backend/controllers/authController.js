@@ -4,19 +4,29 @@ const jwt = require('jsonwebtoken');
 const { normalizePhone } = require('../utils/phone');
 const { generateVerificationCode, logVerificationCode } = require('../utils/verification');
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (id, role) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
     expiresIn: '30d',
   });
 };
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role, phone, address, verificationChannel } = req.body;
+    const { 
+      name, email, password, role, phone, address, verificationChannel,
+      pharmacyName, pharmacyLocation, pharmacyOutsidePicture, pharmacistName,
+      degreeName, degreePlace, licenseNumber, ownerName
+    } = req.body;
 
     // Validate input - name, password, phone, and verificationChannel are required
     if (!name || !password || !phone || !verificationChannel) {
       return res.status(400).json({ message: 'Missing required fields: name, password, phone, or verificationChannel' });
+    }
+
+    if (role === 'pharmacy') {
+      if (!pharmacyName || !pharmacyLocation || !pharmacyOutsidePicture) {
+        return res.status(400).json({ message: 'Missing pharmacy registration details: name, location, or outside picture.' });
+      }
     }
 
     if (!['email', 'phone'].includes(verificationChannel)) {
@@ -64,7 +74,15 @@ exports.register = async (req, res) => {
       address,
       verificationCode,
       verificationCodeExpires,
-      verificationChannel
+      verificationChannel,
+      pharmacyName,
+      pharmacyLocation,
+      pharmacyOutsidePicture,
+      ownerName,
+      pharmacistName,
+      degreeName,
+      degreePlace,
+      licenseNumber
     });
 
     // Log the verification code for temporary local testing in terminal
@@ -133,7 +151,15 @@ exports.verifyRegistration = async (req, res) => {
       password: pending.password, // hashed automatically by User's pre-save hook
       role: pending.role,
       phone: pending.phone,
-      address: pending.address
+      address: pending.address,
+      pharmacyName: pending.pharmacyName,
+      pharmacyLocation: pending.pharmacyLocation,
+      pharmacyOutsidePicture: pending.pharmacyOutsidePicture,
+      ownerName: pending.ownerName,
+      isVerifiedProfile: pending.role === 'pharmacy' ? true : false,
+      pharmacistDetails: {
+        status: 'none'
+      }
     };
     if (pending.email) {
       userFields.email = pending.email;
@@ -149,7 +175,11 @@ exports.verifyRegistration = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user._id)
+      pharmacyName: user.pharmacyName,
+      ownerName: user.ownerName,
+      pharmacistDetails: user.pharmacistDetails,
+      isVerifiedProfile: user.isVerifiedProfile,
+      token: generateToken(user._id, user.role)
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -218,19 +248,70 @@ exports.login = async (req, res) => {
       query = { phone: normalizedPhone };
     }
 
-    const user = await User.findOne(query);
+    let user = await User.findOne(query);
+    let isSubAccount = false;
 
-    if (user && (await user.comparePassword(password))) {
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user._id)
+    if (!user && inputIdentifier.includes('@')) {
+      // Look up pharmacist sub-account
+      user = await User.findOne({
+        role: 'pharmacy',
+        'pharmacistDetails.email': inputIdentifier.toLowerCase()
       });
-    } else {
-      res.status(401).json({ message: 'Invalid credentials. Please verify your email/phone and password.' });
+      if (user) {
+        isSubAccount = true;
+      }
     }
+
+    if (user) {
+      if (isSubAccount) {
+        const bcrypt = require('bcryptjs');
+        const isMatch = await bcrypt.compare(password, user.pharmacistDetails.password);
+        if (!isMatch) {
+          return res.status(401).json({ message: 'Invalid credentials. Please verify your email and password.' });
+        }
+
+        // Hired pharmacist representatives can only log in after being verified/approved by Admin
+        if (user.pharmacistDetails.status !== 'approved') {
+          return res.status(401).json({ 
+            message: 'Your pharmacist representative account is currently pending administrator verification. You will be able to log in once approved.' 
+          });
+        }
+
+        return res.json({
+          _id: user._id,
+          name: user.pharmacistDetails.name,
+          email: user.pharmacistDetails.email,
+          role: 'pharmacist',
+          pharmacyName: user.pharmacyName,
+          ownerName: user.ownerName,
+          pharmacistDetails: user.pharmacistDetails,
+          isVerifiedProfile: true,
+          token: generateToken(user._id, 'pharmacist')
+        });
+      }
+
+      // Normal user flow
+      if (await user.comparePassword(password)) {
+        // Block unapproved professional accounts (doctor) from logging in
+        if (user.role === 'doctor' && !user.isVerifiedProfile) {
+          return res.status(401).json({ message: 'Your professional profile is currently pending administrator credentials audit. You will be able to log in once approved.' });
+        }
+
+        return res.json({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          pharmacyName: user.pharmacyName,
+          ownerName: user.ownerName,
+          pharmacistDetails: user.pharmacistDetails,
+          isVerifiedProfile: user.isVerifiedProfile,
+          token: generateToken(user._id, user.role)
+        });
+      }
+    }
+
+    return res.status(401).json({ message: 'Invalid credentials. Please verify your email/phone and password.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -238,9 +319,18 @@ exports.login = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
   try {
+    // If the middleware overrode the role (pharmacist sub-account), use req.user directly
+    if (req.user && req.user.role === 'pharmacist' && req.user._id) {
+      const userObj = typeof req.user.toObject === 'function' ? req.user.toObject() : { ...req.user };
+      if (userObj.pharmacistDetails) delete userObj.pharmacistDetails.password;
+      return res.json(userObj);
+    }
+
     const user = await User.findById(req.user._id).select('-password');
     if (user) {
-      res.json(user);
+      const userObj = user.toObject();
+      if (userObj.pharmacistDetails) delete userObj.pharmacistDetails.password;
+      res.json(userObj);
     } else {
       res.status(404).json({ message: 'User not found' });
     }
@@ -299,17 +389,14 @@ exports.updateProfile = async (req, res) => {
 
     // Update role-specific fields
     if (user.role === 'pharmacist') {
+      // ── Hired pharmacist representatives must NOT be able to change their own
+      // professional credentials. Those are managed exclusively by the sponsoring
+      // pharmacy owner. Block any attempt to modify them silently (or with an error).
+      // Only name, address, and other generic personal fields are allowed.
+      // We explicitly do NOT update: pharmacyName, degreeName, degreePlace, licenseNumber.
+    } else if (user.role === 'pharmacy') {
+      // Pharmacy owner profile fields (general identity, not sub-account management)
       if (pharmacyName !== undefined) user.pharmacyName = pharmacyName;
-      if (degreeName !== undefined) user.degreeName = degreeName;
-      if (degreePlace !== undefined) user.degreePlace = degreePlace;
-      if (licenseNumber !== undefined) user.licenseNumber = licenseNumber;
-
-      // Auto verify if key fields are provided
-      if (user.pharmacyName?.trim() && user.degreePlace?.trim() && user.licenseNumber?.trim()) {
-        user.isVerifiedProfile = true;
-      } else {
-        user.isVerifiedProfile = false;
-      }
     } else if (user.role === 'doctor') {
       if (specialty !== undefined) user.specialty = specialty;
       if (pmcRegistration !== undefined) user.pmcRegistration = pmcRegistration;
@@ -366,6 +453,112 @@ exports.uploadProfilePhoto = async (req, res) => {
 
     const updatedUser = await User.findById(user._id).select('-password');
     res.json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updatePharmacistDetails = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role !== 'pharmacy') {
+      return res.status(403).json({ message: 'Only pharmacy accounts can manage pharmacist representative details.' });
+    }
+
+    const { name, photo, licenseNumber, age, degreeName, degreePlace, email, password } = req.body;
+
+    // Validate required sub-account credentials
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ message: 'A valid pharmacist representative email address is required.' });
+    }
+
+    // Password is required only for new entries; optional when updating existing (to keep old password)
+    const isNew = !user.pharmacistDetails || user.pharmacistDetails.status === 'none';
+    if (isNew && (!password || password.length < 6)) {
+      return res.status(400).json({ message: 'A representative access password of at least 6 characters is required.' });
+    }
+    if (password && password.length > 0 && password.length < 6) {
+      return res.status(400).json({ message: 'The new password must be at least 6 characters long.' });
+    }
+
+    // Check if email is already used by another user or sub-account (but not ourselves)
+    const emailConflict = await User.findOne({
+      _id: { $ne: user._id },
+      $or: [
+        { email: email.toLowerCase() },
+        { 'pharmacistDetails.email': email.toLowerCase() }
+      ]
+    });
+    if (emailConflict) {
+      return res.status(400).json({ message: 'This email address is already registered to another account. Please use a different one.' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    // Only hash and update password if a new one was provided
+    const existingPassword = user.pharmacistDetails?.password;
+    const hashedPassword = (password && password.length >= 6)
+      ? await bcrypt.hash(password, 10)
+      : existingPassword;
+
+    user.pharmacistDetails = {
+      name,
+      photo,
+      licenseNumber,
+      age: age ? Number(age) : undefined,
+      degreeName,
+      degreePlace,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      status: 'pending',
+      declineReason: undefined
+    };
+
+    await user.save();
+    
+    // Return updated user profile, hiding the nested pharmacistDetails password
+    const updatedUser = await User.findById(user._id).select('-password');
+    const userObj = updatedUser.toObject();
+    if (userObj.pharmacistDetails) delete userObj.pharmacistDetails.password;
+    res.json(userObj);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.removePharmacistDetails = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role !== 'pharmacy') {
+      return res.status(403).json({ message: 'Only pharmacy accounts can manage pharmacist representative details.' });
+    }
+
+    user.pharmacistDetails = {
+      status: 'none'
+    };
+
+    await user.save();
+
+    const updatedUser = await User.findById(user._id).select('-password');
+    res.json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.uploadPharmacistPhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No photo file uploaded or invalid format.' });
+    }
+    res.status(200).json({ filePath: `/uploads/${req.file.filename}` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

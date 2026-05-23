@@ -170,6 +170,7 @@ function HomeMedicineCard({ medicine }) {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const { openLoginModal } = useAuthModal();
+  const navigate = useNavigate();
 
   const canBuy = medicine.in_stock && !medicine.requires_prescription;
   const discount = Math.round(
@@ -179,6 +180,10 @@ function HomeMedicineCard({ medicine }) {
   const handleAddToCart = () => {
     if (!isAuthenticated) {
       openLoginModal();
+      return;
+    }
+    if (medicine.requires_prescription) {
+      navigate('/prescriptions/upload', { state: { requiredForMedicine: medicine.name } });
       return;
     }
     canBuy && addToCart(medicine);
@@ -209,9 +214,9 @@ function HomeMedicineCard({ medicine }) {
       <div className="med-info">
         <span className="med-category">{medicine.category}</span>
         <Link to={`/medicines/${medicine.id}`} className="med-name">
-          {medicine.name}
+          {medicine.brand || medicine.name}
         </Link>
-        <span className="med-brand">{medicine.brand}</span>
+        <span className="med-brand">{medicine.brand ? medicine.name : ''}</span>
 
         <Stars rating={medicine.rating} />
         <span className="med-reviews">({medicine.reviews} reviews)</span>
@@ -222,14 +227,14 @@ function HomeMedicineCard({ medicine }) {
         </div>
 
         <button
-          className={`med-cart-btn ${!canBuy ? 'disabled' : ''}`}
+          className={`med-cart-btn ${!medicine.in_stock ? 'disabled' : ''} ${medicine.requires_prescription ? 'rx-btn' : ''}`}
           onClick={handleAddToCart}
-          disabled={!canBuy}
+          disabled={!medicine.in_stock}
           title={
             !medicine.in_stock
               ? 'Out of stock'
               : medicine.requires_prescription
-              ? 'Requires prescription – upload yours first'
+              ? 'Requires prescription – click to upload and order'
               : 'Add to cart'
           }
         >

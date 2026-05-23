@@ -5,12 +5,12 @@ import {
   FaCheckCircle, FaTimesCircle, FaClock, FaTrash, FaInfoCircle,
   FaRedo, FaShieldAlt, FaExclamationTriangle, FaLink,
 } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { uploadPrescription, fetchPrescriptions, deletePrescription } from '../services/prescriptionService';
 import './PrescriptionUpload.css';
 
-const MAX_FILE_MB = 5;
+const MAX_FILE_MB = 10;
 const ALLOWED_TYPES = ['image/jpeg','image/jpg','image/png','image/webp','application/pdf'];
 
 function fmtBytes(b) {
@@ -146,6 +146,9 @@ function PrescriptionCard({ rx, onDelete }) {
 
 export default function PrescriptionUpload() {
   const { toast } = useToast();
+  const location = useLocation();
+  const requiredForMedicine = location.state?.requiredForMedicine;
+
   const [file, setFile]               = useState(null);
   const [notes, setNotes]             = useState('');
   const [fileError, setFileError]     = useState(null);
@@ -164,6 +167,12 @@ export default function PrescriptionUpload() {
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
+  useEffect(() => {
+    if (requiredForMedicine) {
+      setNotes(`Prescription for: ${requiredForMedicine}`);
+    }
+  }, [requiredForMedicine]);
+
   const handleFile = (f) => { setFile(f); setFileError(null); setUploadAlert(null); };
 
   const handleSubmit = async (e) => {
@@ -176,6 +185,40 @@ export default function PrescriptionUpload() {
       const result = await uploadPrescription(file, notes);
       setUploadAlert({ variant:'success', msg:`Uploaded! ID: ${result.id}. A pharmacist will review it within 30 minutes.` });
       toast.success(`Prescription ${result.id} submitted`);
+
+      // Create notification
+      try {
+        // 1. Patient Confirmation Alert
+        const pKey = 'medeasy_notifications_' + (user?._id || user?.id || 'patient');
+        const pRaw = localStorage.getItem(pKey) || '[]';
+        const pAlerts = JSON.parse(pRaw);
+        pAlerts.unshift({
+          id: 'alert-' + Date.now(),
+          text: `Prescription Submitted: Your prescription (#RX-${result.id}) has been uploaded and sent for review! 📋`,
+          time: Date.now(),
+          emoji: '📋',
+          unread: true,
+          link: '/prescriptions/upload'
+        });
+        localStorage.setItem(pKey, JSON.stringify(pAlerts));
+
+        // 2. Pharmacist/Admin Audit Notification Alert
+        const phKey = 'medeasy_notifications_pharmacist';
+        const phRaw = localStorage.getItem(phKey) || '[]';
+        const phAlerts = JSON.parse(phRaw);
+        phAlerts.unshift({
+          id: 'alert-' + Date.now() + '-admin',
+          text: `New Prescription Uploaded: Patient ${user?.name || 'Patient'} uploaded a new medical prescription #RX-${result.id} for review.`,
+          time: Date.now(),
+          emoji: '🔍',
+          unread: true,
+          link: '/pharmacist'
+        });
+        localStorage.setItem(phKey, JSON.stringify(phAlerts));
+      } catch (err) {
+        console.error(err);
+      }
+
       setFile(null); setNotes(''); setFileError(null);
       await loadHistory();
     } catch(e) {
@@ -217,6 +260,12 @@ export default function PrescriptionUpload() {
             <Card className="rx-upload-card">
               <Card.Body className="p-4">
                 <h5 className="rx-section-title"><FaUpload className="me-2"/>New Prescription</h5>
+                {requiredForMedicine && (
+                  <Alert variant="warning" className="small-warning-alert py-2 mb-3 animate-fade-in" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', fontSize: '0.8rem', textAlign: 'left' }}>
+                    <FaInfoCircle className="me-2 fs-5" />
+                    A prescription is required for <strong>{requiredForMedicine}</strong>. Upload it below.
+                  </Alert>
+                )}
                 <Form noValidate onSubmit={handleSubmit}>
                   <DropZone file={file} onFile={handleFile} error={fileError}/>
                   {fileError && (

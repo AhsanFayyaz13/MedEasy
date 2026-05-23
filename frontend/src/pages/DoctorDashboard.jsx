@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Container, Row, Col, Card, Table, Badge,
   Button, Modal, Form, Spinner, Alert, Nav,
@@ -7,9 +7,11 @@ import {
   FaUserMd, FaCalendarCheck, FaNotesMedical, FaCheckCircle,
   FaTimesCircle, FaClock, FaSearch, FaFilePrescription,
   FaUsers, FaChartBar, FaHistory, FaPhoneAlt, FaChevronRight,
+  FaPaperPlane,
 } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useLocation } from 'react-router-dom';
 import { fetchDoctorAppointments, completeAppointment, cancelAppointment } from '../services/appointmentService';
 import './DoctorDashboard.css';
 
@@ -22,6 +24,48 @@ const fmtDate = (d) => {
     return d;
   }
 };
+
+/**
+ * sendNotification — Writes a notification to a user's isolated localStorage bucket.
+ * For patients: writes to both the specific patientId key AND 'medeasy_notifications_patient'
+ * so the currently logged-in patient can receive it regardless of which ID was stored
+ * on the mock appointment record.
+ * @param {'doctor'|'pharmacist'|'admin'|'patient'} role
+ * @param {string|number} [specificId] - The specific user ID if targeting a patient
+ * @param {Object} notification - The notification object to push
+ */
+function sendNotification(role, specificId, notification) {
+  try {
+    // Always write to the role-specific key for professional roles
+    if (role === 'doctor' || role === 'pharmacist' || role === 'admin') {
+      const key = `medeasy_notifications_${role}`;
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      // Dedup: skip if same text appeared within last 3s
+      const isDup = existing.some(a => a.text === notification.text && Date.now() - a.time < 3000);
+      if (!isDup) {
+        existing.unshift(notification);
+        localStorage.setItem(key, JSON.stringify(existing));
+      }
+      return;
+    }
+
+    // For patients: write to specific ID key AND the generic 'patient' broadcast key
+    const keysToWrite = new Set();
+    if (specificId) keysToWrite.add(`medeasy_notifications_${specificId}`);
+    keysToWrite.add('medeasy_notifications_patient'); // broadcast fallback
+
+    keysToWrite.forEach(key => {
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      const isDup = existing.some(a => a.text === notification.text && Date.now() - a.time < 3000);
+      if (!isDup) {
+        existing.unshift(notification);
+        localStorage.setItem(key, JSON.stringify(existing));
+      }
+    });
+  } catch (err) {
+    console.error('sendNotification error:', err);
+  }
+}
 
 const STATUS_CFG = {
   scheduled: { color:'primary', icon:<FaClock /> },
@@ -154,7 +198,7 @@ function OverviewTab({ apts, loading, setActive, openComplete }) {
 }
 
 /* ═══════════════════ SCHEDULE TAB ══════════════════════════════ */
-function ScheduleTab({ apts, loading, openComplete, handleCancel, setViewRx }) {
+function ScheduleTab({ apts, loading, openComplete, handleCancel, setViewRx, setChatApt }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
@@ -221,11 +265,14 @@ function ScheduleTab({ apts, loading, openComplete, handleCancel, setViewRx }) {
                         </Badge>
                       </td>
                       <td>
-                        <div className="apt-actions">
+                        <div className="apt-actions gap-2">
                           {isScheduled ? (
                             <>
                               <Button size="sm" className="btn-complete" onClick={() => openComplete(a)}>
                                 <FaNotesMedical className="me-1" /> Complete
+                              </Button>
+                              <Button size="sm" variant="outline-primary" className="rounded-8 px-2.5" onClick={() => setChatApt(a)}>
+                                💬 Chat
                               </Button>
                               <Button size="sm" variant="outline-danger" className="rounded-8" onClick={() => handleCancel(a.id)}>
                                 Cancel
@@ -233,8 +280,11 @@ function ScheduleTab({ apts, loading, openComplete, handleCancel, setViewRx }) {
                             </>
                           ) : (
                             <>
+                              <Button size="sm" variant="outline-primary" className="rounded-8 px-2.5 me-2" onClick={() => setChatApt(a)}>
+                                💬 Chat
+                              </Button>
                               {a.status === 'completed' && a.prescription && (
-                                <Button size="sm" variant="outline-success" className="rounded-8" onClick={() => setViewRx(a)}>
+                                <Button size="sm" variant="outline-success" className="rounded-8 me-2" onClick={() => setViewRx(a)}>
                                   <FaFilePrescription className="me-1" /> View Rx
                                 </Button>
                               )}
@@ -470,6 +520,91 @@ export default function DoctorDashboard() {
   const [saving,   setSaving]   = useState(false);
   const [viewRx,   setViewRx]   = useState(null);   // appointment to view Rx
 
+  /* ── Chat E2E System ── */
+  const [chatApt, setChatApt] = useState(null);
+  const [chatMsgs, setChatMsgs] = useState([]);
+  const [typedMsg, setTypedMsg] = useState('');
+  const chatBottomRef = useRef(null);
+  const location = useLocation();
+
+  const loadChatMsgs = useCallback(() => {
+    if (!chatApt) return;
+    try {
+      const raw = localStorage.getItem('medeasy_chats');
+      const all = raw ? JSON.parse(raw) : [];
+      const filtered = all.filter(m => m.appointmentId === chatApt.id);
+      setChatMsgs(filtered);
+    } catch(e) {
+      console.error(e);
+    }
+  }, [chatApt]);
+
+  useEffect(() => {
+    if (chatApt) {
+      loadChatMsgs();
+      const interval = setInterval(loadChatMsgs, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [chatApt, loadChatMsgs]);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMsgs]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const chatParam = params.get('chat');
+    if (chatParam && apts.length > 0) {
+      const found = apts.find(a => String(a.id) === String(chatParam) || `#APT-${a.id}` === chatParam || `APT-${a.id}` === chatParam);
+      if (found) {
+        setChatApt(found);
+        setActive('schedule'); // Auto-switch active tab to schedule workspace
+      }
+    }
+  }, [location.search, apts]);
+
+  const handleSendChat = (e) => {
+    if (e) e.preventDefault();
+    if (!typedMsg.trim() || !chatApt) return;
+
+    try {
+      const raw = localStorage.getItem('medeasy_chats') || '[]';
+      const all = JSON.parse(raw);
+      
+      const newMsg = {
+        id: 'msg-' + Date.now(),
+        appointmentId: chatApt.id,
+        senderId: user?.id || 1,
+        senderName: `Dr. ${user?.name || 'Sara Ali'}`,
+        senderRole: 'doctor',
+        text: typedMsg,
+        time: Date.now()
+      };
+
+      all.push(newMsg);
+      localStorage.setItem('medeasy_chats', JSON.stringify(all));
+      setChatMsgs(prev => [...prev, newMsg]);
+      setTypedMsg('');
+
+      // ── Notify Patient: Doctor sent a chat reply ──
+      sendNotification('patient', chatApt.patientId, {
+        id: 'chat-notif-' + Date.now(),
+        text: `Dr. ${user?.name || 'Doctor'} replied to your message — Appointment #APT-${chatApt.id}.`,
+        time: Date.now(),
+        emoji: '💬',
+        unread: true,
+        link: `/appointments/book?chat=${chatApt.id}`
+      });
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSuggestReschedule = () => {
+    setTypedMsg("I am not available at your selected date/time. Would you be comfortable with rescheduling to [Day] at [Time] instead? Let me know so we can consult.");
+  };
+
   const DOCTOR_ID = user?.id ?? 1;
 
   const load = useCallback(async () => {
@@ -490,6 +625,21 @@ export default function DoctorDashboard() {
       const updated = await completeAppointment(modal.id, { notes, prescription: rx });
       setApts(prev => prev.map(a => a.id === updated.id ? updated : a));
       toast.success(`Consultation recorded. E-prescription generated successfully.`);
+
+      // ── Notify Patient: E-Prescription issued ──
+      try {
+        sendNotification('patient', modal.patientId, {
+          id: 'rx-notif-' + Date.now(),
+          text: `E-Prescription Issued: Dr. ${user?.name || 'Doctor'} issued a new digital prescription for your case #APT-${modal.id}.`,
+          time: Date.now(),
+          emoji: '💊',
+          unread: true,
+          link: '/appointments/book'
+        });
+      } catch (err) {
+        console.error(err);
+      }
+
       setModal(null);
     } catch(e) { toast.error(e.message); }
     finally { setSaving(false); }
@@ -502,6 +652,22 @@ export default function DoctorDashboard() {
       await cancelAppointment(id);
       setApts(prev => prev.map(a => a.id === id ? {...a, status:'cancelled'} : a));
       toast.success(`Appointment marked as cancelled.`);
+
+      // ── Notify Patient: Appointment cancelled ──
+      try {
+        const target = apts.find(a => a.id === id);
+        sendNotification('patient', target?.patientId, {
+          id: 'cancel-notif-' + Date.now(),
+          text: `Appointment Cancelled: Dr. ${user?.name || 'Doctor'} cancelled your appointment #APT-${id}.`,
+          time: Date.now(),
+          emoji: '❌',
+          unread: true,
+          link: '/appointments/book'
+        });
+      } catch (err) {
+        console.error(err);
+      }
+
     } catch(e) { toast.error(e.message); }
   };
 
@@ -591,7 +757,7 @@ export default function DoctorDashboard() {
 
           <div className="doc-content">
             {active === 'overview'  && <OverviewTab apts={apts} loading={loading} setActive={setActive} openComplete={openComplete} />}
-            {active === 'schedule'  && <ScheduleTab apts={apts} loading={loading} openComplete={openComplete} handleCancel={handleCancel} setViewRx={setViewRx} />}
+            {active === 'schedule'  && <ScheduleTab apts={apts} loading={loading} openComplete={openComplete} handleCancel={handleCancel} setViewRx={setViewRx} setChatApt={setChatApt} />}
             {active === 'prescribe' && <PrescribeTab apts={apts} handleIssueIndependent={handleIssueIndependent} />}
             {active === 'patients'  && <PatientsTab apts={apts} />}
           </div>
@@ -678,6 +844,101 @@ export default function DoctorDashboard() {
           </Modal.Body>
         )}
       </Modal>
+
+      {/* ── Doctor Chat Modal ── */}
+      <Modal show={!!chatApt} onHide={() => setChatApt(null)} centered size="md">
+        <Modal.Header closeButton className="bg-primary text-white border-0 py-3 rounded-top-4">
+          <Modal.Title className="fs-5 fw-bold d-flex align-items-center gap-2">
+            <span>💬 Consultation Chat with {chatApt?.patientName}</span>
+            <Badge bg="light" text="dark" className="fs-7 fw-normal">
+              #APT-{chatApt?.id}
+            </Badge>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0 bg-light rounded-bottom-4 d-flex flex-column" style={{ height: '450px' }}>
+          {/* Patient Details & Time slot display */}
+          {chatApt && (
+            <div className="p-2.5 bg-white border-bottom d-flex align-items-center justify-content-between px-3">
+              <span className="small text-muted" style={{ fontSize: '0.78rem' }}>
+                Slot: <strong>{fmtDate(chatApt.date)} at {chatApt.time}</strong>
+              </span>
+              <Button 
+                variant="outline-warning" 
+                size="sm" 
+                className="py-1 px-2 text-dark font-medium small rounded-8 d-flex align-items-center gap-1"
+                onClick={handleSuggestReschedule}
+                style={{ fontSize: '0.72rem' }}
+              >
+                ⚠️ Suggest Rescheduling
+              </Button>
+            </div>
+          )}
+
+          {/* Scrollable messages area */}
+          <div className="flex-grow-1 p-3 overflow-y-auto d-flex flex-column gap-2" style={{ maxHeight: '380px' }}>
+            {chatMsgs.length === 0 ? (
+              <div className="my-auto text-center text-muted py-4">
+                <p className="mb-1 fw-semibold">No messages yet.</p>
+                <p className="small mb-0">Send a message to patient to start the consultation or propose adjustments.</p>
+              </div>
+            ) : (
+              chatMsgs.map(m => {
+                const isMe = m.senderRole === 'doctor';
+                return (
+                  <div key={m.id} className={`d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}`}>
+                    <div className="d-flex align-items-center gap-2 mb-0.5">
+                      <span className="fw-semibold text-dark" style={{ fontSize: '0.72rem' }}>
+                        {isMe ? 'You' : m.senderName}
+                      </span>
+                      <span className="text-muted" style={{ fontSize: '0.65rem' }}>
+                        {new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div 
+                      className={`px-3 py-2 text-start`}
+                      style={{
+                        maxWidth: '85%',
+                        fontSize: '0.88rem',
+                        lineHeight: '1.4',
+                        background: isMe ? '#2563eb' : '#fff',
+                        color: isMe ? '#fff' : '#1f2937',
+                        border: isMe ? 'none' : '1px solid #e5e7eb',
+                        borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      {m.text}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={chatBottomRef} />
+          </div>
+
+          {/* Chat input box */}
+          <Form onSubmit={handleSendChat} className="p-3 bg-white border-top d-flex gap-2 align-items-center rounded-bottom-4">
+            <Form.Control
+              type="text"
+              placeholder="Type your message here..."
+              value={typedMsg}
+              onChange={e => setTypedMsg(e.target.value)}
+              className="rounded-pill"
+              style={{ fontSize: '0.9rem', padding: '0.6rem 1.2rem' }}
+            />
+            <Button 
+              type="submit" 
+              variant="primary" 
+              className="rounded-circle d-flex align-items-center justify-content-center" 
+              style={{ width: '42px', height: '42px', flexShrink: 0, padding: 0 }}
+              disabled={!typedMsg.trim()}
+            >
+              <FaPaperPlane size={14} />
+            </Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
     </div>
   );
 }

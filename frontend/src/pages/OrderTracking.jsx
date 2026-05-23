@@ -12,6 +12,7 @@ import {
 } from 'react-icons/fa';
 import { fetchOrders, cancelOrder } from '../services/orderService';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import './OrderTracking.css';
 
 // ─── Status configuration ─────────────────────────────────────────────────────
@@ -196,7 +197,7 @@ function OrderDetailsModal({ order, onClose }) {
 }
 
 // ─── Order Card ───────────────────────────────────────────────────────────────
-function OrderCard({ order, onCancel, onViewDetails }) {
+function OrderCard({ order, onCancel, onViewDetails, onReport, onRate }) {
   const cfg       = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
   const canCancel = order.status === 'pending' || order.status === 'confirmed';
   const isDelivered = order.status === 'delivered';
@@ -254,7 +255,7 @@ function OrderCard({ order, onCancel, onViewDetails }) {
             </span>
           </div>
 
-          <div className="order-actions">
+          <div className="order-actions d-flex flex-wrap gap-1">
             <Button
               variant="outline-primary"
               size="sm"
@@ -264,15 +265,25 @@ function OrderCard({ order, onCancel, onViewDetails }) {
               <FaEye className="me-1" /> Details
             </Button>
 
-            {isDelivered && (
+            {isDelivered && onRate && (
               <Button
-                as={Link}
-                to={`/reviews?orderId=${order.id}`}
                 variant="outline-warning"
                 size="sm"
                 className="btn-review"
+                onClick={() => onRate(order)}
               >
-                <FaStar className="me-1" /> Review
+                <FaStar className="me-1" /> Rate Pharmacy
+              </Button>
+            )}
+
+            {(order.status === 'confirmed' || order.status === 'dispatched' || order.status === 'delivered') && onReport && (
+              <Button
+                variant="outline-danger"
+                size="sm"
+                className="btn-report"
+                onClick={() => onReport(order)}
+              >
+                ⚠️ Report Issue
               </Button>
             )}
 
@@ -309,6 +320,116 @@ export default function OrderTracking() {
   const { orderId } = useParams();
   const navigate    = useNavigate();
   const { toast }   = useToast();
+  const { user }    = useAuth();
+
+  /* ── Rate Pharmacy/Pharmacist E2E ── */
+  const [reviewOrder, setReviewOrder] = useState(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const handleReviewSubmit = (e) => {
+    e.preventDefault();
+    if (!reviewOrder || !reviewComment.trim()) return;
+
+    setSubmittingReview(true);
+    try {
+      const raw = localStorage.getItem('medeasy_pharmacy_reviews') || '[]';
+      const all = JSON.parse(raw);
+
+      const newReview = {
+        id: 'rev-' + Date.now(),
+        orderId: reviewOrder.id,
+        pharmacyName: reviewOrder.pharmacyName || 'MedEasy Pharmacy Partner',
+        patientName: user?.name || 'Patient',
+        patientEmail: user?.email || '',
+        rating: Number(reviewRating),
+        comment: reviewComment,
+        time: Date.now()
+      };
+
+      all.push(newReview);
+      localStorage.setItem('medeasy_pharmacy_reviews', JSON.stringify(all));
+
+      // Send Alert notification to Admin
+      const rawAlerts = localStorage.getItem('medeasy_notifications_admin') || '[]';
+      const alerts = JSON.parse(rawAlerts);
+      alerts.unshift({
+        id: 'alert-' + Date.now() + '-admin',
+        text: `Pharmacy Review: Patient ${user?.name || 'Patient'} reviewed their pharmacy experience for Order #${reviewOrder.id} (${reviewRating} Stars): "${reviewComment.slice(0, 40)}..."`,
+        time: Date.now(),
+        emoji: '🌟',
+        unread: true,
+        link: '/admin?tab=audits'
+      });
+      localStorage.setItem('medeasy_notifications_admin', JSON.stringify(alerts));
+
+      toast.success('Thank you! Your pharmacy review has been submitted.');
+      setReviewOrder(null);
+      setReviewComment('');
+      setReviewRating(5);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to submit review.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  /* ── Report Pharmacy / Logistics Issue E2E ── */
+  const [reportOrder, setReportOrder] = useState(null);
+  const [reportIssueType, setReportIssueType] = useState('delay');
+  const [reportDetails, setReportDetails] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const handleReportSubmit = (e) => {
+    e.preventDefault();
+    if (!reportOrder || !reportDetails.trim()) return;
+
+    setSubmittingReport(true);
+    try {
+      const raw = localStorage.getItem('medeasy_pharmacy_reports') || '[]';
+      const all = JSON.parse(raw);
+
+      const newReport = {
+        id: 'rep-' + Date.now(),
+        orderId: reportOrder.id,
+        pharmacyName: reportOrder.pharmacyName || 'MedEasy Pharmacy Partner',
+        patientName: user?.name || 'Patient',
+        patientEmail: user?.email || '',
+        issueType: reportIssueType,
+        details: reportDetails,
+        status: 'pending',
+        time: Date.now()
+      };
+
+      all.push(newReport);
+      localStorage.setItem('medeasy_pharmacy_reports', JSON.stringify(all));
+
+      // Send Alert notification to Admin
+      const rawAlerts = localStorage.getItem('medeasy_notifications_admin') || '[]';
+      const alerts = JSON.parse(rawAlerts);
+      alerts.unshift({
+        id: 'alert-' + Date.now() + '-admin',
+        text: `Pharmacy Complaint: Patient ${user?.name || 'Patient'} submitted a complaint against the pharmacy for Order #${reportOrder.id}: "${reportDetails.slice(0, 40)}..."`,
+        time: Date.now(),
+        emoji: '⚖️',
+        unread: true,
+        link: '/admin?tab=audits'
+      });
+      localStorage.setItem('medeasy_notifications_admin', JSON.stringify(alerts));
+
+      toast.success('Your report has been successfully submitted to customer resolution.');
+      setReportOrder(null);
+      setReportDetails('');
+      setReportIssueType('delay');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to submit report.');
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
 
   const [orders,      setOrders]      = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -340,12 +461,46 @@ export default function OrderTracking() {
 
   // ── Cancel handler ─────────────────────────────────────────────
   const handleCancel = async (id) => {
+    const reason = window.prompt("Please provide a reason for cancelling this order:", "Changed mind / ordered incorrectly.");
+    if (reason === null) return; // cancelled prompt
+
     try {
       await cancelOrder(id);
       setOrders((prev) =>
-        prev.map((o) => o.id === id ? { ...o, status: 'cancelled' } : o)
+        prev.map((o) => o.id === id ? { ...o, status: 'cancelled', cancellationReason: reason } : o)
       );
       toast.success(`Order ${id} cancelled.`);
+
+      // Create notification for Admin / Pharmacy
+      try {
+        // Alert Admin
+        const rawAdmin = localStorage.getItem('medeasy_notifications_admin') || '[]';
+        const alertsAdmin = JSON.parse(rawAdmin);
+        alertsAdmin.unshift({
+          id: 'alert-' + Date.now(),
+          text: `Order Cancelled: Patient cancelled Order #${id}. Reason: ${reason}. ❌`,
+          time: Date.now(),
+          emoji: '❌',
+          unread: true,
+          link: '/admin'
+        });
+        localStorage.setItem('medeasy_notifications_admin', JSON.stringify(alertsAdmin));
+
+        // Alert Pharmacy Representative
+        const rawPharm = localStorage.getItem('medeasy_notifications_pharmacist') || '[]';
+        const alertsPharm = JSON.parse(rawPharm);
+        alertsPharm.unshift({
+          id: 'alert-' + Date.now() + '-pharm',
+          text: `Order Cancelled: Patient cancelled Order #${id}. Reason: ${reason}. ❌`,
+          time: Date.now(),
+          emoji: '❌',
+          unread: true,
+          link: '/pharmacist'
+        });
+        localStorage.setItem('medeasy_notifications_pharmacist', JSON.stringify(alertsPharm));
+      } catch (err) {
+        console.error(err);
+      }
     } catch (e) {
       toast.error(e.message || 'Could not cancel the order. Try again.');
     }
@@ -442,6 +597,8 @@ export default function OrderTracking() {
                         order={order}
                         onCancel={handleCancel}
                         onViewDetails={setModalOrder}
+                        onReport={setReportOrder}
+                        onRate={setReviewOrder}
                       />
                     </div>
                   ))}
@@ -490,6 +647,94 @@ export default function OrderTracking() {
 
       {/* ── Order Details Modal ──────────────────────────────── */}
       <OrderDetailsModal order={modalOrder} onClose={() => setModalOrder(null)} />
+
+      {/* ── Pharmacy Rating & Review Modal ── */}
+      <Modal show={!!reviewOrder} onHide={() => setReviewOrder(null)} centered>
+        <Modal.Header closeButton className="bg-warning text-white border-0 py-3 rounded-top-4">
+          <Modal.Title className="fs-5 fw-bold text-dark">⭐ Rate Pharmacy & Pharmacist Conduct</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="bg-light rounded-bottom-4">
+          <p className="small text-muted mb-3">
+            Your review helps us audit and reward outstanding pharmacy partners and delivery riders.
+          </p>
+          <Form onSubmit={handleReviewSubmit}>
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-bold">Select Delivery & Fulfillment Rating</Form.Label>
+              <Form.Select value={reviewRating} onChange={e => setReviewRating(e.target.value)}>
+                <option value="5">⭐⭐⭐⭐⭐ Excellent service</option>
+                <option value="4">⭐⭐⭐⭐ Very Good service</option>
+                <option value="3">⭐⭐⭐ Good service</option>
+                <option value="2">⭐⭐ Fair / Average service</option>
+                <option value="1">⭐ Poor service / Pharmacist issue</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label className="small fw-bold">Your Review Comments *</Form.Label>
+              <Form.Control 
+                required 
+                as="textarea" 
+                rows={4} 
+                placeholder="Share your experience regarding medicine packaging, pharmacist behavior, or delivery rider conduct..." 
+                value={reviewComment} 
+                onChange={e => setReviewComment(e.target.value)} 
+              />
+            </Form.Group>
+
+            <div className="d-flex justify-content-end gap-2">
+              <Button variant="outline-secondary" className="rounded-10 px-3" onClick={() => setReviewOrder(null)}>Cancel</Button>
+              <Button type="submit" variant="warning" className="rounded-10 px-4 text-dark fw-bold" disabled={submittingReview}>
+                {submittingReview ? 'Submitting...' : 'Submit Review'}
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* ── Report Pharmacy / Logistics Modal ── */}
+      <Modal show={!!reportOrder} onHide={() => setReportOrder(null)} centered>
+        <Modal.Header closeButton className="bg-danger text-white border-0 py-3 rounded-top-4">
+          <Modal.Title className="fs-5 fw-bold">⚠️ Report Pharmacy Issue</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="bg-light rounded-bottom-4">
+          <p className="small text-muted mb-3">
+            Filing this complaint triggers an immediate investigation into the fulfillment pharmacy and delivery courier.
+          </p>
+          <Form onSubmit={handleReportSubmit}>
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-bold">Select Logistics Issue Category</Form.Label>
+              <Form.Select value={reportIssueType} onChange={e => setReportIssueType(e.target.value)}>
+                <option value="wrong-medicine">Wrong Medicine Delivered</option>
+                <option value="expired-medicine">Expired or Damaged Medicine Received</option>
+                <option value="delay">Massive Delivery Delay / No-Show</option>
+                <option value="rider-conduct">Rider or Pharmacist Conduct / Misbehavior</option>
+                <option value="overcharging">Overcharging / Incorrect Billing Price</option>
+                <option value="other">Other Logistics Issue</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label className="small fw-bold">Description of the Issue *</Form.Label>
+              <Form.Control 
+                required 
+                as="textarea" 
+                rows={4} 
+                placeholder="Explain the issue in detail. Please specify medicine names, damages, rider behavior, or exact amounts..." 
+                value={reportDetails} 
+                onChange={e => setReportDetails(e.target.value)} 
+              />
+            </Form.Group>
+
+            <div className="d-flex justify-content-end gap-2">
+              <Button variant="outline-secondary" className="rounded-10 px-3" onClick={() => setReportOrder(null)}>Cancel</Button>
+              <Button type="submit" variant="danger" className="rounded-10 px-4 text-white" disabled={submittingReport}>
+                {submittingReport ? 'Submitting...' : 'Submit Report'}
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
     </div>
   );
 }

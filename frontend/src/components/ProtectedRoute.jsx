@@ -26,11 +26,14 @@ export default function ProtectedRoute({ children, roles }) {
   }
 
   // Logged in but wrong role → redirect to their dashboard or home
-  if (roles && roles.length > 0 && !roles.includes(userRole)) {
-    if (userRole === 'admin') return <Navigate to="/admin" replace />;
-    if (userRole === 'doctor') return <Navigate to="/doctor" replace />;
-    if (userRole === 'pharmacist') return <Navigate to="/pharmacist" replace />;
-    return <Navigate to="/" replace />;
+  if (roles && roles.length > 0) {
+    const effectiveRoles = roles.map(r => r === 'pharmacist' ? 'pharmacy' : r);
+    if (!roles.includes(userRole) && !effectiveRoles.includes(userRole)) {
+      if (userRole === 'admin') return <Navigate to="/admin" replace />;
+      if (userRole === 'doctor') return <Navigate to="/doctor" replace />;
+      if (userRole === 'pharmacist' || userRole === 'pharmacy') return <Navigate to="/pharmacist" replace />;
+      return <Navigate to="/" replace />;
+    }
   }
 
   return children;

@@ -1,5 +1,5 @@
 import { Card, Button, Badge } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaStar, FaRegStar, FaStarHalfAlt } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -17,6 +17,7 @@ export default function MedicineCard({ medicine }) {
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const { openLoginModal } = useAuthModal();
+  const navigate = useNavigate();
 
   const {
     id,
@@ -59,6 +60,11 @@ export default function MedicineCard({ medicine }) {
       return;
     }
 
+    if (requires_prescription) {
+      navigate('/prescriptions/upload', { state: { requiredForMedicine: name } });
+      return;
+    }
+
     if (!canAdd) return;
     const result = addToCart(medicine, 1);
     if (result === 'capped') {
@@ -92,9 +98,9 @@ export default function MedicineCard({ medicine }) {
         <span className="med-category-label">{category}</span>
 
         <Card.Title as={Link} to={`/medicines/${id}`} className="medicine-name mt-1 mb-0">
-          {name}
+          {brand || name}
         </Card.Title>
-        {brand && <span className="medicine-brand">{brand}</span>}
+        {brand && <span className="medicine-brand">{name}</span>}
 
         <div className="stars-row my-1">
           {stars}
@@ -111,12 +117,12 @@ export default function MedicineCard({ medicine }) {
         <div className="mb-2">{stockBadge}</div>
 
         <Button
-          className={`add-to-cart-btn mt-auto w-100 ${inCart ? 'in-cart' : ''}`}
+          className={`add-to-cart-btn mt-auto w-100 ${inCart ? 'in-cart' : ''} ${requires_prescription ? 'rx-btn' : ''}`}
           onClick={handleAdd}
-          disabled={!canAdd}
+          disabled={!inStock}
           title={
             !inStock            ? 'Out of stock'
-            : requires_prescription ? 'Requires a valid prescription'
+            : requires_prescription ? 'Requires a valid prescription – click to upload'
             : inCart            ? 'Already in cart – click to add more'
             : 'Add to cart'
           }

@@ -27,7 +27,7 @@ const PAYMENT_METHODS = [
 ];
 const CITIES = ['Karachi','Lahore','Islamabad','Rawalpindi','Faisalabad','Multan','Quetta','Peshawar','Hyderabad','Sialkot'];
 const ALLOWED_FILE_TYPES = ['image/jpeg','image/jpg','image/png','image/webp','application/pdf'];
-const MAX_FILE_MB = 5;
+const MAX_FILE_MB = 10;
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 function validateAddress(fields) {
@@ -300,6 +300,53 @@ export default function Checkout() {
       clearCart();
       setOrderId(result.orderId);
       toast.success(`Order ${result.orderId} confirmed! 🎉`, { duration: 5000 });
+
+      // Create notification
+      try {
+        // 1. Patient Alert
+        const pKey = 'medeasy_notifications_' + (user?._id || user?.id || 'patient');
+        const pRaw = localStorage.getItem(pKey) || '[]';
+        const pAlerts = JSON.parse(pRaw);
+        pAlerts.unshift({
+          id: 'alert-' + Date.now(),
+          text: `Order Placed: Your order #${result.orderId} of Rs. ${grandTotal.toLocaleString()} has been placed successfully! 🛍️`,
+          time: Date.now(),
+          emoji: '🛍️',
+          unread: true,
+          link: `/orders/${result.orderId}`
+        });
+        localStorage.setItem(pKey, JSON.stringify(pAlerts));
+
+        // 2. Admin Alert
+        const aKey = 'medeasy_notifications_admin';
+        const aRaw = localStorage.getItem(aKey) || '[]';
+        const aAlerts = JSON.parse(aRaw);
+        aAlerts.unshift({
+          id: 'alert-' + Date.now() + '-admin',
+          text: `New Order Placed: Patient ${user?.name || 'Patient'} placed a new order #${result.orderId} of Rs. ${grandTotal.toLocaleString()}.`,
+          time: Date.now(),
+          emoji: '💰',
+          unread: true,
+          link: '/admin'
+        });
+        localStorage.setItem(aKey, JSON.stringify(aAlerts));
+
+        // 3. Pharmacist Alert
+        const phKey = 'medeasy_notifications_pharmacist';
+        const phRaw = localStorage.getItem(phKey) || '[]';
+        const phAlerts = JSON.parse(phRaw);
+        phAlerts.unshift({
+          id: 'alert-' + Date.now() + '-pharm',
+          text: `New Order Broadcast: Store has a new order #${result.orderId} of Rs. ${grandTotal.toLocaleString()} awaiting fulfillment! 🏪`,
+          time: Date.now(),
+          emoji: '📦',
+          unread: true,
+          link: '/pharmacist'
+        });
+        localStorage.setItem(phKey, JSON.stringify(phAlerts));
+      } catch (err) {
+        console.error(err);
+      }
 
     } catch (err) {
       const msg = err?.response?.data?.detail || err?.message || 'Something went wrong. Please try again.';

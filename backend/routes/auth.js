@@ -7,7 +7,10 @@ const {
   updateProfile,
   uploadProfilePhoto,
   verifyRegistration, 
-  resendVerificationCode 
+  resendVerificationCode,
+  updatePharmacistDetails,
+  removePharmacistDetails,
+  uploadPharmacistPhoto
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { requireFields } = require('../middleware/validate');
@@ -20,5 +23,18 @@ router.post('/login', requireFields(['password']), login);
 router.get('/profile', protect, getProfile);
 router.put('/profile', protect, updateProfile);
 router.post('/profile/photo', protect, upload.single('profilePhoto'), uploadProfilePhoto);
+router.put('/profile/pharmacist', protect, updatePharmacistDetails);
+router.delete('/profile/pharmacist', protect, removePharmacistDetails);
+router.post('/upload-pharmacist-photo', protect, upload.single('pharmacistPhoto'), uploadPharmacistPhoto);
+router.post('/upload-pharmacy-image', upload.single('pharmacyImage'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded or invalid format. Images/PDFs only.' });
+    }
+    res.status(200).json({ filePath: `/uploads/${req.file.filename}` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = router;

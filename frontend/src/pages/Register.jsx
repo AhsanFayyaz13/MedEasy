@@ -34,6 +34,15 @@ function validate(fields) {
   if (!fields.role)
     errors.role = 'Please select your role.';
 
+  if (fields.role === 'pharmacy') {
+    if (!fields.pharmacyName || !fields.pharmacyName.trim())
+      errors.pharmacyName = 'Pharmacy name is required.';
+    if (!fields.pharmacyLocation || !fields.pharmacyLocation.trim())
+      errors.pharmacyLocation = 'Pharmacy address is required.';
+    if (!fields.pharmacyOutsidePicture)
+      errors.pharmacyOutsidePicture = 'Pharmacy outside picture is required.';
+  }
+
   // Simplified password: only require 8 characters minimum
   if (!fields.password)
     errors.password = 'Password is required.';
@@ -69,7 +78,7 @@ function passwordStrength(pwd) {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-const INITIAL = { name: '', email: '', phone: '', role: '', password: '', confirmPassword: '', verificationChannel: 'phone' };
+const INITIAL = { name: '', email: '', phone: '', role: '', password: '', confirmPassword: '', verificationChannel: 'phone', pharmacyName: '', ownerName: '' };
 
 export default function Register() {
   const navigate = useNavigate();
@@ -96,6 +105,35 @@ export default function Register() {
   const [touched,  setTouched]  = useState({});
   const [showPass, setShowPass] = useState(false);
   const [showConf, setShowConf] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handlePharmacyImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('pharmacyImage', file);
+
+    setUploadingImage(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/upload-pharmacy-image', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setFields(prev => ({ ...prev, pharmacyOutsidePicture: data.filePath }));
+        setErrors(prev => ({ ...prev, pharmacyOutsidePicture: null }));
+      } else {
+        alert(data.message || 'Image upload failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error uploading image.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Flow control states
   const [roleStep,         setRoleStep]         = useState(true); // first ask "what you are?"
@@ -161,14 +199,23 @@ export default function Register() {
     if (Object.keys(validationErrors).length > 0) return;
 
     try {
-      const data = await register({
+      const payload = {
         name:     fields.name,
         email:    fields.email.trim() || undefined,
         phone:    fields.phone,
         role:     fields.role,
         password: fields.password,
         verificationChannel: fields.verificationChannel,
-      });
+      };
+
+      if (fields.role === 'pharmacy') {
+        payload.pharmacyName = fields.name; // name field stores pharmacy name
+        payload.ownerName = fields.ownerName;
+        payload.pharmacyLocation = fields.pharmacyLocation;
+        payload.pharmacyOutsidePicture = fields.pharmacyOutsidePicture;
+      }
+
+      const data = await register(payload);
 
       // On register success, set verification state
       setPendingPhone(data.phone);
@@ -242,10 +289,10 @@ export default function Register() {
                         desc: 'Provide online consultations, manage patient appointments, view prescriptions, and guide medical plans.',
                       },
                       {
-                        value: 'pharmacist',
+                        value: 'pharmacy',
                         emoji: '🏪',
-                        title: 'Register as Pharmacist',
-                        desc: 'Fulfill medicine orders, manage stock inventories, confirm shipments, and verify prescriptions.',
+                        title: 'Register as Pharmacy',
+                        desc: 'Register your pharmacy store, list licensed pharmacist credentials, upload outside shop photos, and fulfill patient orders.',
                       },
                     ].map((role) => (
                       <div
@@ -406,7 +453,7 @@ export default function Register() {
                   <div className="auth-icon-badge">
                     {fields.role === 'patient' && '💊'}
                     {fields.role === 'doctor' && '🩺'}
-                    {fields.role === 'pharmacist' && '🏪'}
+                    {fields.role === 'pharmacy' && '🏪'}
                   </div>
                   <h2 className="auth-title">Complete Registration</h2>
                   <p className="auth-subtitle">Create your new account details</p>
@@ -420,15 +467,17 @@ export default function Register() {
                 )}
 
                 <Form noValidate onSubmit={handleSubmit}>
-                  {/* Full Name */}
+                  {/* Full Name / Pharmacy Name */}
                   <Form.Group className="mb-3" controlId="regName">
-                    <Form.Label>Full Name <span className="required-star">*</span></Form.Label>
+                    <Form.Label>
+                      {fields.role === 'pharmacy' ? 'Pharmacy Name' : 'Full Name'} <span className="required-star">*</span>
+                    </Form.Label>
                     <div className="input-icon-wrap">
                       <FaUser className="input-icon" />
                       <Form.Control
                         type="text"
                         name="name"
-                        placeholder="Enter your name"
+                        placeholder={fields.role === 'pharmacy' ? 'e.g. Nishtar Pharmacy' : 'Enter your name'}
                         className="ps-icon"
                         value={fields.name}
                         onChange={handleChange}
@@ -482,6 +531,64 @@ export default function Register() {
                       <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>
                     </div>
                   </Form.Group>
+
+                  {/* Pharmacy Details */}
+                  {fields.role === 'pharmacy' && (
+                    <Card className="border-0 shadow-sm bg-light p-3 mb-4 rounded-3">
+                      <h6 className="fw-bold text-primary mb-3"><span className="me-2">🏪</span>Pharmacy Details</h6>
+                      
+                      {/* Owner Full Name */}
+                      <Form.Group className="mb-3" controlId="regOwnerName">
+                        <Form.Label className="small fw-semibold">Owner Full Name <span className="required-star">*</span></Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="ownerName"
+                          placeholder="e.g. Fayyaz Ahmad"
+                          value={fields.ownerName || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isInvalid={touched.ownerName && !fields.ownerName?.trim()}
+                        />
+                        <Form.Control.Feedback type="invalid">Owner name is required.</Form.Control.Feedback>
+                      </Form.Group>
+
+                      {/* Pharmacy Location */}
+                      <Form.Group className="mb-3" controlId="regPharmacyLocation">
+                        <Form.Label className="small fw-semibold">Pharmacy Location (Address) <span className="required-star">*</span></Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="pharmacyLocation"
+                          placeholder="e.g. Shop 12, DHA Phase 5, Lahore"
+                          value={fields.pharmacyLocation || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isInvalid={touched.pharmacyLocation && !fields.pharmacyLocation?.trim()}
+                        />
+                        <Form.Control.Feedback type="invalid">Pharmacy location/address is required.</Form.Control.Feedback>
+                      </Form.Group>
+
+                      {/* Pharmacy Outside Picture Upload */}
+                      <Form.Group className="mb-2" controlId="regPharmacyOutsidePicture">
+                        <Form.Label className="small fw-semibold">Pharmacy Outside Picture <span className="required-star">*</span></Form.Label>
+                        <div className="d-flex align-items-center gap-3">
+                          <Form.Control
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePharmacyImageUpload}
+                            isInvalid={touched.pharmacyOutsidePicture && !fields.pharmacyOutsidePicture}
+                          />
+                          {uploadingImage && <Spinner animation="border" size="sm" className="text-primary" />}
+                        </div>
+                        {fields.pharmacyOutsidePicture && (
+                          <div className="mt-2 text-success small d-flex align-items-center gap-1">
+                            <span>✓ Image uploaded successfully!</span>
+                            <a href={`http://localhost:5000${fields.pharmacyOutsidePicture}`} target="_blank" rel="noreferrer" className="text-decoration-underline text-primary">View Photo</a>
+                          </div>
+                        )}
+                        <Form.Control.Feedback type="invalid">Pharmacy outside photo is required.</Form.Control.Feedback>
+                      </Form.Group>
+                    </Card>
+                  )}
 
                   {/* Verification Channel selection */}
                   <Form.Group className="mb-3" controlId="verificationChannel">

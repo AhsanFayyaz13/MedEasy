@@ -154,15 +154,12 @@ export default function Profile() {
       errors.phone = 'Phone number is required.';
     }
 
-    // Role-specific validation
-    if (user?.role === 'pharmacist' && isEditing) {
-      if (!formData.pharmacyName.trim()) errors.pharmacyName = 'Pharmacy affiliation is required.';
-      if (!formData.degreePlace.trim()) errors.degreePlace = 'Institution/University name is required.';
-      if (!formData.degreeName) errors.degreeName = 'Please select your degree title.';
-      if (!formData.licenseNumber.trim()) errors.licenseNumber = 'Professional license registration is required.';
-    }
-
-    if (user?.role === 'doctor' && isEditing) {
+    // Role-specific validation — hired pharmacist reps cannot change credentials
+    if (user?.role === 'pharmacist') {
+      // No credential validation needed — managed by pharmacy owner
+    } else if (user?.role === 'pharmacy' && isEditing) {
+      // Pharmacy owners only have basic profile fields
+    } else if (user?.role === 'doctor' && isEditing) {
       if (!formData.specialty) errors.specialty = 'Please select your medical specialty.';
       if (!formData.pmcRegistration.trim()) errors.pmcRegistration = 'PMC/PMDC license number is required.';
       if (!formData.degree.trim()) errors.degree = 'Educational degrees (e.g. MBBS) are required.';
@@ -414,94 +411,54 @@ export default function Profile() {
               {user?.role === 'pharmacist' && (
                 <Card className="profile-section-card shadow-sm">
                   <Card.Body className="p-4 p-md-5">
-                    <h4 className="section-title mb-4">
-                      <span className="title-icon-wrap"><FaHospital className="text-success" /></span> 
+                    <h4 className="section-title mb-3">
+                      <span className="title-icon-wrap"><FaHospital className="text-success" /></span>{' '}
                       Professional Pharmacy Credentials
                     </h4>
 
-                    {!isEditing ? (
-                      // VIEW MODE: Pharmacist
-                      <ListGroup variant="flush" className="profile-details-list">
-                        <ListGroup.Item className="px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
-                          <span className="detail-label"><FaHospital className="me-2 text-muted" /> Pharmacy Affiliation</span>
-                          <span className="detail-value fw-semibold">{user.pharmacyName || <span className="text-italic text-muted">Empty (Please complete)</span>}</span>
-                        </ListGroup.Item>
-
-                        <ListGroup.Item className="px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
-                          <span className="detail-label"><FaGraduationCap className="me-2 text-muted" /> Professional Degree</span>
-                          <span className="detail-value">{user.degreeName || <span className="text-italic text-muted">Empty (Please complete)</span>}</span>
-                        </ListGroup.Item>
-
-                        <ListGroup.Item className="px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
-                          <span className="detail-label"><FaHospital className="me-2 text-muted" /> Graduated University / Institution</span>
-                          <span className="detail-value">{user.degreePlace || <span className="text-italic text-muted">Empty (Please complete)</span>}</span>
-                        </ListGroup.Item>
-
-                        <ListGroup.Item className="px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
-                          <span className="detail-label"><FaRegAddressCard className="me-2 text-muted" /> Council License / Reg Number</span>
-                          <span className="detail-value font-monospace fw-semibold text-success">{user.licenseNumber || <span className="text-italic text-muted">Empty (Please complete)</span>}</span>
-                        </ListGroup.Item>
-                      </ListGroup>
-                    ) : (
-                      // EDIT MODE: Pharmacist
-                      <div className="row g-3">
-                        <Form.Group as={Col} md={12} controlId="formPharmacyName">
-                          <Form.Label>Which Pharmacy are you from? <span className="text-danger">*</span></Form.Label>
-                          <Form.Control
-                            type="text"
-                            name="pharmacyName"
-                            placeholder="e.g. MedEasy Pharmacy Main, D-Watson, Shaheen Chemist"
-                            value={formData.pharmacyName}
-                            onChange={handleChange}
-                            isInvalid={!!formErrors.pharmacyName}
-                          />
-                          <Form.Control.Feedback type="invalid">{formErrors.pharmacyName}</Form.Control.Feedback>
-                        </Form.Group>
-
-                        <Form.Group as={Col} md={6} controlId="formDegreeName">
-                          <Form.Label>Degree Title <span className="text-danger">*</span></Form.Label>
-                          <Form.Select
-                            name="degreeName"
-                            value={formData.degreeName}
-                            onChange={handleChange}
-                            isInvalid={!!formErrors.degreeName}
-                          >
-                            <option value="">-- Select Degree --</option>
-                            {PHARM_DEGREES.map((d) => (
-                              <option key={d} value={d}>{d}</option>
-                            ))}
-                          </Form.Select>
-                          <Form.Control.Feedback type="invalid">{formErrors.degreeName}</Form.Control.Feedback>
-                        </Form.Group>
-
-                        <Form.Group as={Col} md={6} controlId="formDegreePlace">
-                          <Form.Label>Graduation Institution / Place <span className="text-danger">*</span></Form.Label>
-                          <Form.Control
-                            type="text"
-                            name="degreePlace"
-                            placeholder="e.g. Punjab University, Quaid-e-Azam University"
-                            value={formData.degreePlace}
-                            onChange={handleChange}
-                            isInvalid={!!formErrors.degreePlace}
-                          />
-                          <Form.Control.Feedback type="invalid">{formErrors.degreePlace}</Form.Control.Feedback>
-                        </Form.Group>
-
-                        <Form.Group as={Col} md={12} controlId="formLicenseNumber">
-                          <Form.Label>Professional Council License / Registration Number <span className="text-danger">*</span></Form.Label>
-                          <Form.Control
-                            type="text"
-                            name="licenseNumber"
-                            placeholder="e.g. PCP-12345-A"
-                            value={formData.licenseNumber}
-                            onChange={handleChange}
-                            isInvalid={!!formErrors.licenseNumber}
-                          />
-                          <Form.Text className="text-muted">Enter your registered Pharmacy Council of Pakistan (PCP) license.</Form.Text>
-                          <Form.Control.Feedback type="invalid">{formErrors.licenseNumber}</Form.Control.Feedback>
-                        </Form.Group>
+                    {/* Managed-by-sponsor notice */}
+                    <div className="d-flex align-items-start gap-3 p-3 mb-4 rounded-3 border" style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', borderColor: '#f59e0b !important' }}>
+                      <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>🔒</span>
+                      <div>
+                        <div className="fw-bold text-dark mb-1" style={{ fontSize: '0.9rem' }}>Credentials Managed by Sponsoring Pharmacy</div>
+                        <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+                          Your professional credentials (license, degree, and pharmacy affiliation) are set and managed exclusively by the pharmacy that hired you. If any details are incorrect, please contact your pharmacy owner.
+                        </div>
                       </div>
-                    )}
+                    </div>
+
+                    {/* Read-only credentials view — always, regardless of edit mode */}
+                    <ListGroup variant="flush" className="profile-details-list">
+                      <ListGroup.Item className="px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+                        <span className="detail-label"><FaHospital className="me-2 text-muted" /> Pharmacy Affiliation</span>
+                        <span className="detail-value fw-semibold">{user.pharmacistDetails?.name ? `Registered under ${user.pharmacyName || 'Pharmacy'}` : user.pharmacyName || <span className="text-italic text-muted">Not assigned</span>}</span>
+                      </ListGroup.Item>
+
+                      <ListGroup.Item className="px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+                        <span className="detail-label"><FaGraduationCap className="me-2 text-muted" /> Professional Degree</span>
+                        <span className="detail-value">{user.pharmacistDetails?.degreeName || <span className="text-italic text-muted">Not set by pharmacy</span>}</span>
+                      </ListGroup.Item>
+
+                      <ListGroup.Item className="px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+                        <span className="detail-label"><FaHospital className="me-2 text-muted" /> Graduation Institution</span>
+                        <span className="detail-value">{user.pharmacistDetails?.degreePlace || <span className="text-italic text-muted">Not set by pharmacy</span>}</span>
+                      </ListGroup.Item>
+
+                      <ListGroup.Item className="px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+                        <span className="detail-label"><FaRegAddressCard className="me-2 text-muted" /> Council License / Reg Number</span>
+                        <span className="detail-value font-monospace fw-semibold text-success">{user.pharmacistDetails?.licenseNumber || <span className="text-italic text-muted">Not set by pharmacy</span>}</span>
+                      </ListGroup.Item>
+
+                      <ListGroup.Item className="px-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+                        <span className="detail-label"><FaEnvelope className="me-2 text-muted" /> Login Email</span>
+                        <span className="detail-value font-monospace">{user.pharmacistDetails?.email || user.email || <span className="text-italic text-muted">Managed by pharmacy</span>}</span>
+                      </ListGroup.Item>
+                    </ListGroup>
+
+                    <div className="mt-3 p-2 rounded-2 bg-light border d-flex align-items-center gap-2" style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+                      <span>⚠️</span>
+                      <span>If your details are removed from our system by your employer, your account access will be revoked and you will no longer be able to log in.</span>
+                    </div>
                   </Card.Body>
                 </Card>
               )}
