@@ -72,6 +72,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (token) {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Sync fresh profile details from server on mount/auth change
+      api.get('/auth/profile')
+        .then(({ data }) => {
+          persistSession(token, null, data);
+          setUser(data);
+        })
+        .catch(() => {});
     } else {
       delete api.defaults.headers.common['Authorization'];
     }
@@ -250,6 +257,38 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
+  // ── forgotPassword ──────────────────────────────────────────────────────────
+  const forgotPassword = useCallback(async (identifier) => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const { data } = await api.post('/auth/forgot-password', { identifier });
+      return data;
+    } catch (err) {
+      const msg = parseApiError(err, 'Failed to request password reset code.');
+      setAuthError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ── resetPassword ───────────────────────────────────────────────────────────
+  const resetPassword = useCallback(async (identifier, code, password) => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const { data } = await api.post('/auth/reset-password', { identifier, code, password });
+      return data;
+    } catch (err) {
+      const msg = parseApiError(err, 'Failed to reset password.');
+      setAuthError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // ── clear transient error ──────────────────────────────────────────────────
   const clearAuthError = useCallback(() => setAuthError(null), []);
 
@@ -271,6 +310,8 @@ export function AuthProvider({ children }) {
     uploadProfilePhoto,
     updatePharmacistDetails,
     removePharmacistDetails,
+    forgotPassword,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -294,6 +335,9 @@ function parseApiError(err, fallback) {
   }
   const data = err.response.data;
   if (!data) return fallback;
+
+  // Custom backend message
+  if (data.message) return data.message;
 
   // DRF non-field error
   if (data.detail)         return data.detail;

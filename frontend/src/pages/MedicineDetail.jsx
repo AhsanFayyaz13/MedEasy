@@ -14,6 +14,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import api from '../services/api';
+import MedicalIcon from '../components/MedicalIcon';
 import './MedicineDetail.css';
 
 function useMedicine(id) {
@@ -126,7 +127,7 @@ export default function MedicineDetail() {
     if (result === 'capped') {
       toast.warning(`Max stock (${med.stock}) reached for ${med.name}`);
     } else {
-      toast.cart(`${qty > 1 ? qty + '× ' : ''}${med.name} added to cart 🛒`, { duration: 2500 });
+      toast.cart(`${qty > 1 ? qty + '× ' : ''}${med.name} added to cart`, { duration: 2500 });
     }
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
@@ -146,7 +147,7 @@ export default function MedicineDetail() {
   if (error || !med) {
     return (
       <div className="detail-error">
-        <div className="error-emoji">💊</div>
+        <div className="error-emoji text-primary mb-3"><FaInfoCircle size={48} /></div>
         <h4>{error || 'Medicine not found'}</h4>
         <Button variant="primary" className="mt-3" onClick={() => navigate('/medicines')}>
           <FaArrowLeft className="me-2" /> Back to Medicines
@@ -184,9 +185,9 @@ export default function MedicineDetail() {
                 <div className="detail-ribbon">-{med.discount_pct}%</div>
               )}
 
-              {/* Emoji "image" */}
-              <div className="detail-emoji-box">
-                <span className="detail-emoji">{med.image}</span>
+              {/* Emoji "image" replaced with MedicalIcon */}
+              <div className="detail-emoji-box" style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem 0', background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', borderRadius: '16px' }}>
+                <MedicalIcon emoji={med.image} category={med.category} size={64} />
               </div>
 
               {/* Rx alert */}
@@ -345,16 +346,18 @@ export default function MedicineDetail() {
           </Col>
         </Row>
 
-        {/* ── Usage / Side effects / Storage tabs ─────────── */}
         <Row className="mt-5">
           {[
-            { title: '📋 Usage & Dosage',    icon: <FaInfoCircle />,          content: med.usage        },
-            { title: '⚠️ Side Effects',       icon: <FaExclamationTriangle />,  content: med.side_effects },
-            { title: '📦 Storage',            icon: <FaCheckCircle />,          content: med.storage      },
+            { title: 'Usage & Dosage',    icon: <FaInfoCircle className="text-primary me-2" />,          content: med.usage        },
+            { title: 'Side Effects',       icon: <FaExclamationTriangle className="text-warning me-2" />,  content: med.side_effects },
+            { title: 'Storage',            icon: <FaCheckCircle className="text-success me-2" />,          content: med.storage      },
           ].map((tab) => (
             <Col md={4} key={tab.title} className="mb-3">
               <div className="info-card">
-                <h6 className="info-card-title">{tab.title}</h6>
+                <h6 className="info-card-title d-flex align-items-center">
+                  {tab.icon}
+                  <span>{tab.title}</span>
+                </h6>
                 <p className="info-card-body">{tab.content}</p>
               </div>
             </Col>

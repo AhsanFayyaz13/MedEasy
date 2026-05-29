@@ -34,8 +34,12 @@ const orderSchema = new mongoose.Schema({
     default: 'pending'
   },
   shippingAddress: {
-    type: String,
-    required: true
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    address: { type: String, required: true },
+    city: { type: String, required: true },
+    postalCode: { type: String },
+    phone: { type: String, required: true }
   }
 }, {
   timestamps: true

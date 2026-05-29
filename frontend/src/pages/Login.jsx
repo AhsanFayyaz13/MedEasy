@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Alert, Spinner, Modal } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaUserLock, FaKey } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { ROLE_DASHBOARD } from '../context/AuthContext';
 import './Auth.css';
@@ -27,7 +27,90 @@ function validate(fields) {
 export default function Login() {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const { login, isAuthenticated, userRole, loading, authError, clearAuthError } = useAuth();
+  const { login, isAuthenticated, userRole, loading, authError, clearAuthError, forgotPassword, resetPassword } = useAuth();
+
+  // Forgot Password State
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1 = request code, 2 = reset password
+  const [forgotIdentifier, setForgotIdentifier] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPass, setForgotNewPass] = useState('');
+  const [forgotConfPass, setForgotConfPass] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMsg, setForgotMsg] = useState('');
+  const [forgotErr, setForgotErr] = useState('');
+
+  const handleOpenForgotModal = () => {
+    setForgotIdentifier(fields.identifier); // Pre-fill with entered login identifier!
+    setForgotCode('');
+    setForgotNewPass('');
+    setForgotConfPass('');
+    setForgotStep(1);
+    setForgotMsg('');
+    setForgotErr('');
+    setShowForgot(true);
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setForgotErr('');
+    setForgotMsg('');
+
+    if (!forgotIdentifier.trim()) {
+      setForgotErr('Please enter your email address or phone number.');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const data = await forgotPassword(forgotIdentifier);
+      setForgotMsg(data.message || 'Verification code sent successfully!');
+      setForgotStep(2);
+    } catch (err) {
+      setForgotErr(err.message || 'Failed to send recovery code.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetSubmit = async (e) => {
+    e.preventDefault();
+    setForgotErr('');
+    setForgotMsg('');
+
+    if (!forgotCode.trim() || forgotCode.length !== 6) {
+      setForgotErr('Please enter the 6-digit recovery code.');
+      return;
+    }
+
+    if (!forgotNewPass) {
+      setForgotErr('Please enter your new password.');
+      return;
+    }
+
+    if (forgotNewPass.length < 8) {
+      setForgotErr('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (forgotNewPass !== forgotConfPass) {
+      setForgotErr('Passwords do not match.');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const data = await resetPassword(forgotIdentifier, forgotCode, forgotNewPass);
+      setForgotMsg(data.message || 'Password reset successful! You can now log in.');
+      setTimeout(() => {
+        setShowForgot(false);
+      }, 3000);
+    } catch (err) {
+      setForgotErr(err.message || 'Failed to reset password.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   // Where to send the user after successful login
   const from = location.state?.from?.pathname;
@@ -45,12 +128,6 @@ export default function Login() {
   const [showPass,   setShowPass]   = useState(false);
   const [touched,    setTouched]    = useState({});
 
-  // Clear API-level error when user starts typing
-  useEffect(() => {
-    if (authError) clearAuthError();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields]);
-
   // Live-validate a field after it's been touched
   useEffect(() => {
     if (Object.keys(touched).length > 0) {
@@ -60,6 +137,7 @@ export default function Login() {
 
   const handleChange = (e) => {
     setFields((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (authError) clearAuthError();
   };
 
   const handleBlur = (e) => {
@@ -95,15 +173,31 @@ export default function Login() {
 
                 {/* Header */}
                 <div className="auth-header">
-                  <div className="auth-icon-badge">🔐</div>
+                  <div className="auth-icon-badge-wrap mb-3 mx-auto">
+                    <FaUserLock size={30} />
+                  </div>
                   <h2 className="auth-title">Welcome Back</h2>
                   <p className="auth-subtitle">Sign in to your MedEasy account</p>
                 </div>
 
                 {/* API-level error */}
                 {authError && (
-                  <Alert variant="danger" className="auth-alert" dismissible onClose={clearAuthError}>
-                    <strong>Login failed:</strong> {authError}
+                  <Alert variant="danger" className="auth-alert animate-fade" dismissible onClose={clearAuthError}>
+                    <div className="d-flex flex-column gap-2 text-start">
+                      <div>
+                        <strong>Login failed:</strong> {authError}
+                      </div>
+                      {authError.toLowerCase().includes('not registered') && (
+                        <div className="mt-1 pt-2 border-top small" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+                          New to MedEasy? <Link to="/register" className="alert-link text-decoration-underline" style={{ fontWeight: '700' }} onClick={clearAuthError}>Create a new account here</Link>
+                        </div>
+                      )}
+                      {authError.toLowerCase().includes('incorrect password') && (
+                        <div className="mt-1 pt-2 border-top small" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+                          Forgot your credentials? <button type="button" className="alert-link bg-transparent border-0 p-0 text-decoration-underline text-start" style={{ color: 'inherit', fontWeight: '700' }} onClick={() => { clearAuthError(); const forgotBtn = document.querySelector('.forgot-link'); if (forgotBtn) forgotBtn.click(); }}>Reset your password here</button>
+                        </div>
+                      )}
+                    </div>
                   </Alert>
                 )}
 
@@ -145,7 +239,7 @@ export default function Login() {
                       <button
                         type="button"
                         className="forgot-link"
-                        onClick={() => {/* TODO: forgot-password flow */}}
+                        onClick={handleOpenForgotModal}
                       >
                         Forgot password?
                       </button>
@@ -198,6 +292,91 @@ export default function Login() {
           </Col>
         </Row>
       </Container>
+      {/* ── Forgot Password Modal ── */}
+      <Modal show={showForgot} onHide={() => setShowForgot(false)} centered className="forgot-password-modal">
+        <Modal.Header closeButton className="border-0 pb-0">
+        </Modal.Header>
+        <Modal.Body className="px-4 pb-4 pt-2 text-center">
+          <div className="auth-icon-badge-wrap mb-3 mx-auto" style={{ background: 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)', color: '#7c3aed', boxShadow: '0 8px 20px rgba(124, 58, 237, 0.15)' }}>
+            <FaKey size={26} />
+          </div>
+          
+          <h3 className="auth-title mb-1">Recover Account</h3>
+          <p className="auth-subtitle mb-4">Reset your password to regain access</p>
+
+          {forgotErr && <Alert variant="danger" className="py-2 small text-start">{forgotErr}</Alert>}
+          {forgotMsg && <Alert variant="success" className="py-2 small text-start">{forgotMsg}</Alert>}
+
+          {forgotStep === 1 ? (
+            // STEP 1: Enter email or phone
+            <Form onSubmit={handleForgotSubmit} className="text-start">
+              <Form.Group className="mb-3" controlId="forgotId">
+                <Form.Label className="small fw-semibold">Email or Phone Number</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Enter your registered email or phone"
+                  value={forgotIdentifier}
+                  onChange={(e) => setForgotIdentifier(e.target.value)}
+                  disabled={forgotLoading}
+                />
+                <Form.Text className="text-muted">We will send a 6-digit OTP code to verify your identity.</Form.Text>
+              </Form.Group>
+              
+              <Button type="submit" className="btn-auth w-100 mt-2" disabled={forgotLoading}>
+                {forgotLoading ? <><Spinner animation="border" size="sm" className="me-2" />Requesting Code…</> : 'Send Verification Code'}
+              </Button>
+            </Form>
+          ) : (
+            // STEP 2: Enter code & new password
+            <Form onSubmit={handleResetSubmit} className="text-start">
+              <Form.Group className="mb-3" controlId="forgotOtp">
+                <Form.Label className="small fw-semibold">6-Digit Recovery Code</Form.Label>
+                <Form.Control
+                  type="text"
+                  maxLength={6}
+                  placeholder="123456"
+                  className="text-center font-monospace fs-5"
+                  style={{ letterSpacing: '0.2em' }}
+                  value={forgotCode}
+                  onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))}
+                  disabled={forgotLoading}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="forgotPass">
+                <Form.Label className="small fw-semibold">New Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  placeholder="Minimum 8 characters"
+                  value={forgotNewPass}
+                  onChange={(e) => setForgotNewPass(e.target.value)}
+                  disabled={forgotLoading}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="forgotConf">
+                <Form.Label className="small fw-semibold">Confirm New Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  placeholder="Confirm your password"
+                  value={forgotConfPass}
+                  onChange={(e) => setForgotConfPass(e.target.value)}
+                  disabled={forgotLoading}
+                />
+              </Form.Group>
+
+              <Button type="submit" className="btn-auth w-100 mt-2" disabled={forgotLoading}>
+                {forgotLoading ? <><Spinner animation="border" size="sm" className="me-2" />Resetting Password…</> : 'Reset Password'}
+              </Button>
+              
+              <div className="text-center mt-3 small">
+                Didn't receive code?{' '}
+                <button type="button" className="alert-link bg-transparent border-0 p-0 text-decoration-underline" style={{ color: '#0284c7' }} onClick={handleForgotSubmit}>Resend code</button>
+              </div>
+            </Form>
+          )}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

@@ -6,18 +6,48 @@ const User = require('../models/User');
 // @access  Private (Patient)
 exports.bookAppointment = async (req, res) => {
   try {
-    const { doctorId, date, time } = req.body;
+    const { doctorId, doctor, date, time } = req.body;
+    const resolvedDoctorId = doctorId || doctor;
+
+    // ── End-to-End Date Validation System ──
+    if (!date) {
+      return res.status(400).json({ message: 'Appointment date is required.' });
+    }
+
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ message: 'Please provide a valid calendar date.' });
+    }
+
+    // Set hours to 0 to compare dates strictly
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const bookingDate = new Date(parsedDate);
+    bookingDate.setHours(0, 0, 0, 0);
+
+    if (bookingDate < today) {
+      return res.status(400).json({ message: 'You cannot book an appointment for a past date.' });
+    }
+
+    const maxAdvanceBookingDate = new Date();
+    maxAdvanceBookingDate.setDate(today.getDate() + 30);
+    maxAdvanceBookingDate.setHours(0, 0, 0, 0);
+
+    if (bookingDate > maxAdvanceBookingDate) {
+      return res.status(400).json({ message: 'Appointments can only be booked up to 30 days in advance.' });
+    }
 
     // Check if doctor exists and has role 'doctor'
-    const doctor = await User.findById(doctorId);
-    if (!doctor || doctor.role !== 'doctor') {
+    const doctorUser = await User.findById(resolvedDoctorId);
+    if (!doctorUser || doctorUser.role !== 'doctor') {
       return res.status(404).json({ message: 'Doctor not found' });
     }
 
     const appointment = new Appointment({
       patientId: req.user._id,
-      doctorId,
-      date,
+      doctorId: resolvedDoctorId,
+      date: bookingDate,
       time,
       status: 'scheduled'
     });
@@ -34,7 +64,7 @@ exports.bookAppointment = async (req, res) => {
 // @access  Private
 exports.getMyAppointments = async (req, res) => {
   try {
-    let appointments;
+    let appointments = [];
     if (req.user.role === 'doctor') {
       appointments = await Appointment.find({ doctorId: req.user._id })
         .populate('patientId', 'name email phone')
@@ -43,7 +73,7 @@ exports.getMyAppointments = async (req, res) => {
       appointments = await Appointment.find({ patientId: req.user._id })
         .populate('doctorId', 'name email')
         .sort({ date: 1, time: 1 });
-    } else if (req.user.role === 'admin' || req.user.role === 'pharmacist') {
+    } else if (req.user.role === 'admin' || req.user.role === 'pharmacist' || req.user.role === 'pharmacy') {
       appointments = await Appointment.find()
         .populate('patientId', 'name email')
         .populate('doctorId', 'name email')
@@ -61,7 +91,7 @@ exports.getMyAppointments = async (req, res) => {
 // @access  Private (Doctor or Patient)
 exports.updateAppointment = async (req, res) => {
   try {
-    const { status, consultationNotes } = req.body;
+    const { status, consultationNotes, notes, prescription } = req.body;
     const appointment = await Appointment.findById(req.params.id);
 
     if (!appointment) {
@@ -84,8 +114,16 @@ exports.updateAppointment = async (req, res) => {
       appointment.status = status;
     }
     
+    if (notes && (isDoctor || req.user.role === 'admin')) {
+      appointment.notes = notes;
+      appointment.consultationNotes = notes;
+    }
     if (consultationNotes && (isDoctor || req.user.role === 'admin')) {
+      appointment.notes = consultationNotes;
       appointment.consultationNotes = consultationNotes;
+    }
+    if (prescription && (isDoctor || req.user.role === 'admin')) {
+      appointment.prescription = prescription;
     }
 
     const updatedAppointment = await appointment.save();

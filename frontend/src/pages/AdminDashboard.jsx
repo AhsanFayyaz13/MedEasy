@@ -11,7 +11,7 @@ import {
   FaCheckCircle, FaClock, FaTimesCircle, FaTrophy,
   FaMoneyBillWave, FaShoppingCart, FaSyncAlt,
   FaCalendarCheck, FaSlidersH, FaPlus, FaPlusCircle, FaSearch, FaHistory,
-  FaUserCheck, FaClipboardList,
+  FaUserCheck, FaClipboardList, FaStar,
 } from 'react-icons/fa';
 import {
   Chart as ChartJS, CategoryScale, LinearScale,
@@ -368,18 +368,18 @@ function VerificationsTab({ users, setUsers }) {
         if (target.role === 'pharmacy') {
           alerts.unshift({
             id: 'alert-' + Date.now(),
-            text: `Pharmacist Representative Approved! Your store representative ${target.pharmacistDetails?.name || 'pharmacist'} is now verified and active. 🌟`,
+            text: `Pharmacist Representative Approved! Your store representative ${target.pharmacistDetails?.name || 'pharmacist'} is now verified and active.`,
             time: Date.now(),
-            emoji: '🌟',
+            emoji: 'welcome',
             unread: true,
             link: '/pharmacist'
           });
         } else if (target.role === 'doctor') {
           alerts.unshift({
             id: 'alert-' + Date.now(),
-            text: `Congratulations Dr. ${target.name}! Your professional clinical profile has been verified and approved. 🩺`,
+            text: `Congratulations Dr. ${target.name}! Your professional clinical profile has been verified and approved.`,
             time: Date.now(),
-            emoji: '🩺',
+            emoji: 'booking',
             unread: true,
             link: '/doctor'
           });
@@ -427,18 +427,18 @@ function VerificationsTab({ users, setUsers }) {
         if (target.role === 'pharmacy') {
           alerts.unshift({
             id: 'alert-' + Date.now(),
-            text: `Pharmacist Representative Declined: ${reason}. Please update your representative details. ❌`,
+            text: `Pharmacist Representative Declined: ${reason}. Please update your representative details.`,
             time: Date.now(),
-            emoji: '❌',
+            emoji: 'cancel',
             unread: true,
             link: '/pharmacist'
           });
         } else if (target.role === 'doctor') {
           alerts.unshift({
             id: 'alert-' + Date.now(),
-            text: `Professional Profile Declined: ${reason}. Please review and re-verify your documents. ❌`,
+            text: `Professional Profile Declined: ${reason}. Please review and re-verify your documents.`,
             time: Date.now(),
-            emoji: '❌',
+            emoji: 'cancel',
             unread: true,
             link: '/profile'
           });
@@ -1003,7 +1003,7 @@ function ReportsTab() {
                       <td><span className="top-rank me-2">#{idx+1}</span><strong>{doc.name}</strong></td>
                       <td><Badge bg="info" className="cat-badge">{doc.dept}</Badge></td>
                       <td className="fw-bold">{doc.cases} consultations</td>
-                      <td>⭐ {doc.rating}</td>
+                      <td><span className="text-warning"><FaStar className="me-1" />{doc.rating}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1166,9 +1166,9 @@ function AuditsTab() {
         const alerts = JSON.parse(rawAlerts);
         alerts.unshift({
           id: 'alert-' + Date.now() + '-doc',
-          text: `⚠️ Platform Action: Your medical clinic account has been temporarily suspended by the Admin due to a clinical complaint regarding Appointment #APT-${target?.appointmentId}. Please contact medical support.`,
+          text: `Platform Action: Your medical clinic account has been temporarily suspended by the Admin due to a clinical complaint regarding Appointment #APT-${target?.appointmentId}. Please contact medical support.`,
           time: Date.now(),
-          emoji: '⚠️',
+          emoji: 'complaint',
           unread: true,
           link: '/doctor'
         });
@@ -1203,9 +1203,9 @@ function AuditsTab() {
         const alerts = JSON.parse(rawAlerts);
         alerts.unshift({
           id: 'alert-' + Date.now() + '-pharm',
-          text: `⚠️ Platform Action: Your pharmacy store and pharmacist representative verification has been suspended due to fulfillment complaint regarding Order #${target?.orderId}.`,
+          text: `Platform Action: Your pharmacy store and pharmacist representative verification has been suspended due to fulfillment complaint regarding Order #${target?.orderId}.`,
           time: Date.now(),
-          emoji: '⚠️',
+          emoji: 'complaint',
           unread: true,
           link: '/pharmacist'
         });
@@ -1297,7 +1297,9 @@ function AuditsTab() {
                           {f.feedbackType}
                         </Badge>
                       </td>
-                      <td className="py-3 fw-semibold text-warning">{'⭐'.repeat(f.rating)}</td>
+                      <td className="py-3 fw-semibold text-warning">
+                        {[...Array(f.rating)].map((_, idx) => <FaStar key={idx} className="me-1" />)}
+                      </td>
                       <td className="py-3">
                         <strong className="text-dark d-block mb-1">{f.subject}</strong>
                         <span className="text-muted d-block leading-relaxed" style={{ maxWidth: '400px' }}>{f.message}</span>
@@ -1455,7 +1457,7 @@ function AuditsTab() {
           <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
             <Card.Header className="bg-white border-0 py-3 px-4">
               <h6 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                ⭐ Pharmacy Experience & Pharmacist Behavior Ratings
+                <FaStar className="text-warning" /> Pharmacy Experience & Pharmacist Behavior Ratings
               </h6>
             </Card.Header>
             <Card.Body className="p-0">

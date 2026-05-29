@@ -12,12 +12,43 @@ import MOCK_PRESCRIPTIONS from '../data/mockPrescriptions';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false';
 const delay    = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* ─── Mapping Utilities ─────────────────────────────────────────────────── */
+function mapMedicineToFrontend(m) {
+  if (!m) return null;
+  const price = Number(m.price);
+  const origPrice = Number(m.originalPrice || m.original_price || m.price);
+  return {
+    ...m,
+    id: m._id || m.id,
+    price,
+    original_price: origPrice,
+    discount_pct: origPrice && price ? Math.round(((origPrice - price) / origPrice) * 100) : 0,
+    requires_prescription: m.requiresPrescription !== undefined ? m.requiresPrescription : (m.requires_prescription || false),
+    image: m.imageUrl || m.image || '💊',
+  };
+}
+
+function mapMedicineToBackend(payload) {
+  return {
+    name: payload.name,
+    brand: payload.brand,
+    description: payload.description || '',
+    category: payload.category,
+    price: Number(payload.price),
+    originalPrice: Number(payload.original_price) || Number(payload.price),
+    stock: Number(payload.stock),
+    requiresPrescription: payload.requires_prescription || false,
+    imageUrl: payload.image || '💊',
+  };
+}
+
 /* ─────────────────────────── MEDICINES ───────────────────────────────────── */
 
 export async function fetchAllMedicines() {
   if (USE_MOCK) { await delay(400); return [...MOCK_MEDICINES]; }
-  const { data } = await api.get('/medicines/');
-  return data.results ?? data;
+  const { data } = await api.get('/medicines');
+  const list = data.medicines ?? data.results ?? data;
+  return Array.isArray(list) ? list.map(mapMedicineToFrontend) : [];
 }
 
 export async function createMedicine(payload) {
@@ -34,8 +65,9 @@ export async function createMedicine(payload) {
     MOCK_MEDICINES.push(newMed);
     return newMed;
   }
-  const { data } = await api.post('/medicines/', payload);
-  return data;
+  const backendPayload = mapMedicineToBackend(payload);
+  const { data } = await api.post('/medicines', backendPayload);
+  return mapMedicineToFrontend(data);
 }
 
 export async function updateMedicine(id, payload) {
@@ -54,8 +86,9 @@ export async function updateMedicine(id, payload) {
     }
     throw new Error('Medicine not found');
   }
-  const { data } = await api.put(`/medicines/${id}/`, payload);
-  return data;
+  const backendPayload = mapMedicineToBackend(payload);
+  const { data } = await api.put(`/medicines/${id}`, backendPayload);
+  return mapMedicineToFrontend(data);
 }
 
 export async function deleteMedicine(id) {
@@ -65,7 +98,7 @@ export async function deleteMedicine(id) {
     if (idx !== -1) MOCK_MEDICINES.splice(idx, 1);
     return { success: true };
   }
-  await api.delete(`/medicines/${id}/`);
+  await api.delete(`/medicines/${id}`);
   return { success: true };
 }
 
@@ -80,6 +113,18 @@ export const NEXT_STATUSES = {
   cancelled:  [],
 };
 
+function mapOrderToFrontend(o) {
+  if (!o) return null;
+  return {
+    ...o,
+    id: o._id || o.id,
+    patientName: o.userId?.name || o.patientName || 'Patient User',
+    patientEmail: o.userId?.email || o.patientEmail || '',
+    patientPhone: o.userId?.phone || o.patientPhone || '',
+    userId: o.userId?._id || o.userId
+  };
+}
+
 export async function fetchAllOrders(filters = {}) {
   if (USE_MOCK) {
     await delay(500);
@@ -91,7 +136,8 @@ export async function fetchAllOrders(filters = {}) {
   const params = {};
   if (filters.status && filters.status !== 'all') params.status = filters.status;
   const { data } = await api.get('/orders/all', { params });
-  return data.results ?? data;
+  const list = data.results ?? data;
+  return Array.isArray(list) ? list.map(mapOrderToFrontend) : [];
 }
 
 export async function updateOrderStatus(id, newStatus) {
@@ -101,8 +147,8 @@ export async function updateOrderStatus(id, newStatus) {
     if (order) { order.status = newStatus; order.updatedAt = new Date().toISOString(); }
     return order;
   }
-  const { data } = await api.put(`/orders/${id}/status/`, { status: newStatus });
-  return data;
+  const { data } = await api.put(`/orders/${id}/status`, { status: newStatus });
+  return mapOrderToFrontend(data);
 }
 
 /* ─────────────────────────── PRESCRIPTIONS ───────────────────────────────── */

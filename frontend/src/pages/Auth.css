@@ -316,3 +316,60 @@
   text-decoration: underline;
 }
 
+/* ── Premium Circular HSL Vector Badges ──────────────────────── */
+.auth-icon-badge-wrap {
+  width: 68px;
+  height: 68px;
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.15);
+  margin: 0 auto 1.25rem;
+  color: #0284c7;
+  transition: transform 0.3s ease;
+}
+.auth-icon-badge-wrap:hover {
+  transform: scale(1.05);
+}
+
+.role-select-badge-wrap {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  transition: all 0.25s ease;
+}
+
+.pat-badge {
+  background: #f0f9ff;
+  color: #0284c7;
+}
+.role-select-card:hover .pat-badge {
+  background: #bae6fd;
+  transform: scale(1.05);
+}
+
+.doc-badge {
+  background: #ecfdf5;
+  color: #059669;
+}
+.role-select-card:hover .doc-badge {
+  background: #a7f3d0;
+  transform: scale(1.05);
+}
+
+.pharm-badge {
+  background: #fdf2f8;
+  color: #db2777;
+}
+.role-select-card:hover .pharm-badge {
+  background: #fbcfe8;
+  transform: scale(1.05);
+}
+
+

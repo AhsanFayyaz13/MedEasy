@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Container, Row, Col, Card, Badge, Button,
-  Modal, ProgressBar, Spinner, Alert, Nav,
+  Modal, ProgressBar, Spinner, Alert, Nav, Form,
 } from 'react-bootstrap';
 import {
   FaCheckCircle, FaBox, FaTruck, FaHome, FaTimesCircle,
@@ -13,6 +13,7 @@ import {
 import { fetchOrders, cancelOrder } from '../services/orderService';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import MedicalIcon from '../components/MedicalIcon';
 import './OrderTracking.css';
 
 // ─── Status configuration ─────────────────────────────────────────────────────
@@ -129,8 +130,10 @@ function OrderDetailsModal({ order, onClose }) {
             <div className="modal-section">
               <h6 className="modal-section-title"><FaBox className="me-2" />Items Ordered</h6>
               {order.items.map((item) => (
-                <div key={item.medicineId} className="modal-item-row">
-                  <span className="modal-item-emoji">{item.image || '💊'}</span>
+                <div key={item.medicineId} className="modal-item-row" style={{ display: 'flex', alignItems: 'center' }}>
+                  <div className="modal-item-icon-wrap me-2">
+                    <MedicalIcon emoji={item.image} size={20} />
+                  </div>
                   <div className="modal-item-info">
                     <span className="modal-item-name">{item.name}</span>
                     <span className="modal-item-brand">{item.brand}</span>
@@ -233,8 +236,10 @@ function OrderCard({ order, onCancel, onViewDetails, onReport, onRate }) {
         {/* Items preview */}
         <div className="order-items-preview">
           {order.items.slice(0, 3).map((item) => (
-            <div key={item.medicineId} className="preview-item">
-              <span className="preview-emoji">{item.image || '💊'}</span>
+            <div key={item.medicineId} className="preview-item" style={{ display: 'flex', alignItems: 'center' }}>
+              <div className="preview-item-icon-wrap me-2">
+                <MedicalIcon emoji={item.image} size={16} />
+              </div>
               <span className="preview-name">{item.name}</span>
               <span className="preview-qty">×{item.quantity}</span>
               <span className="preview-price">Rs. {(item.price * item.quantity).toLocaleString()}</span>
@@ -356,9 +361,9 @@ export default function OrderTracking() {
       const alerts = JSON.parse(rawAlerts);
       alerts.unshift({
         id: 'alert-' + Date.now() + '-admin',
-        text: `Pharmacy Review: Patient ${user?.name || 'Patient'} reviewed their pharmacy experience for Order #${reviewOrder.id} (${reviewRating} Stars): "${reviewComment.slice(0, 40)}..."`,
+        text: `Pharmacy Review: User ${user?.name || 'Patient'} reviewed their pharmacy experience for Order #${reviewOrder.id} (${reviewRating} Stars): "${reviewComment.slice(0, 40)}..."`,
         time: Date.now(),
-        emoji: '🌟',
+        emoji: 'star',
         unread: true,
         link: '/admin?tab=audits'
       });
@@ -413,7 +418,7 @@ export default function OrderTracking() {
         id: 'alert-' + Date.now() + '-admin',
         text: `Pharmacy Complaint: Patient ${user?.name || 'Patient'} submitted a complaint against the pharmacy for Order #${reportOrder.id}: "${reportDetails.slice(0, 40)}..."`,
         time: Date.now(),
-        emoji: '⚖️',
+        emoji: 'complaint',
         unread: true,
         link: '/admin?tab=audits'
       });
@@ -478,9 +483,9 @@ export default function OrderTracking() {
         const alertsAdmin = JSON.parse(rawAdmin);
         alertsAdmin.unshift({
           id: 'alert-' + Date.now(),
-          text: `Order Cancelled: Patient cancelled Order #${id}. Reason: ${reason}. ❌`,
+          text: `Order Cancelled: Patient cancelled Order #${id}. Reason: ${reason}.`,
           time: Date.now(),
-          emoji: '❌',
+          emoji: 'cancel',
           unread: true,
           link: '/admin'
         });
@@ -491,9 +496,9 @@ export default function OrderTracking() {
         const alertsPharm = JSON.parse(rawPharm);
         alertsPharm.unshift({
           id: 'alert-' + Date.now() + '-pharm',
-          text: `Order Cancelled: Patient cancelled Order #${id}. Reason: ${reason}. ❌`,
+          text: `Order Cancelled: Patient cancelled Order #${id}. Reason: ${reason}.`,
           time: Date.now(),
-          emoji: '❌',
+          emoji: 'cancel',
           unread: true,
           link: '/pharmacist'
         });
@@ -661,11 +666,11 @@ export default function OrderTracking() {
             <Form.Group className="mb-3">
               <Form.Label className="small fw-bold">Select Delivery & Fulfillment Rating</Form.Label>
               <Form.Select value={reviewRating} onChange={e => setReviewRating(e.target.value)}>
-                <option value="5">⭐⭐⭐⭐⭐ Excellent service</option>
-                <option value="4">⭐⭐⭐⭐ Very Good service</option>
-                <option value="3">⭐⭐⭐ Good service</option>
-                <option value="2">⭐⭐ Fair / Average service</option>
-                <option value="1">⭐ Poor service / Pharmacist issue</option>
+                <option value="5">5 Stars — Excellent service</option>
+                <option value="4">4 Stars — Very Good service</option>
+                <option value="3">3 Stars — Good service</option>
+                <option value="2">2 Stars — Fair / Average service</option>
+                <option value="1">1 Star — Poor service / Pharmacist issue</option>
               </Form.Select>
             </Form.Group>
 

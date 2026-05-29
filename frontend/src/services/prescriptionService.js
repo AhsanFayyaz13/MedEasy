@@ -6,6 +6,8 @@
 
 import api from './api';
 import MOCK_PRESCRIPTIONS from '../data/mockPrescriptions';
+import { storage } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false';
 const delay    = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -39,10 +41,10 @@ export async function uploadPrescription(file, notes = '') {
   }
 
   const form = new FormData();
-  form.append('file',  file);
+  form.append('prescription',  file); // Mapped to 'prescription' to match backend single-upload parser
   form.append('notes', notes);
 
-  const { data } = await api.post('/prescriptions/upload/', form, {
+  const { data } = await api.post('/prescriptions/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return data;

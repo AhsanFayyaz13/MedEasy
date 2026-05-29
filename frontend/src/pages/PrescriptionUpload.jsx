@@ -194,9 +194,9 @@ export default function PrescriptionUpload() {
         const pAlerts = JSON.parse(pRaw);
         pAlerts.unshift({
           id: 'alert-' + Date.now(),
-          text: `Prescription Submitted: Your prescription (#RX-${result.id}) has been uploaded and sent for review! 📋`,
+          text: `Prescription Submitted: Your prescription (#RX-${result.id}) has been uploaded and sent for review!`,
           time: Date.now(),
-          emoji: '📋',
+          emoji: 'prescription',
           unread: true,
           link: '/prescriptions/upload'
         });
@@ -210,7 +210,7 @@ export default function PrescriptionUpload() {
           id: 'alert-' + Date.now() + '-admin',
           text: `New Prescription Uploaded: Patient ${user?.name || 'Patient'} uploaded a new medical prescription #RX-${result.id} for review.`,
           time: Date.now(),
-          emoji: '🔍',
+          emoji: 'prescription',
           unread: true,
           link: '/pharmacist'
         });
@@ -301,7 +301,7 @@ export default function PrescriptionUpload() {
                 </Form>
 
                 <div className="rx-guidelines mt-4">
-                  <p className="rx-guidelines-title">📋 Prescription Guidelines</p>
+                  <p className="rx-guidelines-title d-flex align-items-center"><FaInfoCircle className="text-primary me-2" /> Prescription Guidelines</p>
                   <ul className="rx-guidelines-list">
                     <li>Must be issued within the last 30 days</li>
                     <li>Doctor's stamp &amp; signature required</li>

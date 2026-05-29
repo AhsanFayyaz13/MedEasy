@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import MedicalIcon from '../components/MedicalIcon';
 import './Cart.css';
 
 // ─── Cart Item Row ────────────────────────────────────────────────────────────
@@ -24,9 +25,9 @@ function CartRow({ item }) {
 
   return (
     <div className="cart-row">
-      {/* Emoji image */}
-      <div className="cart-row-img">
-        <span className="cart-emoji">{image || '💊'}</span>
+      {/* Emoji image replaced with MedicalIcon */}
+      <div className="cart-row-img" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <MedicalIcon emoji={image} size={22} />
       </div>
 
       {/* Info */}

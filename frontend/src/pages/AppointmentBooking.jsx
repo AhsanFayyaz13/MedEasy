@@ -16,8 +16,20 @@ import ReviewSection from '../components/ReviewSection';
 import { useLocation } from 'react-router-dom';
 import './AppointmentBooking.css';
 
-const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-PK',
-  { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+const fmtDate = (d) => {
+  if (!d) return '';
+  const dateStr = String(d);
+  const targetDate = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00');
+  
+  if (isNaN(targetDate.getTime())) {
+    const directDate = new Date(dateStr);
+    if (!isNaN(directDate.getTime())) {
+      return directDate.toLocaleDateString('en-PK', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+    }
+    return 'Invalid Date';
+  }
+  return targetDate.toLocaleDateString('en-PK', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+};
 
 const STATUS_CFG = {
   scheduled: { color:'primary', icon:<FaClock /> },
@@ -126,7 +138,7 @@ export default function AppointmentBooking() {
             id: 'chat-notif-' + Date.now(),
             text: alertText,
             time: Date.now(),
-            emoji: '💬',
+            emoji: 'chat',
             unread: true,
             link: `/doctor?tab=schedule&chat=${chatApt.id}`
           });
@@ -180,7 +192,7 @@ export default function AppointmentBooking() {
         id: 'alert-' + Date.now() + '-admin',
         text: `Clinical Complaint: Patient ${user?.name || 'Patient'} submitted a clinical complaint against Dr. ${reportApt.doctorName} (Appointment #APT-${reportApt.id}): "${reportDetails.slice(0, 40)}..."`,
         time: Date.now(),
-        emoji: '⚖️',
+        emoji: 'complaint',
         unread: true,
         link: '/admin?tab=audits'
       });
@@ -243,7 +255,7 @@ export default function AppointmentBooking() {
   /* ── Derived ─────────────────────────────────────────── */
   const specialties  = [...new Set(doctors.map(d => d.specialty))].sort();
   const filteredDocs = specialty ? doctors.filter(d => d.specialty === specialty) : doctors;
-  const selectedDoc  = doctors.find(d => d.id === Number(doctorId));
+  const selectedDoc  = doctors.find(d => d.id === (Number(doctorId) || doctorId));
   
   const getBookedSlots = () => {
     if (!selectedDoc || !date) return [];
@@ -288,7 +300,7 @@ export default function AppointmentBooking() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({}); setBooking(true); setSuccess(null);
     try {
-      const appt = await bookAppointment({ doctorId: Number(doctorId), date, time: slot, reason });
+      const appt = await bookAppointment({ doctorId: (Number(doctorId) || doctorId), date, time: slot, reason });
       setSuccess(appt);
       toast.success('Appointment booked successfully!');
 
@@ -301,7 +313,7 @@ export default function AppointmentBooking() {
           id: 'alert-' + Date.now(),
           text: `Booking confirmed: Appointment #APT-${appt.id} scheduled with ${appt.doctorName} on ${fmtDate(appt.date)} at ${appt.time}.`,
           time: Date.now(),
-          emoji: '📅',
+          emoji: 'booking',
           unread: true,
           link: `/appointments/book?chat=${appt.id}`
         });
@@ -370,7 +382,7 @@ export default function AppointmentBooking() {
                       <option value="">Select a doctor…</option>
                       {filteredDocs.map(d => (
                         <option key={d.id} value={d.id}>
-                          {d.avatar} {d.name} — {d.specialty}
+                          {d.name} — {d.specialty}
                         </option>
                       ))}
                     </Form.Select>
@@ -383,8 +395,8 @@ export default function AppointmentBooking() {
                       <Card.Body className="p-3">
                         <div className="d-flex align-items-start gap-3">
                           {/* Avatar block */}
-                          <div className="doc-avatar-circle d-flex align-items-center justify-content-center shadow-xs" style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', fontSize: '2.2rem' }}>
-                            {selectedDoc.avatar || '🩺'}
+                          <div className="doc-avatar-circle d-flex align-items-center justify-content-center shadow-sm" style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', color: '#0284c7' }}>
+                            <FaUserMd size={28} />
                           </div>
 
                           {/* Info block */}

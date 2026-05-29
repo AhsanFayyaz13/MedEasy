@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
+import MedicalIcon from '../components/MedicalIcon';
 import {
   fetchAllMedicines, createMedicine, updateMedicine, deleteMedicine,
   fetchAllOrders, updateOrderStatus, NEXT_STATUSES,
@@ -154,11 +155,13 @@ function MedicinesPage() {
                   <tr key={m.id} className={outRow ? 'row-danger' : lowRow ? 'row-warn' : ''}>
                     <td className="text-muted small">{m.id}</td>
                     <td>
-                      <div className="med-cell">
-                        <span className="med-emoji">{m.image}</span>
+                      <div className="med-cell" style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className="me-2">
+                          <MedicalIcon emoji={m.image} category={m.category} size={20} />
+                        </div>
                         <div>
-                          <div className="med-name">{m.name}</div>
-                          <div className="med-brand">{m.brand}</div>
+                          <div className="med-name">{m.brand || m.name}</div>
+                          {m.brand && <div className="med-brand">{m.name}</div>}
                         </div>
                       </div>
                     </td>
@@ -203,7 +206,7 @@ function MedicinesPage() {
                 <Form.Control placeholder="Panadol" {...fld('brand')} /></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Category *</Form.Label>
                 <Form.Control required placeholder="Analgesics" {...fld('category')} /></Form.Group></Col>
-              <Col md={6}><Form.Group><Form.Label>Image Emoji</Form.Label>
+              <Col md={6}><Form.Group><Form.Label>Medical Icon Key (e.g. 💊, 🧪 for dynamic vector mapping)</Form.Label>
                 <Form.Control placeholder="💊" {...fld('image')} /></Form.Group></Col>
               <Col md={4}><Form.Group><Form.Label>Price (Rs.) *</Form.Label>
                 <Form.Control required type="number" min="0" {...fld('price')} /></Form.Group></Col>
@@ -274,19 +277,19 @@ function OrdersPage({ mode = 'active' }) {
         const rawAlerts = localStorage.getItem(key) || '[]';
         const alerts = JSON.parse(rawAlerts);
         let text = `Order #${orderId} has been marked as ${newStatus}.`;
-        let emoji = '📦';
+        let emoji = 'system';
         if (newStatus === 'confirmed') {
-          text = `Order Confirmed: Your order #${orderId} is confirmed and is being prepared by the pharmacy store! 📦`;
-          emoji = '✅';
+          text = `Order Confirmed: Your order #${orderId} is confirmed and is being prepared by the pharmacy store!`;
+          emoji = 'booking';
         } else if (newStatus === 'dispatched') {
-          text = `Order Dispatched: Your order #${orderId} is on the way! 🚚`;
-          emoji = '🚚';
+          text = `Order Dispatched: Your order #${orderId} is on the way!`;
+          emoji = 'booking';
         } else if (newStatus === 'delivered') {
-          text = `Order Delivered: Your order #${orderId} has been successfully delivered! 🎉`;
-          emoji = '🎉';
+          text = `Order Delivered: Your order #${orderId} has been successfully delivered!`;
+          emoji = 'welcome';
         } else if (newStatus === 'cancelled') {
-          text = `Order Cancelled: Your order #${orderId} has been cancelled by the pharmacy. Reason: ${cancelReason}. ❌`;
-          emoji = '❌';
+          text = `Order Cancelled: Your order #${orderId} has been cancelled by the pharmacy. Reason: ${cancelReason}.`;
+          emoji = 'cancel';
         }
 
         alerts.unshift({
@@ -480,18 +483,18 @@ function PrescriptionsPage() {
         if (status === 'approved') {
           alerts.unshift({
             id: 'alert-' + Date.now(),
-            text: `Prescription Approved! Your uploaded doctor's prescription #RX-${id} has been verified by the pharmacist. 🩺`,
+            text: `Prescription Approved! Your uploaded doctor's prescription #RX-${id} has been verified by the pharmacist.`,
             time: Date.now(),
-            emoji: '🩺',
+            emoji: 'booking',
             unread: true,
             link: '/prescriptions/upload'
           });
         } else if (status === 'rejected') {
           alerts.unshift({
             id: 'alert-' + Date.now(),
-            text: `Prescription Declined: Your uploaded prescription #RX-${id} was declined by the pharmacist. Reason: ${rejectionReason}. ❌`,
+            text: `Prescription Declined: Your uploaded prescription #RX-${id} was declined by the pharmacist. Reason: ${rejectionReason}.`,
             time: Date.now(),
-            emoji: '❌',
+            emoji: 'cancel',
             unread: true,
             link: '/prescriptions/upload'
           });
@@ -852,9 +855,9 @@ function PharmacistRepPage() {
         const alerts = JSON.parse(rawAlerts);
         alerts.unshift({
           id: 'alert-' + Date.now() + '-admin',
-          text: `New Pharmacist Representative: Pharmacy "${user?.name || 'Pharmacy'}" submitted pharmacist "${name}" for administrative audit. 🏪`,
+          text: `New Pharmacist Representative: Pharmacy "${user?.name || 'Pharmacy'}" submitted pharmacist "${name}" for administrative audit.`,
           time: Date.now(),
-          emoji: '🔍',
+          emoji: 'prescription',
           unread: true,
           link: '/admin'
         });

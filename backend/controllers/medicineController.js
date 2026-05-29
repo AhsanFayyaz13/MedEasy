@@ -72,9 +72,11 @@ exports.updateMedicine = async (req, res) => {
 
     if (medicine) {
       medicine.name = req.body.name || medicine.name;
+      medicine.brand = req.body.brand !== undefined ? req.body.brand : medicine.brand;
       medicine.description = req.body.description || medicine.description;
       medicine.category = req.body.category || medicine.category;
       medicine.price = req.body.price || medicine.price;
+      medicine.originalPrice = req.body.originalPrice !== undefined ? req.body.originalPrice : medicine.originalPrice;
       medicine.stock = req.body.stock !== undefined ? req.body.stock : medicine.stock;
       medicine.requiresPrescription = req.body.requiresPrescription !== undefined ? req.body.requiresPrescription : medicine.requiresPrescription;
       medicine.manufacturer = req.body.manufacturer || medicine.manufacturer;

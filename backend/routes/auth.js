@@ -10,7 +10,9 @@ const {
   resendVerificationCode,
   updatePharmacistDetails,
   removePharmacistDetails,
-  uploadPharmacistPhoto
+  uploadPharmacistPhoto,
+  forgotPassword,
+  resetPassword
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const { requireFields } = require('../middleware/validate');
@@ -20,6 +22,8 @@ router.post('/register', requireFields(['name', 'phone', 'password', 'verificati
 router.post('/verify-registration', requireFields(['phone', 'code']), verifyRegistration);
 router.post('/resend-verification', requireFields(['phone']), resendVerificationCode);
 router.post('/login', requireFields(['password']), login);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 router.get('/profile', protect, getProfile);
 router.put('/profile', protect, updateProfile);
 router.post('/profile/photo', protect, upload.single('profilePhoto'), uploadProfilePhoto);

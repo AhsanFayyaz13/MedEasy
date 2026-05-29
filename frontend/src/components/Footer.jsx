@@ -9,6 +9,7 @@ import {
   FaPhoneAlt,
   FaEnvelope,
   FaMapMarkerAlt,
+  FaHeart,
 } from 'react-icons/fa';
 import './Footer.css';
 
@@ -88,8 +89,8 @@ export default function AppFooter() {
 
         <hr className="footer-divider" />
 
-        <p className="footer-copy">
-          &copy; {year} MedEasy. All rights reserved. Built with ❤️ for better healthcare.
+        <p className="footer-copy d-flex align-items-center justify-content-center gap-1">
+          &copy; {year} MedEasy. All rights reserved. Built with <FaHeart className="text-danger animate-pulse" style={{ fontSize: '0.85rem' }} /> for better healthcare.
         </p>
       </Container>
     </footer>

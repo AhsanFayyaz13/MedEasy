@@ -9,21 +9,24 @@ import {
   FaFileUpload, FaCheckCircle, FaArrowRight,
   FaArrowLeft, FaExclamationTriangle, FaLock,
   FaFileImage, FaFilePdf, FaTimes,
+  FaMoneyBillWave,
+  FaMobileAlt,
 } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { uploadPrescription, placeOrder } from '../services/orderService';
+import MedicalIcon from '../components/MedicalIcon';
 import './Checkout.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const DELIVERY_FEE    = 120;
 const FREE_THRESHOLD  = 500;
 const PAYMENT_METHODS = [
-  { id: 'cod',   label: 'Cash on Delivery', icon: '💵', desc: 'Pay when your order arrives' },
-  { id: 'jazz',  label: 'JazzCash',          icon: '📱', desc: 'Pay via JazzCash mobile wallet' },
-  { id: 'easy',  label: 'EasyPaisa',         icon: '📲', desc: 'Pay via EasyPaisa mobile wallet' },
-  { id: 'card',  label: 'Credit / Debit Card', icon: '💳', desc: 'Visa, Mastercard, UnionPay' },
+  { id: 'cod',   label: 'Cash on Delivery', icon: '💵', desc: 'Pay when your order arrives', disabled: false },
+  { id: 'jazz',  label: 'JazzCash',          icon: '📱', desc: 'Pay via JazzCash mobile wallet', disabled: true },
+  { id: 'easy',  label: 'EasyPaisa',         icon: '📲', desc: 'Pay via EasyPaisa mobile wallet', disabled: true },
+  { id: 'card',  label: 'Credit / Debit Card', icon: '💳', desc: 'Visa, Mastercard, UnionPay', disabled: true },
 ];
 const CITIES = ['Karachi','Lahore','Islamabad','Rawalpindi','Faisalabad','Multan','Quetta','Peshawar','Hyderabad','Sialkot'];
 const ALLOWED_FILE_TYPES = ['image/jpeg','image/jpg','image/png','image/webp','application/pdf'];
@@ -123,7 +126,7 @@ function PrescriptionUpload({ file, onFile, error, required }) {
           onKeyDown={(e) => e.key === 'Enter' && fileRef.current?.click()}
         >
           <div className="drop-zone-inner">
-            <span className="drop-zone-icon">📋</span>
+            <span className="drop-zone-icon"><FaFileUpload size={28} className="text-secondary mb-2" /></span>
             <p className="drop-zone-text">Drag & drop your prescription here</p>
             <p className="drop-zone-sub">or <span className="drop-zone-link">click to browse</span></p>
             <p className="drop-zone-types">JPG · PNG · PDF · Max {MAX_FILE_MB} MB</p>
@@ -147,8 +150,10 @@ function PrescriptionUpload({ file, onFile, error, required }) {
 // ─── Order item row ───────────────────────────────────────────────────────────
 function OrderItemRow({ item }) {
   return (
-    <div className="checkout-item-row">
-      <span className="checkout-item-emoji">{item.image || '💊'}</span>
+    <div className="checkout-item-row" style={{ display: 'flex', alignItems: 'center' }}>
+      <div className="checkout-item-icon-wrap me-2">
+        <MedicalIcon emoji={item.image} size={18} />
+      </div>
       <div className="checkout-item-info">
         <span className="checkout-item-name">{item.name}</span>
         <span className="checkout-item-meta">
@@ -172,7 +177,7 @@ function OrderSuccess({ orderId, onViewOrders }) {
       <div className="success-icon-wrap">
         <FaCheckCircle className="success-icon" />
       </div>
-      <h2 className="success-title">Order Confirmed! 🎉</h2>
+      <h2 className="success-title">Order Confirmed!</h2>
       <p className="success-subtitle">
         Your order has been placed successfully. We'll notify you once it's dispatched.
       </p>
@@ -226,7 +231,7 @@ export default function Checkout() {
   if (cartItems.length === 0 && !orderId) {
     return (
       <div className="checkout-empty">
-        <div className="checkout-empty-icon">🛒</div>
+        <div className="checkout-empty-icon text-muted mb-3"><FaShoppingCart size={48} /></div>
         <h3>Your cart is empty</h3>
         <p>Add some medicines before checking out.</p>
         <Button as={Link} to="/medicines" className="btn-shop-medicines">
@@ -502,8 +507,13 @@ export default function Checkout() {
                     {PAYMENT_METHODS.map((m) => (
                       <label
                         key={m.id}
-                        className={`payment-option ${payment === m.id ? 'selected' : ''}`}
-                        htmlFor={`pay-${m.id}`}
+                        className={`payment-option ${payment === m.id ? 'selected' : ''} ${m.disabled ? 'disabled-option' : ''}`}
+                        htmlFor={m.disabled ? undefined : `pay-${m.id}`}
+                        onClick={() => {
+                          if (!m.disabled) {
+                            setPayment(m.id);
+                          }
+                        }}
                       >
                         <input
                           type="radio"
@@ -511,13 +521,28 @@ export default function Checkout() {
                           name="payment"
                           value={m.id}
                           checked={payment === m.id}
-                          onChange={() => setPayment(m.id)}
-                          className="d-none"
+                          disabled={m.disabled}
+                          onChange={() => {
+                            if (!m.disabled) {
+                              setPayment(m.id);
+                            }
+                          }}
+                          style={{ display: 'none' }}
                         />
-                        <span className="pay-icon">{m.icon}</span>
+                        <span className="pay-icon" style={{ fontSize: '1.5rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {m.id === 'cod' && <FaMoneyBillWave className="text-success" />}
+                          {m.id === 'jazz' && <FaMobileAlt className="text-danger" />}
+                          {m.id === 'easy' && <FaMobileAlt className="text-success" />}
+                          {m.id === 'card' && <FaCreditCard className="text-primary" />}
+                        </span>
                         <div>
-                          <span className="pay-label">{m.label}</span>
-                          <span className="pay-desc">{m.desc}</span>
+                          <span className="pay-label">
+                            {m.label}
+                            {m.disabled && (
+                              <Badge bg="secondary" className="ms-2 coming-soon-badge">Coming Soon</Badge>
+                            )}
+                          </span>
+                          <span className="pay-desc">{m.disabled ? 'Coming Soon - Under Integration' : m.desc}</span>
                         </div>
                         {payment === m.id && <FaCheckCircle className="pay-check" />}
                       </label>

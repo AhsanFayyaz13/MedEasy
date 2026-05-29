@@ -51,6 +51,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/doctors', require('./routes/doctors'));
 
 // Basic route
 app.get('/api/test', (req, res) => {

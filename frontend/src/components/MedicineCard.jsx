@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
+import MedicalIcon from './MedicalIcon';
 import './MedicineCard.css';
 
 /**
@@ -72,7 +73,7 @@ export default function MedicineCard({ medicine }) {
     } else if (result === 'updated') {
       toast.cart(`Quantity updated – ${name} in cart`, { duration: 2500 });
     } else {
-      toast.cart(`${name} added to cart 🛒`, { duration: 2500 });
+      toast.cart(`${name} added to cart`, { duration: 2500 });
     }
   };
 
@@ -86,7 +87,7 @@ export default function MedicineCard({ medicine }) {
       {/* Image area */}
       <Link to={`/medicines/${id}`} className="card-img-link" tabIndex={-1}>
         <div className="medicine-img-box">
-          <span className="medicine-emoji">{image}</span>
+          <MedicalIcon emoji={image} category={category} size={40} />
         </div>
         {requires_prescription && (
           <Badge bg="warning" text="dark" className="rx-badge">Rx Required</Badge>

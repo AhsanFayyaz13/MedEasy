@@ -13,7 +13,16 @@ const delay    = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function fetchDoctors() {
   if (USE_MOCK) { await delay(400); return [...MOCK_DOCTORS]; }
   const { data } = await api.get('/doctors/');
-  return data.results ?? data;
+  const list = data.results ?? data;
+  return list.map(d => ({
+    ...d,
+    id: d._id || d.id, // Map Mongoose _id to id key
+    fee: d.consultationFee || 1000, // Map consultationFee to fee
+    experience: d.experience || 5,
+    slots: d.slots || ['09:00', '10:00', '11:00', '14:00', '15:00'], // Default clinical standard slots
+    rating: 4.7,
+    avatar: d.profileImage || '👨‍⚕️'
+  }));
 }
 
 /* ── Appointments ────────────────────────────────────────────── */
@@ -27,7 +36,18 @@ export async function fetchMyAppointments() {
     );
   }
   const { data } = await api.get('/appointments/');
-  return data.results ?? data;
+  const list = data.results ?? data;
+  return list.map(a => ({
+    ...a,
+    id: a._id || a.id,
+    patientName: a.patientId?.name || 'Patient',
+    patientEmail: a.patientId?.email || '',
+    patientPhone: a.patientId?.phone || '',
+    patientId: a.patientId?._id || a.patientId,
+    doctorName: a.doctorId?.name || 'Dr. Doctor',
+    specialty: a.doctorId?.specialty || 'General Physician',
+    doctorId: a.doctorId?._id || a.doctorId
+  }));
 }
 
 /** Doctor: fetch appointments assigned to them */
@@ -39,7 +59,18 @@ export async function fetchDoctorAppointments(doctorId) {
       .sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
   }
   const { data } = await api.get('/appointments/', { params: { doctor: doctorId } });
-  return data.results ?? data;
+  const list = data.results ?? data;
+  return list.map(a => ({
+    ...a,
+    id: a._id || a.id,
+    patientName: a.patientId?.name || 'Patient',
+    patientEmail: a.patientId?.email || '',
+    patientPhone: a.patientId?.phone || '',
+    patientId: a.patientId?._id || a.patientId,
+    doctorName: a.doctorId?.name || 'Dr. Doctor',
+    specialty: a.doctorId?.specialty || 'General Physician',
+    doctorId: a.doctorId?._id || a.doctorId
+  }));
 }
 
 /** Book a new appointment */

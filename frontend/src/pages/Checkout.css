@@ -175,13 +175,33 @@
   transition: all 0.18s;
   position: relative;
 }
-.payment-option:hover   { border-color: #38bdf8; background: #f0f9ff; }
-.payment-option.selected {
+.payment-option:hover:not(.disabled-option)   { border-color: #38bdf8; background: #f0f9ff; }
+.payment-option.selected:not(.disabled-option) {
   border-color: #38bdf8;
   background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
 }
+.payment-option.disabled-option {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+.payment-option.disabled-option:hover {
+  border-color: #cbd5e1;
+  background-color: #f1f5f9;
+}
+.coming-soon-badge {
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  background-color: #64748b !important;
+  color: #ffffff !important;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 4px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 .pay-icon    { font-size: 1.4rem; flex-shrink: 0; }
-.pay-label   { display: block; font-weight: 700; font-size: 0.9rem; color: #0d1b2a; }
+.pay-label   { display: flex; align-items: center; font-weight: 700; font-size: 0.9rem; color: #0d1b2a; margin-bottom: 0.15rem; }
 .pay-desc    { display: block; font-size: 0.72rem; color: #6b7280; }
 .pay-check   { position: absolute; right: 1rem; color: #38bdf8; font-size: 1rem; }
 

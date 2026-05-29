@@ -53,6 +53,10 @@ const userSchema = new mongoose.Schema({
   clinicAddress: { type: String }, // Physical clinic address
   availableDays: { type: [String], default: [] }, // e.g. ['Monday', 'Wednesday']
   consultationFee: { type: Number }, // Consultation fee in PKR
+  
+  // Password recovery fields
+  resetPasswordCode: { type: String },
+  resetPasswordExpires: { type: Date },
 
   createdAt: { type: Date, default: Date.now }
 });

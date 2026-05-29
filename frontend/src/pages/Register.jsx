@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner, ProgressBar } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash, FaUserPlus, FaKey, FaHospital, FaStethoscope, FaPills } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { ROLE_DASHBOARD } from '../context/AuthContext';
 import './Auth.css';
@@ -269,7 +269,9 @@ export default function Register() {
               <Card className="auth-card">
                 <Card.Body className="p-4 p-md-5">
                   <div className="auth-header">
-                    <div className="auth-icon-badge">👋</div>
+                    <div className="auth-icon-badge-wrap mb-3 mx-auto">
+                      <FaUserPlus size={30} />
+                    </div>
                     <h2 className="auth-title">Welcome to MedEasy</h2>
                     <p className="auth-subtitle">Let&apos;s get started. Please choose your role:</p>
                   </div>
@@ -278,19 +280,22 @@ export default function Register() {
                     {[
                       {
                         value: 'patient',
-                        emoji: '💊',
+                        icon: <FaPills size={24} />,
+                        badgeClass: 'pat-badge',
                         title: 'Register as Patient',
                         desc: 'Search and order medicines, upload prescriptions, book doctor consultations, and track health schedules.',
                       },
                       {
                         value: 'doctor',
-                        emoji: '🩺',
+                        icon: <FaStethoscope size={24} />,
+                        badgeClass: 'doc-badge',
                         title: 'Register as Doctor',
                         desc: 'Provide online consultations, manage patient appointments, view prescriptions, and guide medical plans.',
                       },
                       {
                         value: 'pharmacy',
-                        emoji: '🏪',
+                        icon: <FaHospital size={24} />,
+                        badgeClass: 'pharm-badge',
                         title: 'Register as Pharmacy',
                         desc: 'Register your pharmacy store, list licensed pharmacist credentials, upload outside shop photos, and fulfill patient orders.',
                       },
@@ -300,7 +305,7 @@ export default function Register() {
                         className="role-select-card"
                         onClick={() => selectRole(role.value)}
                       >
-                        <div className="role-select-emoji">{role.emoji}</div>
+                        <div className={`role-select-badge-wrap ${role.badgeClass}`}>{role.icon}</div>
                         <div className="role-select-info">
                           <div className="role-select-title">{role.title}</div>
                           <div className="role-select-desc">{role.desc}</div>
@@ -333,7 +338,9 @@ export default function Register() {
 
                   {/* Header */}
                   <div className="auth-header">
-                    <div className="auth-icon-badge">🔑</div>
+                    <div className="auth-icon-badge-wrap mb-3 mx-auto">
+                      <FaKey size={28} />
+                    </div>
                     <h2 className="auth-title">Verify Your Account</h2>
                     <p className="auth-subtitle">
                       Enter the 6-digit code sent to your{' '}
@@ -450,10 +457,10 @@ export default function Register() {
 
                 {/* Header */}
                 <div className="auth-header">
-                  <div className="auth-icon-badge">
-                    {fields.role === 'patient' && '💊'}
-                    {fields.role === 'doctor' && '🩺'}
-                    {fields.role === 'pharmacy' && '🏪'}
+                  <div className="auth-icon-badge-wrap mb-3 mx-auto">
+                    {fields.role === 'patient' && <FaPills size={28} />}
+                    {fields.role === 'doctor' && <FaStethoscope size={28} />}
+                    {fields.role === 'pharmacy' && <FaHospital size={28} />}
                   </div>
                   <h2 className="auth-title">Complete Registration</h2>
                   <p className="auth-subtitle">Create your new account details</p>
@@ -535,7 +542,7 @@ export default function Register() {
                   {/* Pharmacy Details */}
                   {fields.role === 'pharmacy' && (
                     <Card className="border-0 shadow-sm bg-light p-3 mb-4 rounded-3">
-                      <h6 className="fw-bold text-primary mb-3"><span className="me-2">🏪</span>Pharmacy Details</h6>
+                      <h6 className="fw-bold text-primary mb-3"><FaHospital className="me-2 text-primary" />Pharmacy Details</h6>
                       
                       {/* Owner Full Name */}
                       <Form.Group className="mb-3" controlId="regOwnerName">

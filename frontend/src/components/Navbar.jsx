@@ -23,11 +23,33 @@ import {
   FaBell,
   FaUsers,
   FaUserCheck,
+  FaStar,
+  FaInfoCircle,
+  FaExclamationTriangle,
+  FaCommentDots,
+  FaTimesCircle,
 } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import './Navbar.css';
+
+// ─── Notification Icon Mapping component ─────────────────────────────────────
+function NotificationIcon({ type }) {
+  const styles = { fontSize: '1.25rem', display: 'inline-flex', alignItems: 'center' };
+  switch (type) {
+    case 'welcome': return <FaUserCheck className="text-primary" style={styles} />;
+    case 'system': return <FaInfoCircle className="text-info" style={styles} />;
+    case 'star':
+    case 'review': return <FaStar className="text-warning" style={styles} />;
+    case 'complaint': return <FaExclamationTriangle className="text-danger" style={styles} />;
+    case 'cancel': return <FaTimesCircle className="text-danger" style={styles} />;
+    case 'chat': return <FaCommentDots className="text-primary" style={styles} />;
+    case 'booking': return <FaCalendarAlt className="text-info" style={styles} />;
+    case 'prescription': return <FaClipboardList className="text-warning" style={styles} />;
+    default: return <FaBell className="text-secondary" style={styles} />;
+  }
+}
 
 // ─── Role config: label, dashboard path, icon ─────────────────────────────────
 const ROLE_META = {
@@ -101,8 +123,8 @@ export default function AppNavbar() {
         setNotifications(items);
       } else {
         const defaults = [
-          { id: 'n1', text: 'Welcome to MedEasy! Your premium clinic portal is active.', time: Date.now() - 3600000, emoji: '👋', unread: true },
-          { id: 'n2', text: 'Your clinical appointments and orders can be managed in real-time.', time: Date.now() - 7200000, emoji: '⚡', unread: false }
+          { id: 'n1', text: 'Welcome to MedEasy! Your premium clinic portal is active.', time: Date.now() - 3600000, emoji: 'welcome', unread: true },
+          { id: 'n2', text: 'Your clinical appointments and orders can be managed in real-time.', time: Date.now() - 7200000, emoji: 'system', unread: false }
         ];
         localStorage.setItem(primaryKey, JSON.stringify(defaults));
         setNotifications(defaults);
@@ -173,7 +195,7 @@ export default function AppNavbar() {
         id: 'alert-' + Date.now() + '-admin',
         text: `New Suggestion: User ${user?.name || 'Patient'} submitted a platform suggestion: "${feedbackSubject}".`,
         time: Date.now(),
-        emoji: '💡',
+        emoji: 'system',
         unread: true,
         link: '/admin?tab=audits'
       });
@@ -420,7 +442,9 @@ export default function AppNavbar() {
                                   handleNotificationClick(n);
                                 }}
                               >
-                                <span style={{ fontSize: '1.1rem' }}>{n.emoji || '🔔'}</span>
+                                <div className="d-flex align-items-center justify-content-center p-1 bg-light rounded-circle" style={{ width: '28px', height: '28px', flexShrink: 0 }}>
+                                  <NotificationIcon type={n.emoji} />
+                                </div>
                                 <div className="flex-grow-1" style={{ textAlign: 'left' }}>
                                   <p className="mb-0 text-dark small fw-600 leading-normal" style={{ fontSize: '0.78rem', lineHeight: '1.3' }}>{n.text}</p>
                                   <span className="text-muted extra-small d-block mt-0.5" style={{ fontSize: '0.62rem' }}>
@@ -470,7 +494,7 @@ export default function AppNavbar() {
         {/* ── Platform Feedback & Suggestions Modal ── */}
         <Modal show={feedbackOpen} onHide={() => setFeedbackOpen(false)} centered>
           <Modal.Header closeButton className="bg-primary text-white border-0 py-3 rounded-top-4">
-            <Modal.Title className="fs-5 fw-bold">💡 Platform Suggestions & Feedback</Modal.Title>
+            <Modal.Title className="fs-5 fw-bold d-flex align-items-center gap-2"><FaUserCheck /> Platform Suggestions & Feedback</Modal.Title>
           </Modal.Header>
           <Modal.Body className="bg-light rounded-bottom-4">
             <Form onSubmit={handleFeedbackSubmit}>
@@ -487,11 +511,11 @@ export default function AppNavbar() {
               <Form.Group className="mb-3">
                 <Form.Label className="small fw-bold">Rating (1 to 5 Stars)</Form.Label>
                 <Form.Select value={feedbackRating} onChange={e => setFeedbackRating(e.target.value)}>
-                  <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
-                  <option value="4">⭐⭐⭐⭐ Very Good</option>
-                  <option value="3">⭐⭐⭐ Good</option>
-                  <option value="2">⭐⭐ Fair</option>
-                  <option value="1">⭐ Poor</option>
+                  <option value="5">5 Stars — Excellent</option>
+                  <option value="4">4 Stars — Very Good</option>
+                  <option value="3">3 Stars — Good</option>
+                  <option value="2">2 Stars — Fair</option>
+                  <option value="1">1 Star — Poor</option>
                 </Form.Select>
               </Form.Group>
 
@@ -534,7 +558,11 @@ export default function AppNavbar() {
             <Modal.Title className="fs-6 fw-bold">Notification Details</Modal.Title>
           </Modal.Header>
           <Modal.Body className="text-center py-4 px-3 bg-light rounded-bottom-4">
-            <div className="fs-1 mb-2 animate-bounce">{viewingNotification?.emoji || '🔔'}</div>
+            <div className="fs-1 mb-3 animate-bounce d-flex justify-content-center">
+              <div className="p-3 bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style={{ width: '64px', height: '64px' }}>
+                <NotificationIcon type={viewingNotification?.emoji} />
+              </div>
+            </div>
             <p className="fw-semibold text-dark mb-1" style={{ fontSize: '0.9rem', lineHeight: '1.45' }}>{viewingNotification?.text}</p>
             <small className="text-muted d-block mt-2" style={{ fontSize: '0.7rem' }}>
               {viewingNotification && new Date(viewingNotification.time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}

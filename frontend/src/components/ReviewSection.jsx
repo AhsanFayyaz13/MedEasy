@@ -81,15 +81,16 @@ export default function ReviewSection({ targetType, targetId, initialReviews = [
         if (USE_MOCK) {
           // Simulate network delay
           await new Promise((r) => setTimeout(r, 500));
-          // Provide some dummy reviews if initialReviews is empty
-          if (initialReviews.length === 0) {
-            setReviews([
-              { id: 1, user_name: 'John Doe', rating: 4, comment: 'Great experience!', date: '2026-05-10' },
-              { id: 2, user_name: 'Aisha K.', rating: 5, comment: 'Highly recommended.', date: '2026-05-12' }
-            ]);
-          } else {
-            setReviews(initialReviews);
-          }
+          // Provide some dummy reviews if reviews state is empty
+          setReviews((prevReviews) => {
+            if (prevReviews.length === 0) {
+              return [
+                { id: 1, user_name: 'John Doe', rating: 4, comment: 'Great experience!', date: '2026-05-10' },
+                { id: 2, user_name: 'Aisha K.', rating: 5, comment: 'Highly recommended.', date: '2026-05-12' }
+              ];
+            }
+            return prevReviews;
+          });
         } else {
           const { data } = await api.get('/reviews', {
             params: { targetType, targetId }
@@ -103,7 +104,7 @@ export default function ReviewSection({ targetType, targetId, initialReviews = [
       }
     };
     fetchReviews();
-  }, [targetType, targetId, initialReviews]);
+  }, [targetType, targetId]);
 
   const avgRating = reviews.length > 0 
     ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 

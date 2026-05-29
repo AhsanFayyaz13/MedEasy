@@ -26,6 +26,12 @@ const appointmentSchema = new mongoose.Schema({
   },
   consultationNotes: {
     type: String
+  },
+  notes: {
+    type: String
+  },
+  prescription: {
+    type: String
   }
 }, {
   timestamps: true

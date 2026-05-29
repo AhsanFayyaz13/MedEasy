@@ -1,11 +1,12 @@
 import React from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { FaExclamationTriangle } from 'react-icons/fa';
+import { useLocation } from 'react-router-dom';
 
-export default class ErrorBoundary extends React.Component {
+class ErrorBoundaryClass extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, showDetails: false };
   }
 
   static getDerivedStateFromError(error) {
@@ -14,6 +15,13 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught an error', error, errorInfo);
+  }
+
+  componentDidUpdate(prevProps) {
+    // Automatically clear the error state when the user navigates/clicks a navbar link (location changes)
+    if (this.state.hasError && this.props.location?.pathname !== prevProps.location?.pathname) {
+      this.setState({ hasError: false, error: null, showDetails: false });
+    }
   }
 
   render() {
@@ -26,7 +34,7 @@ export default class ErrorBoundary extends React.Component {
             We encountered an unexpected error while loading this page. 
             Our technical team has been notified.
           </p>
-          <div className="d-flex gap-3">
+          <div className="d-flex gap-3 mb-4">
             <Button variant="primary" onClick={() => window.location.reload()}>
               Refresh Page
             </Button>
@@ -34,9 +42,30 @@ export default class ErrorBoundary extends React.Component {
               Go to Homepage
             </Button>
           </div>
-          {process.env.NODE_ENV !== 'production' && this.state.error && (
-            <div className="mt-5 p-3 bg-light rounded text-start w-100 overflow-auto" style={{ maxHeight: '200px' }}>
-              <code>{this.state.error.toString()}</code>
+          {this.state.error && (
+            <div className="text-start w-100 mt-4" style={{ maxWidth: '600px', margin: '0 auto' }}>
+              <button 
+                onClick={() => this.setState(prev => ({ showDetails: !prev.showDetails }))}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#6c757d',
+                  fontSize: '0.75rem',
+                  textDecoration: 'underline',
+                  padding: 0,
+                  cursor: 'pointer'
+                }}
+              >
+                {this.state.showDetails ? 'Hide Developer Logs' : 'Show Developer Logs'}
+              </button>
+              {this.state.showDetails && (
+                <div className="mt-3 p-3 bg-light border rounded overflow-auto text-start" style={{ maxHeight: '200px', fontFamily: 'monospace', fontSize: '0.75rem', color: '#dc3545' }}>
+                  <strong>Technical Stack Trace:</strong>
+                  <pre className="mt-2 mb-0" style={{ whiteSpace: 'pre-wrap', fontSize: '0.72rem', color: '#dc3545' }}>
+                    {this.state.error.stack || this.state.error.toString()}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
         </Container>
@@ -45,4 +74,17 @@ export default class ErrorBoundary extends React.Component {
 
     return this.props.children;
   }
+}
+
+/**
+ * Functional wrapper component that injects location prop from React Router
+ * into the class ErrorBoundaryClass, allowing it to auto-recover on route navigation.
+ */
+export default function ErrorBoundary({ children }) {
+  const location = useLocation();
+  return (
+    <ErrorBoundaryClass location={location}>
+      {children}
+    </ErrorBoundaryClass>
+  );
 }

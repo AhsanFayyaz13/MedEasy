@@ -175,6 +175,8 @@ exports.verifyRegistration = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      phone: user.phone,
+      address: user.address,
       pharmacyName: user.pharmacyName,
       ownerName: user.ownerName,
       pharmacistDetails: user.pharmacistDetails,
@@ -262,12 +264,16 @@ exports.login = async (req, res) => {
       }
     }
 
+    if (!user) {
+      return res.status(404).json({ message: 'This email or phone number is not registered. Please create an account.' });
+    }
+
     if (user) {
       if (isSubAccount) {
         const bcrypt = require('bcryptjs');
         const isMatch = await bcrypt.compare(password, user.pharmacistDetails.password);
         if (!isMatch) {
-          return res.status(401).json({ message: 'Invalid credentials. Please verify your email and password.' });
+          return res.status(401).json({ message: 'Incorrect password. If you forgot your password, please reset it.' });
         }
 
         // Hired pharmacist representatives can only log in after being verified/approved by Admin
@@ -302,12 +308,16 @@ exports.login = async (req, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
+          phone: user.phone,
+          address: user.address,
           pharmacyName: user.pharmacyName,
           ownerName: user.ownerName,
           pharmacistDetails: user.pharmacistDetails,
           isVerifiedProfile: user.isVerifiedProfile,
           token: generateToken(user._id, user.role)
         });
+      } else {
+        return res.status(401).json({ message: 'Incorrect password. If you forgot your password, please reset it.' });
       }
     }
 
@@ -559,6 +569,105 @@ exports.uploadPharmacistPhoto = async (req, res) => {
       return res.status(400).json({ message: 'No photo file uploaded or invalid format.' });
     }
     res.status(200).json({ filePath: `/uploads/${req.file.filename}` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { identifier } = req.body;
+
+    if (!identifier) {
+      return res.status(400).json({ message: 'Email or phone number is required.' });
+    }
+
+    let query = {};
+    let isEmail = false;
+    if (identifier.includes('@')) {
+      query = { email: identifier.toLowerCase().trim() };
+      isEmail = true;
+    } else {
+      const normalizedPhone = normalizePhone(identifier);
+      if (!normalizedPhone) {
+        return res.status(400).json({ message: 'Please enter a valid phone number or email address.' });
+      }
+      query = { phone: normalizedPhone };
+    }
+
+    const user = await User.findOne(query);
+    if (!user) {
+      return res.status(404).json({ message: 'This email or phone number is not registered. Please create an account.' });
+    }
+
+    // Generate 6-digit OTP reset code and set 15-minute expiration
+    const resetCode = generateVerificationCode();
+    user.resetPasswordCode = resetCode;
+    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+
+    // Log the code for local dev testing
+    logVerificationCode({
+      method: isEmail ? 'email' : 'phone',
+      identifier: isEmail ? user.email : user.phone,
+      code: resetCode
+    });
+
+    res.status(200).json({
+      message: 'Password reset code sent successfully.',
+      identifier: isEmail ? user.email : user.phone,
+      channel: isEmail ? 'email' : 'phone'
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { identifier, code, password } = req.body;
+
+    if (!identifier || !code || !password) {
+      return res.status(400).json({ message: 'All fields (identifier, code, and new password) are required.' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+    }
+
+    let query = {};
+    if (identifier.includes('@')) {
+      query = { email: identifier.toLowerCase().trim() };
+    } else {
+      const normalizedPhone = normalizePhone(identifier);
+      if (!normalizedPhone) {
+        return res.status(400).json({ message: 'Invalid phone number or email.' });
+      }
+      query = { phone: normalizedPhone };
+    }
+
+    const user = await User.findOne(query);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Verify recovery code
+    if (user.resetPasswordCode !== code) {
+      return res.status(400).json({ message: 'Invalid password recovery code.' });
+    }
+
+    // Verify code expiration
+    if (Date.now() > user.resetPasswordExpires) {
+      return res.status(400).json({ message: 'Password recovery code has expired. Please request a new one.' });
+    }
+
+    // Update password (pre-save hook hashes it)
+    user.password = password;
+    user.resetPasswordCode = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Password has been reset successfully. You can now log in.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

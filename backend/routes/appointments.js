@@ -14,6 +14,7 @@ router.route('/book')
   .post(protect, authorizeRoles('patient'), bookAppointment);
 
 router.route('/:id')
-  .put(protect, updateAppointment);
+  .put(protect, updateAppointment)
+  .patch(protect, updateAppointment);
 
 module.exports = router;

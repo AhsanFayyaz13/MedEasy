@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Container, Row, Col, Button, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -12,10 +12,22 @@ import {
   FaUpload,
   FaCalendarAlt,
   FaMapMarkerAlt,
+  FaLock,
+  FaCommentDots,
+  FaSyncAlt,
+  FaFlask,
+  FaStethoscope,
+  FaHospital,
+  FaHeart,
+  FaUserMd,
+  FaPills,
+  FaCheckCircle,
 } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
+import MedicalIcon from '../components/MedicalIcon';
+import api from '../services/api';
 import './Home.css';
 
 // ─── Hardcoded sample medicines ───────────────────────────────────────────────
@@ -205,8 +217,8 @@ function HomeMedicineCard({ medicine }) {
 
       {/* Image area */}
       <Link to={`/medicines/${medicine.id}`} className="med-img-link">
-        <div className="med-emoji-box">
-          <span className="med-emoji">{medicine.emoji}</span>
+        <div className="med-emoji-box" style={{ display: 'flex', justifyContent: 'center', padding: '1.25rem 0' }}>
+          <MedicalIcon emoji={medicine.emoji} category={medicine.category} size={38} />
         </div>
       </Link>
 
@@ -254,6 +266,7 @@ function HomeMedicineCard({ medicine }) {
 export default function Home() {
   const navigate = useNavigate();
   const { isAuthenticated, user, userRole } = useAuth();
+  const [featuredMeds, setFeaturedMeds] = useState(SAMPLE_MEDICINES);
 
   useEffect(() => {
     if (isAuthenticated && userRole && userRole !== 'patient') {
@@ -262,6 +275,41 @@ export default function Home() {
       else if (userRole === 'pharmacist') navigate('/pharmacist', { replace: true });
     }
   }, [isAuthenticated, userRole, navigate]);
+
+  useEffect(() => {
+    const syncFeaturedMedicines = async () => {
+      try {
+        const { data } = await api.get('/medicines?limit=100');
+        const dbMeds = data.medicines ?? data.results ?? data;
+        if (Array.isArray(dbMeds)) {
+          const updated = SAMPLE_MEDICINES.map(sample => {
+            const dbMatch = dbMeds.find(db => 
+              (db.brand && sample.brand && db.brand.toLowerCase() === sample.brand.toLowerCase()) ||
+              db.name.toLowerCase().includes(sample.brand.toLowerCase()) ||
+              db.name.toLowerCase() === sample.name.toLowerCase()
+            );
+            if (dbMatch) {
+              return {
+                ...sample,
+                id: dbMatch._id || dbMatch.id,
+                in_stock: dbMatch.stock > 0,
+                stock: dbMatch.stock,
+                price: dbMatch.price,
+                requires_prescription: dbMatch.requiresPrescription || false,
+                name: dbMatch.name,
+                brand: dbMatch.brand || sample.brand
+              };
+            }
+            return sample;
+          });
+          setFeaturedMeds(updated);
+        }
+      } catch (err) {
+        console.error('Failed to sync featured medicines:', err);
+      }
+    };
+    syncFeaturedMedicines();
+  }, []);
 
   return (
     <div className="home-page">
@@ -319,12 +367,14 @@ export default function Home() {
             <Col lg={6} className="hero-visual d-none d-lg-flex">
               <div className="hero-blob">
                 <div className="hero-pill-orbit">
-                  <span className="orbit-icon o1">💊</span>
-                  <span className="orbit-icon o2">🩺</span>
-                  <span className="orbit-icon o3">🧪</span>
-                  <span className="orbit-icon o4">❤️</span>
+                  <span className="orbit-icon o1"><div className="hero-orbit-card"><FaPills className="text-info" /></div></span>
+                  <span className="orbit-icon o2"><div className="hero-orbit-card"><FaStethoscope className="text-primary" /></div></span>
+                  <span className="orbit-icon o3"><div className="hero-orbit-card"><FaFlask className="text-success" /></div></span>
+                  <span className="orbit-icon o4"><div className="hero-orbit-card"><FaHeart className="text-danger" /></div></span>
                 </div>
-                <div className="hero-center-icon">⚕️</div>
+                <div className="hero-center-icon">
+                  <FaUserMd className="text-info" size={80} style={{ filter: 'drop-shadow(0 8px 24px rgba(56, 189, 248, 0.35))' }} />
+                </div>
               </div>
             </Col>
           </Row>
@@ -336,14 +386,14 @@ export default function Home() {
         <Container>
           <div className="trust-items">
             {[
-              { emoji: '✅', text: '100% Authentic'  },
-              { emoji: '🚚', text: 'Free Delivery ≥ Rs.1000' },
-              { emoji: '🔒', text: 'Secure Checkout' },
-              { emoji: '💬', text: '24/7 Support'   },
-              { emoji: '🔄', text: 'Easy Returns'   },
+              { icon: <FaCheckCircle className="text-success" />, text: '100% Authentic'  },
+              { icon: <FaTruck className="text-info" />, text: 'Free Delivery ≥ Rs.1000' },
+              { icon: <FaLock className="text-warning" />, text: 'Secure Checkout' },
+              { icon: <FaCommentDots className="text-primary" />, text: '24/7 Support'   },
+              { icon: <FaSyncAlt className="text-secondary" />, text: 'Easy Returns'   },
             ].map((t) => (
               <div key={t.text} className="trust-item">
-                <span className="trust-emoji">{t.emoji}</span>
+                <span className="trust-icon d-flex align-items-center fs-5">{t.icon}</span>
                 <span>{t.text}</span>
               </div>
             ))}
@@ -365,7 +415,7 @@ export default function Home() {
           </div>
 
           <div className="med-grid">
-            {SAMPLE_MEDICINES.map((med) => (
+            {featuredMeds.map((med) => (
               <HomeMedicineCard key={med.id} medicine={med} />
             ))}
           </div>
@@ -378,22 +428,22 @@ export default function Home() {
           <h2 className="section-title text-center mb-4">Shop by Category</h2>
           <Row className="gy-3">
             {[
-              { name: 'Pain Relief',    emoji: '🩹', color: '#fef3c7' },
-              { name: 'Antibiotics',    emoji: '🦠', color: '#d1fae5' },
-              { name: 'Vitamins',       emoji: '🌿', color: '#dbeafe' },
-              { name: 'Diabetes',       emoji: '🩸', color: '#fce7f3' },
-              { name: 'Cardiology',     emoji: '❤️', color: '#fee2e2' },
-              { name: 'Dermatology',    emoji: '✨', color: '#ede9fe' },
-              { name: 'Eye Care',       emoji: '👁️', color: '#e0f2fe' },
-              { name: 'Child Health',   emoji: '👶', color: '#fef9c3' },
+              { name: 'Pain Relief',    linkTo: 'Analgesics',             color: '#fef3c7', icon: <MedicalIcon category="Pain Relief" size={24} /> },
+              { name: 'Antibiotics',    linkTo: 'Antibiotics',            color: '#d1fae5', icon: <MedicalIcon category="Antibiotics" size={24} /> },
+              { name: 'Vitamins',       linkTo: 'Vitamins & Supplements', color: '#dbeafe', icon: <MedicalIcon category="Vitamins" size={24} /> },
+              { name: 'Diabetes',       linkTo: 'Diabetes',               color: '#fce7f3', icon: <MedicalIcon category="Diabetes" size={24} /> },
+              { name: 'Cardiology',     linkTo: 'Cardiology',             color: '#fee2e2', icon: <MedicalIcon category="Cardiology" size={24} /> },
+              { name: 'Dermatology',    linkTo: 'Dermatology',            color: '#ede9fe', icon: <MedicalIcon category="Dermatology" size={24} /> },
+              { name: 'Eye Care',       linkTo: 'Eye Care',               color: '#e0f2fe', icon: <MedicalIcon category="Eye Care" size={24} /> },
+              { name: 'Child Health',   linkTo: 'Child Health',           color: '#fef9c3', icon: <MedicalIcon category="Child Health" size={24} /> },
             ].map((cat) => (
               <Col xs={6} sm={4} md={3} key={cat.name}>
                 <Link
-                  to={`/medicines?category=${encodeURIComponent(cat.name)}`}
+                  to={`/medicines?category=${encodeURIComponent(cat.linkTo)}`}
                   className="category-card"
                   style={{ '--cat-bg': cat.color }}
                 >
-                  <span className="cat-emoji">{cat.emoji}</span>
+                  <span className="cat-icon-badge mb-2">{cat.icon}</span>
                   <span className="cat-name">{cat.name}</span>
                 </Link>
               </Col>
@@ -441,7 +491,9 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-            <div className="cta-illustration d-none d-md-block">🏥</div>
+            <div className="cta-illustration d-none d-md-block text-white">
+              <FaHospital size={110} style={{ filter: 'drop-shadow(0 8px 24px rgba(56, 189, 248, 0.35))' }} />
+            </div>
           </div>
         </Container>
       </section>

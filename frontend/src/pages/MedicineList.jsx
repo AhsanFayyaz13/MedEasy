@@ -3,12 +3,26 @@ import {
   Container, Row, Col, Form, InputGroup,
   Button, Spinner, Badge, Dropdown,
 } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaSearch, FaTimes, FaSlidersH, FaSortAmountDown } from 'react-icons/fa';
 import MedicineCard from '../components/MedicineCard';
 import api from '../services/api';
-const CATEGORIES = ['Analgesics', 'Antibiotics', 'Antihistamines', 'Vitamins', 'First Aid', 'Cardiovascular', 'Supplements'];
+
+const CATEGORIES = [
+  'Analgesics', 
+  'Antibiotics', 
+  'Antihistamines', 
+  'Gastroenterology', 
+  'Diabetes', 
+  'Cardiology', 
+  'Vitamins & Supplements', 
+  'Respiratory', 
+  'First Aid',
+  'Dermatology',
+  'Eye Care',
+  'Child Health',
+];
 import './MedicineList.css';
 
 // ─── Sort options ─────────────────────────────────────────────────────────────
@@ -66,11 +80,19 @@ export default function MedicineList() {
 
   const { data: medicines, loading, error } = useMedicines();
 
+  const [searchParams] = useSearchParams();
   const [query,        setQuery]        = useState('');
-  const [category,     setCategory]     = useState('');
+  const [category,     setCategory]     = useState(searchParams.get('category') || '');
   const [sort,         setSort]         = useState('default');
   const [rxOnly,       setRxOnly]       = useState(false);
   const [inStockOnly,  setInStockOnly]  = useState(false);
+
+  useEffect(() => {
+    const cat = searchParams.get('category');
+    if (cat !== null) {
+      setCategory(cat);
+    }
+  }, [searchParams]);
 
   // ── Derived filtered + sorted list ────────────────────────────
   const displayed = useMemo(() => {

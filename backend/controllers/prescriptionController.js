@@ -5,11 +5,15 @@ const Prescription = require('../models/Prescription');
 // @access  Private (Patient)
 exports.uploadPrescription = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
+    let fileUrl = '';
 
-    const fileUrl = `/uploads/${req.file.filename}`;
+    if (req.body.fileUrl) {
+      fileUrl = req.body.fileUrl;
+    } else if (req.file) {
+      fileUrl = `/uploads/${req.file.filename}`;
+    } else {
+      return res.status(400).json({ message: 'No file uploaded or URL provided' });
+    }
 
     const prescription = await Prescription.create({
       userId: req.user._id,

@@ -127,7 +127,7 @@ function OverviewTab({ apts, loading, setActive, openComplete }) {
               {nextPatient ? (
                 <div>
                   <div className="next-patient-banner mb-3 d-flex align-items-center gap-3">
-                    <div className="next-patient-avatar">{nextPatient.patientName[0]}</div>
+                    <div className="next-patient-avatar">{(nextPatient.patientName || 'P')[0]}</div>
                     <div>
                       <h5 className="mb-0 fw-800 text-dark">{nextPatient.patientName}</h5>
                       <span className="text-muted extra-small">{nextPatient.patientEmail}</span>
@@ -174,7 +174,7 @@ function OverviewTab({ apts, loading, setActive, openComplete }) {
                   {todayAptsList.slice(0, 4).map(a => (
                     <div key={a.id} className="today-item d-flex align-items-center justify-content-between py-2 border-bottom-dashed">
                       <div className="d-flex align-items-center gap-3">
-                        <div className="today-avatar small">{a.patientName[0]}</div>
+                        <div className="today-avatar small">{(a.patientName || 'P')[0]}</div>
                         <div>
                           <div className="fw-bold text-dark small">{a.patientName}</div>
                           <span className="text-muted small">{a.time} · <Badge bg={STATUS_CFG[a.status]?.color || 'secondary'} className="extra-small">{a.status}</Badge></span>
@@ -249,7 +249,7 @@ function ScheduleTab({ apts, loading, openComplete, handleCancel, setViewRx, set
                     <tr key={a.id}>
                       <td>
                         <div className="patient-cell">
-                          <div className="patient-avatar">{a.patientName[0]}</div>
+                          <div className="patient-avatar">{(a.patientName || 'P')[0]}</div>
                           <div>
                             <div className="patient-name">{a.patientName}</div>
                             <div className="patient-email">{a.patientEmail}</div>
@@ -591,7 +591,7 @@ export default function DoctorDashboard() {
         id: 'chat-notif-' + Date.now(),
         text: `Dr. ${user?.name || 'Doctor'} replied to your message — Appointment #APT-${chatApt.id}.`,
         time: Date.now(),
-        emoji: '💬',
+        emoji: 'chat',
         unread: true,
         link: `/appointments/book?chat=${chatApt.id}`
       });
@@ -632,7 +632,7 @@ export default function DoctorDashboard() {
           id: 'rx-notif-' + Date.now(),
           text: `E-Prescription Issued: Dr. ${user?.name || 'Doctor'} issued a new digital prescription for your case #APT-${modal.id}.`,
           time: Date.now(),
-          emoji: '💊',
+          emoji: 'prescription',
           unread: true,
           link: '/appointments/book'
         });
@@ -660,7 +660,7 @@ export default function DoctorDashboard() {
           id: 'cancel-notif-' + Date.now(),
           text: `Appointment Cancelled: Dr. ${user?.name || 'Doctor'} cancelled your appointment #APT-${id}.`,
           time: Date.now(),
-          emoji: '❌',
+          emoji: 'cancel',
           unread: true,
           link: '/appointments/book'
         });
@@ -775,7 +775,7 @@ export default function DoctorDashboard() {
         {modal && (
           <Modal.Body>
             <div className="modal-patient-info mb-4">
-              <div className="modal-patient-avatar">{modal.patientName[0]}</div>
+              <div className="modal-patient-avatar">{(modal.patientName || 'P')[0]}</div>
               <div className="flex-grow-1">
                 <div className="modal-patient-name">{modal.patientName}</div>
                 <div className="modal-patient-meta">{fmtDate(modal.date)} at {modal.time}</div>
