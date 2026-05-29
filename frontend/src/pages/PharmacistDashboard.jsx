@@ -9,6 +9,8 @@ import {
   FaCheckCircle, FaTimesCircle, FaClock, FaEye,
   FaTimes, FaSearch, FaChartBar, FaHistory,
   FaUserShield, FaUserCheck,
+  FaShippingFast, FaBoxOpen, FaMapMarkerAlt, FaPhone,
+  FaReceipt, FaCoins, FaTruck, FaCheck,
 } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -241,6 +243,7 @@ function OrdersPage({ mode = 'active' }) {
   const [filter,    setFilter]    = useState('all');
   const [detail,    setDetail]    = useState(null);
   const [updating,  setUpdating]  = useState(null);
+  const [search,    setSearch]    = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -253,7 +256,7 @@ function OrdersPage({ mode = 'active' }) {
   }, [toast]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setFilter('all'); }, [mode]);
+  useEffect(() => { setFilter('all'); setSearch(''); }, [mode]);
 
   const handleStatus = async (orderId, newStatus) => {
     let cancelReason = '';
@@ -313,81 +316,377 @@ function OrdersPage({ mode = 'active' }) {
     ? ['all', 'delivered', 'cancelled'] 
     : ['all', 'pending', 'confirmed', 'dispatched'];
 
+  // Metrics calculation
+  const totalActiveCount = orders.filter(o => o.status === 'pending' || o.status === 'confirmed' || o.status === 'dispatched').length;
+  const pendingCount     = orders.filter(o => o.status === 'pending').length;
+  const confirmedCount   = orders.filter(o => o.status === 'confirmed').length;
+  const dispatchedCount  = orders.filter(o => o.status === 'dispatched').length;
+  const deliveredCount   = orders.filter(o => o.status === 'delivered').length;
+  const cancelledCount   = orders.filter(o => o.status === 'cancelled').length;
+
   const filteredOrders = orders.filter(o => {
-    if (isHistory) {
-      const isHistOrder = o.status === 'delivered' || o.status === 'cancelled';
-      if (!isHistOrder) return false;
-      if (filter === 'all') return true;
-      return o.status === filter;
-    } else {
-      const isActiveOrder = o.status === 'pending' || o.status === 'confirmed' || o.status === 'dispatched';
-      if (!isActiveOrder) return false;
-      if (filter === 'all') return true;
-      return o.status === filter;
+    // 1. Mode check
+    const matchesMode = isHistory 
+      ? (o.status === 'delivered' || o.status === 'cancelled')
+      : (o.status === 'pending' || o.status === 'confirmed' || o.status === 'dispatched');
+    if (!matchesMode) return false;
+
+    // 2. Filter check
+    if (filter !== 'all' && o.status !== filter) return false;
+
+    // 3. Search check
+    if (search.trim() !== '') {
+      const q = search.toLowerCase();
+      const orderId = String(o.id || '').toLowerCase();
+      const firstName = String(o.shippingAddress?.firstName || '').toLowerCase();
+      const lastName = String(o.shippingAddress?.lastName || '').toLowerCase();
+      const city = String(o.shippingAddress?.city || '').toLowerCase();
+      const phone = String(o.shippingAddress?.phone || '').toLowerCase();
+      
+      return (
+        orderId.includes(q) ||
+        firstName.includes(q) ||
+        lastName.includes(q) ||
+        city.includes(q) ||
+        phone.includes(q)
+      );
     }
+    return true;
   });
+
+  const getTabLabel = (tabKey) => {
+    let base = '';
+    let count = 0;
+    if (tabKey === 'all') {
+      base = isHistory ? 'All History' : 'All Active';
+      count = isHistory ? (deliveredCount + cancelledCount) : totalActiveCount;
+    } else {
+      base = tabKey.charAt(0).toUpperCase() + tabKey.slice(1);
+      count = orders.filter(o => o.status === tabKey).length;
+    }
+    
+    return (
+      <span className="d-flex align-items-center gap-2">
+        {base}
+        <Badge bg="light" text="dark" className="rounded-pill px-2 py-0.5 border" style={{ fontSize: '0.7rem', fontWeight: 700 }}>
+          {count}
+        </Badge>
+      </span>
+    );
+  };
+
+  const renderStatusActions = (order) => {
+    const next = NEXT_STATUSES[order.status] || [];
+    if (next.length === 0) {
+      return (
+        <span className="text-muted small d-flex align-items-center gap-1 bg-light px-2.5 py-1 rounded-3" style={{ width: 'fit-content' }}>
+          {order.status === 'delivered' ? (
+            <><FaCheckCircle className="text-success" /> Completed</>
+          ) : (
+            <><FaTimesCircle className="text-danger" /> Cancelled</>
+          )}
+        </span>
+      );
+    }
+
+    const isUpdating = updating === order.id;
+
+    return (
+      <div className="d-flex align-items-center gap-2">
+        {next.includes('confirmed') && (
+          <Button 
+            size="sm" 
+            variant="success" 
+            className="d-flex align-items-center gap-1.5 px-3 py-1.5 font-weight-700 shadow-sm border-0"
+            style={{ borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold' }}
+            onClick={() => handleStatus(order.id, 'confirmed')}
+            disabled={isUpdating}
+          >
+            {isUpdating ? <Spinner size="sm" animation="border" /> : <FaCheck />} Confirm
+          </Button>
+        )}
+        {next.includes('dispatched') && (
+          <Button 
+            size="sm" 
+            variant="primary" 
+            className="d-flex align-items-center gap-1.5 px-3 py-1.5 font-weight-700 shadow-sm border-0"
+            style={{ borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}
+            onClick={() => handleStatus(order.id, 'dispatched')}
+            disabled={isUpdating}
+          >
+            {isUpdating ? <Spinner size="sm" animation="border" /> : <FaShippingFast />} Dispatch
+          </Button>
+        )}
+        {next.includes('delivered') && (
+          <Button 
+            size="sm" 
+            variant="info" 
+            className="d-flex align-items-center gap-1.5 px-3 py-1.5 font-weight-700 shadow-sm border-0 text-white"
+            style={{ borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', background: 'linear-gradient(135deg, #0d9488, #14b8a6)' }}
+            onClick={() => handleStatus(order.id, 'delivered')}
+            disabled={isUpdating}
+          >
+            {isUpdating ? <Spinner size="sm" animation="border" /> : <FaBoxOpen />} Deliver
+          </Button>
+        )}
+        {next.includes('cancelled') && (
+          <Button 
+            size="sm" 
+            variant="outline-danger" 
+            className="d-flex align-items-center gap-1 px-2.5 py-1.5"
+            style={{ borderRadius: '8px', fontSize: '0.75rem', border: '1px solid #fca5a5', color: '#ef4444' }}
+            onClick={() => handleStatus(order.id, 'cancelled')}
+            disabled={isUpdating}
+          >
+            Cancel
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  const getTimelineProgress = (status) => {
+    const steps = ['pending', 'confirmed', 'dispatched', 'delivered'];
+    const activeIndex = steps.indexOf(status);
+    
+    if (status === 'cancelled') {
+      return (
+        <div className="w-100 p-3 mb-4 rounded-3 border-danger d-flex align-items-center gap-3" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
+          <FaTimesCircle className="fs-4 flex-shrink-0" />
+          <div>
+            <strong className="d-block" style={{ fontSize: '0.85rem' }}>This order has been cancelled</strong>
+            {detail?.cancellationReason && <span style={{ fontSize: '0.78rem' }}>Reason: {detail.cancellationReason}</span>}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="ph-order-timeline-horizontal mb-4 p-3 rounded-4 bg-light d-flex align-items-center justify-content-between">
+        {steps.map((step, idx) => {
+          const isCompleted = idx <= activeIndex;
+          const isActive = idx === activeIndex;
+          const labels = { pending: 'Placed', confirmed: 'Confirmed', dispatched: 'Dispatched', delivered: 'Delivered' };
+          const icons = { pending: <FaReceipt />, confirmed: <FaCheck />, dispatched: <FaShippingFast />, delivered: <FaBoxOpen /> };
+          
+          return (
+            <div key={step} className="d-flex align-items-center flex-grow-1" style={{ position: 'relative' }}>
+              <div className="d-flex flex-column align-items-center" style={{ zIndex: 2, minWidth: '80px' }}>
+                <div 
+                  className={`d-flex align-items-center justify-content-center shadow-sm rounded-circle ${isCompleted ? (isActive ? 'bg-primary text-white animate-pulse' : 'bg-success text-white') : 'bg-white text-muted border'}`} 
+                  style={{ 
+                    width: '36px', 
+                    height: '36px', 
+                    fontSize: '0.9rem',
+                    transition: 'all 0.3s ease',
+                    boxShadow: isActive ? '0 0 0 4px rgba(37,99,235,0.18)' : undefined
+                  }}
+                >
+                  {icons[step]}
+                </div>
+                <span className={`mt-1.5 fw-600 ${isActive ? 'text-primary fw-bold' : isCompleted ? 'text-success' : 'text-muted'}`} style={{ fontSize: '0.75rem' }}>
+                  {labels[step]}
+                </span>
+              </div>
+              {idx < steps.length - 1 && (
+                <div 
+                  className="flex-grow-1" 
+                  style={{ 
+                    height: '3px', 
+                    background: idx < activeIndex ? '#10b981' : '#e2e8f0', 
+                    position: 'absolute', 
+                    left: '50px', 
+                    right: '-30px', 
+                    top: '18px',
+                    zIndex: 1,
+                    transition: 'background 0.3s ease'
+                  }} 
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <>
-      {/* Filter tabs */}
-      <Nav variant="pills" className="ph-tabs mb-3" activeKey={filter} onSelect={setFilter}>
-        {subTabs.map(t => (
-          <Nav.Item key={t}>
-            <Nav.Link eventKey={t} className="ph-tab">
-              {t === 'all' ? (isHistory ? 'All History' : 'All Active') : (t.charAt(0).toUpperCase() + t.slice(1))}
-            </Nav.Link>
-          </Nav.Item>
-        ))}
-      </Nav>
+      {/* 📊 Metrics cards at the top */}
+      <Row className="g-3 mb-4 animate-fade-in">
+        {!isHistory ? (
+          <>
+            <Col sm={6} lg={3}>
+              <Card className="ph-glass-card shadow-sm border-0 h-100" style={{ background: 'linear-gradient(135deg, #0d1b2a 0%, #1e293b 100%)', color: '#fff' }}>
+                <Card.Body className="d-flex align-items-center gap-3">
+                  <div className="ph-glass-icon bg-white bg-opacity-10 text-white" style={{ background: 'rgba(255,255,255,0.15)' }}><FaClipboardList className="fs-4" /></div>
+                  <div>
+                    <div className="small text-white text-opacity-70 fw-600">Active Orders</div>
+                    <h3 className="mb-0 fw-900">{totalActiveCount}</h3>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col sm={6} lg={3}>
+              <Card className="ph-glass-card shadow-sm border-0 h-100">
+                <Card.Body className="d-flex align-items-center gap-3">
+                  <div className="ph-glass-icon bg-warning bg-opacity-10 text-warning" style={{ background: '#fffbeb' }}><FaClock className="fs-4" /></div>
+                  <div>
+                    <div className="small text-muted fw-600">Pending Approval</div>
+                    <h3 className="mb-0 fw-900 text-warning">{pendingCount}</h3>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col sm={6} lg={3}>
+              <Card className="ph-glass-card shadow-sm border-0 h-100">
+                <Card.Body className="d-flex align-items-center gap-3">
+                  <div className="ph-glass-icon bg-primary bg-opacity-10 text-primary" style={{ background: '#eff6ff' }}><FaCheckCircle className="fs-4" /></div>
+                  <div>
+                    <div className="small text-muted fw-600">Confirmed Orders</div>
+                    <h3 className="mb-0 fw-900 text-primary">{confirmedCount}</h3>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col sm={6} lg={3}>
+              <Card className="ph-glass-card shadow-sm border-0 h-100">
+                <Card.Body className="d-flex align-items-center gap-3">
+                  <div className="ph-glass-icon bg-info bg-opacity-10 text-info" style={{ background: '#ecfeff' }}><FaShippingFast className="fs-4" /></div>
+                  <div>
+                    <div className="small text-muted fw-600">Dispatched Transit</div>
+                    <h3 className="mb-0 fw-900 text-info">{dispatchedCount}</h3>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          </>
+        ) : (
+          <>
+            <Card className="border-0 shadow-sm rounded-4 w-100" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#fff' }}>
+              <Card.Body className="p-4 d-flex justify-content-around flex-wrap gap-4 text-center">
+                <div>
+                  <div className="text-white text-opacity-70 small fw-600 mb-1">Delivered Fulfillments</div>
+                  <h2 className="mb-0 fw-900 text-success" style={{ textShadow: '0 0 10px rgba(16,185,129,0.2)' }}>{deliveredCount}</h2>
+                </div>
+                <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)' }} />
+                <div>
+                  <div className="text-white text-opacity-70 small fw-600 mb-1">Cancelled Orders</div>
+                  <h2 className="mb-0 fw-900 text-danger" style={{ textShadow: '0 0 10px rgba(239,68,68,0.2)' }}>{cancelledCount}</h2>
+                </div>
+                <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)' }} />
+                <div>
+                  <div className="text-white text-opacity-70 small fw-600 mb-1">Total Handled</div>
+                  <h2 className="mb-0 fw-900" style={{ color: '#38bdf8' }}>{deliveredCount + cancelledCount}</h2>
+                </div>
+              </Card.Body>
+            </Card>
+          </>
+        )}
+      </Row>
+
+      {/* 🔍 Search and Toolbar */}
+      <div className="ph-toolbar mb-4 gap-3 animate-fade-in">
+        <div className="ph-search-wrap" style={{ flex: 1, maxWidth: '400px' }}>
+          <FaSearch className="ph-search-icon" />
+          <input 
+            className="ph-search w-100" 
+            placeholder="Search by Order ID, customer, city or phone…" 
+            value={search}
+            onChange={e => setSearch(e.target.value)} 
+          />
+        </div>
+        
+        {/* Filter subtabs */}
+        <Nav variant="pills" className="ph-tabs" activeKey={filter} onSelect={setFilter}>
+          {subTabs.map(t => (
+            <Nav.Item key={t}>
+              <Nav.Link eventKey={t} className="ph-tab px-3 py-2">
+                {getTabLabel(t)}
+              </Nav.Link>
+            </Nav.Item>
+          ))}
+        </Nav>
+      </div>
 
       {loading ? (
         <div className="ph-loading"><Spinner animation="border" variant="primary" /></div>
       ) : (
-        <div className="ph-table-wrap">
-          <Table hover responsive className="ph-table">
+        <div className="ph-table-wrap border-0 shadow-sm rounded-4 overflow-hidden animate-fade-in">
+          <Table hover responsive className="ph-table align-middle">
             <thead>
-              <tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th>Update Status</th><th>Details</th></tr>
+              <tr style={{ background: '#f8fafc' }}>
+                <th className="py-3 px-4">Order ID</th>
+                <th className="py-3">Customer & Location</th>
+                <th className="py-3">Fulfillment Store</th>
+                <th className="py-3">Date Info</th>
+                <th className="py-3">Grand Total</th>
+                <th className="py-3">Current Status</th>
+                <th className="py-3">Update Actions</th>
+                <th className="py-3 text-center">Sheets</th>
+              </tr>
             </thead>
             <tbody>
               {filteredOrders.length === 0 && (
-                <tr><td colSpan={7} className="text-center text-muted py-4">No orders found.</td></tr>
+                <tr>
+                  <td colSpan={8} className="text-center text-muted py-5 bg-white">
+                    <div className="d-flex flex-column align-items-center gap-3">
+                      <FaClipboardList className="text-light" style={{ fontSize: '3.5rem' }} />
+                      <div>
+                        <h6 className="fw-bold text-dark mb-1">No orders found</h6>
+                        <span className="small">Try refining your search query or tab filters.</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
               )}
               {filteredOrders.map(o => {
-                const cfg  = ORDER_STATUS_CFG[o.status] || ORDER_STATUS_CFG.pending;
-                const next = NEXT_STATUSES[o.status] || [];
+                const cfg = ORDER_STATUS_CFG[o.status] || ORDER_STATUS_CFG.pending;
                 return (
-                  <tr key={o.id}>
-                    <td><code className="order-id-code">{o.id}</code></td>
+                  <tr key={o.id} className="bg-white">
+                    <td className="px-4"><code className="order-id-code text-primary fw-bold" style={{ letterSpacing: '0.5px' }}>#{o.id.substring(0, 8)}…</code></td>
                     <td>
                       <div>
-                        {o.shippingAddress?.firstName} {o.shippingAddress?.lastName}
-                        {o.prescriptionId && (
-                          <Badge bg="success" className="d-block mt-1 text-white rounded-pill fw-600 animate-pulse" style={{ fontSize: '0.65rem', width: 'fit-content' }}>
-                            ✓ Assigned to Nishtar Pharmacy (Your Store)
-                          </Badge>
-                        )}
+                        <strong className="text-dark d-block" style={{ fontSize: '0.88rem' }}>
+                          {o.shippingAddress?.firstName} {o.shippingAddress?.lastName}
+                        </strong>
+                        <span className="text-muted d-block" style={{ fontSize: '0.75rem' }}>
+                          {o.shippingAddress?.city} • {o.shippingAddress?.phone}
+                        </span>
                       </div>
                     </td>
-                    <td className="text-muted small">{fmtDate(o.createdAt)}</td>
-                    <td className="fw-bold">Rs.{o.totalAmount.toLocaleString()}</td>
                     <td>
-                      <Badge bg={cfg.color} text={cfg.text || undefined} className="status-pill">
+                      {o.prescriptionId ? (
+                        <Badge bg="success" className="text-white rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1" style={{ fontSize: '0.68rem', fontWeight: 600 }}>
+                          <FaCheck size={8} /> Nishtar Pharmacy
+                        </Badge>
+                      ) : (
+                        <span className="text-muted small">—</span>
+                      )}
+                    </td>
+                    <td className="text-muted small">{fmtDate(o.createdAt)}</td>
+                    <td className="fw-bold text-dark">Rs.{o.totalAmount.toLocaleString()}</td>
+                    <td>
+                      <Badge 
+                        bg={cfg.color} 
+                        text={cfg.text || undefined} 
+                        className="status-pill text-uppercase border-0 fw-bold shadow-sm"
+                        style={{ fontSize: '0.65rem', padding: '0.35em 0.8em', letterSpacing: '0.3px' }}
+                      >
                         {o.status}
                       </Badge>
                     </td>
                     <td>
-                      {next.length > 0 ? (
-                        <Form.Select size="sm" className="status-select"
-                          value=""
-                          disabled={updating === o.id}
-                          onChange={e => { if(e.target.value) handleStatus(o.id, e.target.value); }}>
-                          <option value="">Move to…</option>
-                          {next.map(s => <option key={s} value={s}>{s}</option>)}
-                        </Form.Select>
-                      ) : <span className="text-muted small">—</span>}
+                      {renderStatusActions(o)}
                     </td>
-                    <td>
-                      <Button size="sm" variant="outline-secondary" onClick={() => setDetail(o)}>
+                    <td className="text-center">
+                      <Button 
+                        size="sm" 
+                        variant="light" 
+                        className="btn-details shadow-sm rounded-circle d-inline-flex align-items-center justify-content-center" 
+                        style={{ width: '32px', height: '32px', border: '1px solid #e2e8f0', color: '#1e293b' }}
+                        onClick={() => setDetail(o)}
+                      >
                         <FaEye />
                       </Button>
                     </td>
@@ -399,45 +698,86 @@ function OrdersPage({ mode = 'active' }) {
         </div>
       )}
 
-      {/* Order detail modal */}
+      {/* 📋 Order detail modal */}
       <Modal show={!!detail} onHide={() => setDetail(null)} size="lg" centered>
-        <Modal.Header closeButton className="ph-modal-header">
-          <Modal.Title>Order Details — {detail?.id}</Modal.Title>
+        <Modal.Header closeButton className="ph-modal-header border-bottom-0 p-4">
+          <Modal.Title className="fw-900 d-flex align-items-center gap-2 text-dark" style={{ fontSize: '1.15rem' }}>
+            <FaClipboardList className="text-primary" /> Invoice Sheet #{detail?.id}
+          </Modal.Title>
         </Modal.Header>
         {detail && (
-          <Modal.Body>
-            <Row className="g-3">
-              <Col md={6}>
-                <div className="detail-section">
-                  <h6 className="detail-title">Items</h6>
-                  {detail.items.map(i => (
-                    <div key={i.medicineId} className="detail-item-row">
-                      <span>{i.image} {i.name}</span>
-                      <span className="ms-auto">×{i.quantity} — Rs.{(i.price * i.quantity).toLocaleString()}</span>
-                    </div>
-                  ))}
-                  <div className="detail-item-row fw-bold border-top mt-2 pt-2">
-                    <span>Total</span><span className="ms-auto">Rs.{detail.totalAmount.toLocaleString()}</span>
+          <Modal.Body className="p-4 pt-0">
+            {/* Visual Tracking timeline progress bar */}
+            {getTimelineProgress(detail.status)}
+
+            <Row className="g-4">
+              <Col md={7}>
+                <div className="detail-section h-100" style={{ border: '1px solid #f1f5f9', background: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+                  <h6 className="detail-title border-bottom pb-2 d-flex align-items-center gap-2" style={{ color: '#0d1b2a', fontSize: '0.95rem' }}>
+                    <FaReceipt className="text-primary" /> Order Items
+                  </h6>
+                  <div className="pe-1" style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                    {detail.items.map(i => (
+                      <div key={i.medicineId} className="detail-item-row py-2 border-bottom-dashed d-flex align-items-center justify-content-between">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="med-emoji" style={{ width: '32px', height: '32px', fontSize: '1.1rem', background: '#eff6ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i.image || '💊'}</span>
+                          <div>
+                            <div className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>{i.name}</div>
+                            <div className="text-muted" style={{ fontSize: '0.72rem' }}>Rs.{Number(i.price).toLocaleString()} each</div>
+                          </div>
+                        </div>
+                        <span className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>
+                          ×{i.quantity} — <span className="text-primary">Rs.{(i.price * i.quantity).toLocaleString()}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="detail-item-row fw-900 border-top mt-3 pt-3 d-flex align-items-center justify-content-between" style={{ fontSize: '1.05rem', color: '#0d1b2a' }}>
+                    <span>Grand Total</span>
+                    <span className="text-primary" style={{ fontSize: '1.25rem', textShadow: '0 0 1px rgba(37,99,235,0.05)' }}>Rs.{detail.totalAmount.toLocaleString()}</span>
                   </div>
                 </div>
               </Col>
-              <Col md={6}>
-                <div className="detail-section">
-                  <h6 className="detail-title">Shipping</h6>
-                  <p className="detail-addr">
-                    {detail.shippingAddress.firstName} {detail.shippingAddress.lastName}<br />
-                    {detail.shippingAddress.address}<br />
-                    {detail.shippingAddress.city}<br />
-                    {detail.shippingAddress.phone}
+              
+              <Col md={5}>
+                <div className="detail-section h-100" style={{ border: '1px solid #f1f5f9', background: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+                  <h6 className="detail-title border-bottom pb-2 d-flex align-items-center gap-2" style={{ color: '#0d1b2a', fontSize: '0.95rem' }}>
+                    <FaTruck className="text-primary" /> Delivery Information
+                  </h6>
+                  <p className="detail-addr leading-relaxed p-2.5 rounded-3 bg-light border-0 mb-4" style={{ fontSize: '0.85rem', color: '#374151' }}>
+                    <strong className="d-block text-dark mb-1" style={{ fontSize: '0.9rem' }}>
+                      {detail.shippingAddress?.firstName} {detail.shippingAddress?.lastName}
+                    </strong>
+                    <span className="d-flex align-items-center gap-1.5 mb-1.5 text-muted">
+                      <FaMapMarkerAlt className="text-primary" size={12} /> {detail.shippingAddress?.address}, {detail.shippingAddress?.city}
+                    </span>
+                    <span className="d-flex align-items-center gap-1.5 text-muted">
+                      <FaPhone className="text-primary" size={12} /> {detail.shippingAddress?.phone}
+                    </span>
                   </p>
-                  <h6 className="detail-title mt-3">Payment</h6>
-                  <p>{PAYMENT_LABELS[detail.paymentMethod] || detail.paymentMethod}
-                    <Badge bg={detail.paymentStatus === 'paid' ? 'success' : 'warning'}
-                      text={detail.paymentStatus !== 'paid' ? 'dark' : undefined} className="ms-2">
+
+                  <h6 className="detail-title border-bottom pb-2 d-flex align-items-center gap-2" style={{ color: '#0d1b2a', fontSize: '0.95rem' }}>
+                    <FaCoins className="text-primary" /> Payment Method
+                  </h6>
+                  <div className="d-flex align-items-center justify-content-between p-2.5 mb-3 bg-light rounded-3">
+                    <span className="fw-600 text-dark" style={{ fontSize: '0.85rem' }}>
+                      {PAYMENT_LABELS[detail.paymentMethod] || detail.paymentMethod}
+                    </span>
+                    <Badge 
+                      bg={detail.paymentStatus === 'paid' ? 'success' : 'warning'}
+                      text={detail.paymentStatus !== 'paid' ? 'dark' : undefined} 
+                      className="status-pill border-0 px-2.5 py-1 fw-bold text-uppercase"
+                      style={{ fontSize: '0.65rem' }}
+                    >
                       {detail.paymentStatus}
                     </Badge>
-                  </p>
-                  {detail.prescriptionId && <p className="text-muted small">Rx: <code>{detail.prescriptionId}</code></p>}
+                  </div>
+                  
+                  {detail.prescriptionId && (
+                    <div className="p-2.5 bg-warning-light border-warning rounded-3 text-warning-dark d-flex align-items-center gap-2 mt-3 animate-pulse" style={{ fontSize: '0.78rem' }}>
+                      <FaFileMedical /> <span>Required Prescription: <code>{detail.prescriptionId}</code></span>
+                    </div>
+                  )}
                 </div>
               </Col>
             </Row>

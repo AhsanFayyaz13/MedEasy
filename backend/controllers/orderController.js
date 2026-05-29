@@ -112,7 +112,8 @@ exports.getOrderById = async (req, res) => {
     if (
       order.userId._id.toString() !== req.user._id.toString() &&
       req.user.role !== 'admin' &&
-      req.user.role !== 'pharmacist'
+      req.user.role !== 'pharmacist' &&
+      req.user.role !== 'pharmacy'
     ) {
       return res.status(403).json({ message: 'Not authorized to view this order' });
     }

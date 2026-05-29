@@ -289,20 +289,46 @@ export default function AppNavbar() {
                 )}
               </>
             ) : (
-              /* Non-patient roles see only their role-specific dashboard link */
+              /* Non-patient roles see their dashboard links */
               <>
-                {roleMeta.dashPath && (
-                  <Nav.Link
-                    as={Link}
-                    to={roleMeta.dashPath}
-                    onClick={closeNav}
-                    className={`dashboard-link ${(location.pathname === roleMeta.dashPath && (userRole !== 'admin' || activeTab === 'overview'))
-                        ? 'active'
-                        : ''
-                      }`}
-                  >
-                    <FaTachometerAlt className="nav-icon" /> {roleMeta.label} Dashboard
-                  </Nav.Link>
+                {userRole === 'admin' ? (
+                  <>
+                    <Nav.Link
+                      as={Link}
+                      to="/admin"
+                      onClick={closeNav}
+                      className={`dashboard-link ${(location.pathname === '/admin' && activeTab === 'overview') ? 'active' : ''}`}
+                    >
+                      <FaTachometerAlt className="nav-icon" /> Admin Dashboard
+                    </Nav.Link>
+                    <Nav.Link
+                      as={Link}
+                      to="/admin?tab=users"
+                      onClick={closeNav}
+                      className={`dashboard-link ${(location.pathname === '/admin' && activeTab === 'users') ? 'active' : ''}`}
+                    >
+                      <FaUsers className="nav-icon" /> User Management
+                    </Nav.Link>
+                    <Nav.Link
+                      as={Link}
+                      to="/admin?tab=verifications"
+                      onClick={closeNav}
+                      className={`dashboard-link ${(location.pathname === '/admin' && activeTab === 'verifications') ? 'active' : ''}`}
+                    >
+                      <FaUserCheck className="nav-icon" /> Verification Requests
+                    </Nav.Link>
+                  </>
+                ) : (
+                  roleMeta.dashPath && (
+                    <Nav.Link
+                      as={Link}
+                      to={roleMeta.dashPath}
+                      onClick={closeNav}
+                      className={`dashboard-link ${location.pathname === roleMeta.dashPath ? 'active' : ''}`}
+                    >
+                      <FaTachometerAlt className="nav-icon" /> {roleMeta.label} Dashboard
+                    </Nav.Link>
+                  )
                 )}
               </>
             )}

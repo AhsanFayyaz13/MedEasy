@@ -17,7 +17,7 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'Not authorized, user not found' });
       }
 
-      if (decoded.role === 'pharmacist' && user.pharmacistDetails) {
+      if (decoded.role === 'pharmacist' && user.role === 'pharmacy' && user.pharmacistDetails) {
         user = user.toObject();
         user.role = 'pharmacist';
         user.name = user.pharmacistDetails.name || user.name;
@@ -40,6 +40,7 @@ const authorizeRoles = (...roles) => {
   return (req, res, next) => {
     // Treat 'pharmacy' as an authorized alias for 'pharmacist' routes
     const effectiveRoles = roles.map(r => r === 'pharmacist' ? 'pharmacy' : r);
+
     if (!req.user || (!roles.includes(req.user.role) && !effectiveRoles.includes(req.user.role))) {
       return res.status(403).json({ message: 'User role not authorized' });
     }

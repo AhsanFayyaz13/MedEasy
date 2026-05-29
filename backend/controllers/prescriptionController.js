@@ -32,7 +32,7 @@ exports.uploadPrescription = async (req, res) => {
 // @access  Private
 exports.getPrescriptions = async (req, res) => {
   try {
-    if (req.user.role === 'pharmacist' || req.user.role === 'admin') {
+    if (req.user.role === 'pharmacist' || req.user.role === 'pharmacy' || req.user.role === 'admin') {
       const prescriptions = await Prescription.find({ status: 'pending' }).populate('userId', 'name email');
       return res.json(prescriptions);
     } else {
