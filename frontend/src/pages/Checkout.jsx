@@ -21,7 +21,7 @@ import './Checkout.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const DELIVERY_FEE    = 120;
-const FREE_THRESHOLD  = 500;
+const FREE_THRESHOLD  = 1000;
 const PAYMENT_METHODS = [
   { id: 'cod',   label: 'Cash on Delivery', icon: '💵', desc: 'Pay when your order arrives', disabled: false },
   { id: 'jazz',  label: 'JazzCash',          icon: '📱', desc: 'Pay via JazzCash mobile wallet', disabled: true },

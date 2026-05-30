@@ -90,7 +90,7 @@ function EmptyCart() {
 }
 
 // ─── Cart Page ────────────────────────────────────────────────────────────────
-const DELIVERY_THRESHOLD = 500;
+const DELIVERY_THRESHOLD = 1000;
 
 export default function Cart() {
   const navigate = useNavigate();

@@ -11,6 +11,7 @@ import {
   FaMapMarkerAlt,
   FaHeart,
 } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 import './Footer.css';
 
 /**
@@ -18,6 +19,7 @@ import './Footer.css';
  */
 export default function AppFooter() {
   const year = new Date().getFullYear();
+  const { isAuthenticated } = useAuth();
 
   return (
     <footer className="medeasy-footer">
@@ -39,7 +41,7 @@ export default function AppFooter() {
               <a href="#" aria-label="Facebook"><FaFacebookF /></a>
               <a href="#" aria-label="Twitter"><FaTwitter /></a>
               <a href="#" aria-label="Instagram"><FaInstagram /></a>
-              <a href="#" aria-label="LinkedIn"><FaLinkedinIn /></a>
+              <a href="https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><FaLinkedinIn /></a>
             </div>
           </Col>
 
@@ -59,8 +61,12 @@ export default function AppFooter() {
           <Col md={2} sm={6}>
             <h6 className="footer-heading">Account</h6>
             <ul className="footer-links">
-              <li><Link to="/login">Login</Link></li>
-              <li><Link to="/register">Register</Link></li>
+              {!isAuthenticated && (
+                <>
+                  <li><Link to="/login">Login</Link></li>
+                  <li><Link to="/register">Register</Link></li>
+                </>
+              )}
               <li><Link to="/profile">My Profile</Link></li>
               <li><Link to="/prescription-upload">Upload Rx</Link></li>
               <li><Link to="/reviews">Reviews</Link></li>
@@ -73,15 +79,15 @@ export default function AppFooter() {
             <ul className="footer-contact">
               <li>
                 <FaMapMarkerAlt className="contact-icon" />
-                123 Health Street, Karachi, Pakistan
+                Sector H-10, Islamabad Capital Territory, Pakistan
               </li>
               <li>
                 <FaPhoneAlt className="contact-icon" />
-                +92 300 1234567
+                <a href="tel:+923019476165">+923019476165</a>
               </li>
               <li>
                 <FaEnvelope className="contact-icon" />
-                support@medeasy.pk
+                <a href="mailto:support@medeasy.systems">support@medeasy.systems</a>
               </li>
             </ul>
           </Col>
@@ -90,7 +96,7 @@ export default function AppFooter() {
         <hr className="footer-divider" />
 
         <p className="footer-copy d-flex align-items-center justify-content-center gap-1">
-          &copy; {year} MedEasy. All rights reserved. Built with <FaHeart className="text-danger animate-pulse" style={{ fontSize: '0.85rem' }} /> for better healthcare.
+          &copy; {year} MedEasy. All rights reserved.
         </p>
       </Container>
     </footer>

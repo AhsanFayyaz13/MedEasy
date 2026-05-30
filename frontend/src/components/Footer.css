@@ -107,6 +107,14 @@
   margin-top: 3px;
   flex-shrink: 0;
 }
+.footer-contact a {
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-contact a:hover {
+  color: #38bdf8;
+}
 
 /* Divider & copyright */
 .footer-divider {

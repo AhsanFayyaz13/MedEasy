@@ -4,6 +4,7 @@ import AppFooter from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoginRequiredModal from './components/LoginRequiredModal';
+import ScrollToTop from './components/ScrollToTop';
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
 import Home from './pages/Home';
@@ -38,6 +39,7 @@ function AppContent() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <div className="app-wrapper">
         <AppNavbar />
 
