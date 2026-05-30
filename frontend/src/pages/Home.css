@@ -165,10 +165,10 @@
   justify-content: center;
   transform: translate(-50%, -50%);
   filter: drop-shadow(0 12px 28px rgba(0,0,0,0.22));
-  animation: pulse 3.5s ease-in-out infinite;
+  animation: hero-doctor-pulse 3.5s ease-in-out infinite;
   z-index: 5;
 }
-@keyframes pulse {
+@keyframes hero-doctor-pulse {
   0%,100% { transform: translate(-50%,-50%) scale(1);   }
   50%      { transform: translate(-50%,-50%) scale(1.08); }
 }
