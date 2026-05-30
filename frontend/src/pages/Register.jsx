@@ -542,7 +542,7 @@ export default function Register() {
                             </Form.Label>
                             <Form.Control
                               type="text"
-                              placeholder="123456"
+                              placeholder="••••••"
                               maxLength={6}
                               className="text-center font-monospace fs-5 border-0 shadow-inner py-2"
                               style={{ letterSpacing: '0.25em', background: '#ffffff', borderRadius: '10px' }}
@@ -564,7 +564,7 @@ export default function Register() {
                           </Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder="123456"
+                            placeholder="••••••"
                             maxLength={6}
                             className="text-center font-monospace fs-3 border-0 py-3 shadow-inner"
                             style={{ letterSpacing: '0.35em', background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}
