@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getAuth } from 'firebase/auth';
 
 // Firebase configuration retrieved securely via Vite environment variables
 const firebaseConfig = {
@@ -19,6 +20,9 @@ const app = initializeApp(firebaseConfig);
 // Initialize Cloud Storage
 const storage = getStorage(app);
 
+// Initialize Firebase Auth
+const auth = getAuth(app);
+
 // Initialize Google Analytics (Safely checks runtime environment compatibility)
 let analytics = null;
 isSupported().then((supported) => {
@@ -27,4 +31,4 @@ isSupported().then((supported) => {
   }
 }).catch(err => console.warn('Firebase Analytics not supported in this environment:', err));
 
-export { app, storage, analytics };
+export { app, storage, analytics, auth };
