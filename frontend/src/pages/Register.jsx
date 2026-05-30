@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner, ProgressBar } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash, FaUserPlus, FaKey, FaHospital, FaStethoscope, FaPills } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash, FaUserPlus, FaKey, FaHospital, FaStethoscope, FaPills, FaEnvelopeOpenText, FaMobileAlt } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { ROLE_DASHBOARD } from '../context/AuthContext';
 import { auth } from '../firebase';
@@ -455,37 +455,46 @@ export default function Register() {
     const isEmailChannel = fields.verificationChannel === 'email';
 
     return (
-      <div className="auth-page">
+      <div className="auth-page" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)' }}>
         <Container>
           <Row className="justify-content-center align-items-center min-vh-auth">
             <Col xs={12} sm={10} md={8} lg={6}>
-              <Card className="auth-card">
+              <Card className="auth-card border-0" style={{ borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.08)' }}>
                 <Card.Body className="p-4 p-md-5">
 
-                  {/* Header */}
-                  <div className="auth-header text-center">
-                    <div className="auth-icon-badge-wrap mb-3 mx-auto">
-                      <FaKey size={28} />
+                  {/* Header with floating animated icon */}
+                  <div className="auth-header text-center mb-4">
+                    <div className="auth-icon-badge-wrap verify-envelope-pulse mb-3 mx-auto">
+                      {isEmailChannel ? (
+                        <FaEnvelopeOpenText size={32} />
+                      ) : (
+                        <FaMobileAlt size={32} />
+                      )}
                     </div>
-                    <h2 className="auth-title">
+                    <h2 className="auth-title font-extrabold fs-2 tracking-tight" style={{ color: '#0f172a' }}>
                       {isEmailChannel ? 'Verify Your Email' : 'Verify Your Phone'}
                     </h2>
-                    <p className="auth-subtitle">
+                    
+                    <p className="auth-subtitle px-2 mt-3 text-muted">
                       {isEmailChannel ? (
                         <>
                           We have sent a verification link to your email address:
                           <br />
-                          <strong className="text-primary font-monospace fs-5">{fields.email}</strong>
+                          <span className="email-badge-capsule font-monospace mt-2 mb-1 text-primary">
+                            {fields.email}
+                          </span>
                           <br />
-                          <span className="text-muted d-block mt-2 fs-6">
-                            Please click the verification link inside your email, then click the **Confirm Email Verification** button below.
+                          <span className="text-secondary d-block mt-3 px-3 fs-6" style={{ lineHeight: '1.5' }}>
+                            Please click the secure verification link inside your email, then click the <strong>Confirm Email Verification</strong> button below to activate your account.
                           </span>
                         </>
                       ) : (
                         <>
-                          Enter the 6-digit code sent to your phone number:
+                          Enter the 6-digit verification code sent to your phone number:
                           <br />
-                          <strong className="text-primary font-monospace fs-5">{pendingPhone}</strong>
+                          <span className="email-badge-capsule font-monospace mt-2 text-primary">
+                            {pendingPhone}
+                          </span>
                         </>
                       )}
                     </p>
@@ -493,15 +502,15 @@ export default function Register() {
 
                   {/* API error */}
                   {authError && (
-                    <Alert variant="danger" className="auth-alert" dismissible onClose={clearAuthError}>
+                    <Alert variant="danger" className="auth-alert border-0 shadow-sm" dismissible onClose={clearAuthError} style={{ background: '#fef2f2', color: '#b91c1c' }}>
                       <strong>Verification failed:</strong> {authError}
                     </Alert>
                   )}
 
                   {/* Success */}
                   {success && (
-                    <Alert variant="success" className="auth-alert">
-                       Verification successful! Opening your dashboard…
+                    <Alert variant="success" className="auth-alert border-0 shadow-sm" style={{ background: '#ecfdf5', color: '#047857' }}>
+                      ✨ Verification successful! Opening your dashboard…
                     </Alert>
                   )}
 
@@ -510,7 +519,7 @@ export default function Register() {
                       <>
                         <Button
                           type="submit"
-                          className="btn-auth w-100 mb-4 py-2 fs-5 font-semibold"
+                          className="btn-verify-gradient w-100 mb-4 py-3"
                           disabled={loading || success}
                         >
                           {loading ? (
@@ -523,25 +532,25 @@ export default function Register() {
                           )}
                         </Button>
 
-                        <div className="border rounded p-3 mb-4 bg-light">
-                          <p className="mb-2 text-muted font-semibold text-center fs-7" style={{ fontSize: '0.85rem' }}>
-                            🔧 Local Development Fallback
+                        <div className="dev-fallback-box shadow-sm mb-4">
+                          <p className="mb-2 text-muted font-bold text-center" style={{ fontSize: '0.8rem', letterSpacing: '0.05em' }}>
+                            🔧 LOCAL DEVELOPMENT FALLBACK
                           </p>
                           <Form.Group controlId="otpCode">
-                            <Form.Label className="text-center w-100 fs-7 mb-1 text-muted" style={{ fontSize: '0.8rem' }}>
+                            <Form.Label className="text-center w-100 mb-2 text-muted" style={{ fontSize: '0.75rem' }}>
                               Enter manual 6-digit simulated OTP code:
                             </Form.Label>
                             <Form.Control
                               type="text"
                               placeholder="123456"
                               maxLength={6}
-                              className="text-center font-monospace fs-5"
-                              style={{ letterSpacing: '0.2em' }}
+                              className="text-center font-monospace fs-5 border-0 shadow-inner py-2"
+                              style={{ letterSpacing: '0.25em', background: '#ffffff', borderRadius: '10px' }}
                               value={verificationCode}
                               onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                               isInvalid={!!errors.code}
                             />
-                            <Form.Control.Feedback type="invalid" className="text-center">
+                            <Form.Control.Feedback type="invalid" className="text-center mt-1 font-semibold">
                               {errors.code}
                             </Form.Control.Feedback>
                           </Form.Group>
@@ -550,33 +559,33 @@ export default function Register() {
                     ) : (
                       <>
                         <Form.Group className="mb-4" controlId="otpCode">
-                          <Form.Label className="text-center w-100 font-semibold mb-2">
-                            Verification Code
+                          <Form.Label className="text-center w-100 font-semibold mb-2 text-muted" style={{ fontSize: '0.85rem' }}>
+                            6-Digit Verification Code
                           </Form.Label>
                           <Form.Control
                             type="text"
                             placeholder="123456"
                             maxLength={6}
-                            className="text-center font-monospace fs-4"
-                            style={{ letterSpacing: '0.3em' }}
+                            className="text-center font-monospace fs-3 border-0 py-3 shadow-inner"
+                            style={{ letterSpacing: '0.35em', background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}
                             value={verificationCode}
                             onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                             isInvalid={!!errors.code}
                           />
-                          <Form.Control.Feedback type="invalid" className="text-center">
+                          <Form.Control.Feedback type="invalid" className="text-center mt-2 font-semibold">
                             {errors.code}
                           </Form.Control.Feedback>
                         </Form.Group>
 
                         <Button
                           type="submit"
-                          className="btn-auth w-100 mb-3"
+                          className="btn-verify-gradient w-100 mb-4 py-3"
                           disabled={loading || success}
                         >
                           {loading ? (
                             <>
                               <Spinner animation="border" size="sm" className="me-2" />
-                              Verifying…
+                              Verifying Code…
                             </>
                           ) : (
                             'Verify Phone Code'
@@ -586,13 +595,14 @@ export default function Register() {
                     )}
                   </Form>
 
-                  <div className="text-center mt-3">
-                    <p className="mb-2 text-muted">Didn&apos;t receive the email/code?</p>
+                  <div className="text-center mt-2">
+                    <p className="mb-2 text-muted" style={{ fontSize: '0.85rem' }}>Didn&apos;t receive the email/code?</p>
                     <Button
                       variant="link"
-                      className="p-0 text-decoration-none font-semibold text-primary"
+                      className="p-0 text-decoration-none font-bold text-primary hover-lift"
                       onClick={handleResend}
                       disabled={resendTimer > 0 || loading}
+                      style={{ fontSize: '0.9rem' }}
                     >
                       {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Verification'}
                     </Button>
