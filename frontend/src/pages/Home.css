@@ -143,8 +143,8 @@
 }
 .hero-blob {
   position: relative;
-  width: 400px;
-  height: 400px;
+  width: 300px;
+  height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,7 +169,7 @@
 }
 .hero-pill-orbit {
   position: absolute;
-  inset: -15px; /* slightly wider orbit */
+  inset: 0;
   animation: spin 24s linear infinite;
 }
 @keyframes spin {
