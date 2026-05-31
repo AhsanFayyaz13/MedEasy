@@ -1,14 +1,16 @@
 const nodemailer = require('nodemailer');
 
 // Define connection transporter using environment credentials
+const smtpPort = parseInt(process.env.SMTP_PORT || '465');
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.hostinger.com',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true, // true for port 465 SSL, false for TLS on port 587
+  port: smtpPort,
+  secure: smtpPort === 465, // true for port 465 SSL, false for TLS on port 587
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  family: 4, // Force IPv4 to prevent ENETUNREACH errors on Render
 });
 
 /**
