@@ -44,7 +44,7 @@ export default function Profile() {
   const [successMsg, setSuccessMsg] = useState('');
   const [formErrors, setFormErrors] = useState({});
 
-  const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'http://localhost:5000';
+  const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'https://medeasy-backend-a5yi.onrender.com';
   
   // Local form state
   const [formData, setFormData] = useState({

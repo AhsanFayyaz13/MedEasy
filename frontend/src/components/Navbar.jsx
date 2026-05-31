@@ -74,7 +74,7 @@ export default function AppNavbar() {
   const { isAuthenticated, logout, user, userRole } = useAuth();
   const location = useLocation();
 
-  const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'http://localhost:5000';
+  const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'https://medeasy-backend-a5yi.onrender.com';
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [notifications, setNotifications] = useState([]);

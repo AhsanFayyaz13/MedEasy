@@ -24,6 +24,7 @@ import {
 import './PharmacistDashboard.css';
 
 /* ═══════════════════ HELPERS ═══════════════════════════════════ */
+const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'https://medeasy-backend-a5yi.onrender.com';
 const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-PK', {
   day: 'numeric', month: 'short', year: 'numeric',
 });
@@ -1257,7 +1258,7 @@ function PharmacistRepPage() {
                 <div className="d-flex align-items-center gap-4 p-3 border rounded-3 bg-white">
                   <div className="position-relative" style={{ width: 80, height: 80 }}>
                     {photo ? (
-                      <img src={`http://localhost:5000${photo}`} alt="Pharmacist representative avatar" className="rounded-circle border w-100 h-100 object-fit-cover shadow-sm" />
+                      <img src={`${serverUrl}${photo}`} alt="Pharmacist representative avatar" className="rounded-circle border w-100 h-100 object-fit-cover shadow-sm" />
                     ) : (
                       <div className="rounded-circle border w-100 h-100 bg-light d-flex align-items-center justify-content-center text-muted fw-bold" style={{ fontSize: '1.5rem' }}>
                         ?
@@ -1407,7 +1408,7 @@ function PharmacistRepPage() {
               <div className="d-flex flex-column flex-sm-row align-items-center align-items-sm-start gap-4">
                 {/* Photo with dynamic badge overlay */}
                 <div className="position-relative" style={{ width: 120, height: 120 }}>
-                  <img src={`http://localhost:5000${details.photo}`} alt={details.name} className="rounded-circle border w-100 h-100 object-fit-cover shadow" />
+                  <img src={`${serverUrl}${details.photo}`} alt={details.name} className="rounded-circle border w-100 h-100 object-fit-cover shadow" />
                   {isApproved && (
                     <div className="position-absolute bottom-0 end-0 bg-warning text-white rounded-circle shadow border border-white d-flex align-items-center justify-content-center" style={{ width: 32, height: 32, fontSize: '1rem' }} title="Verified representative">
                       🌟

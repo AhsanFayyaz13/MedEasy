@@ -5,7 +5,7 @@ import axios from 'axios';
  * Base URL is read from environment variables. Support both Vite (`VITE_API_BASE_URL`)
  * and Create React/App style (`REACT_APP_API_URL`) for compatibility.
  */
-const DEFAULT_BASE = 'http://localhost:5000/api';
+const DEFAULT_BASE = 'https://medeasy-backend-a5yi.onrender.com/api';
 
 const baseUrl =
   import.meta.env?.VITE_API_BASE_URL ||

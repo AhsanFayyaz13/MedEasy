@@ -81,6 +81,10 @@ function passwordStrength(pwd) {
 // ─── Component ────────────────────────────────────────────────────────────────
 const INITIAL = { name: '', email: '', phone: '', role: '', password: '', confirmPassword: '', verificationChannel: 'phone', pharmacyName: '', ownerName: '' };
 
+const serverUrl = import.meta.env?.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL.replace('/api', '')
+  : 'https://medeasy-backend-a5yi.onrender.com';
+
 export default function Register() {
   const navigate = useNavigate();
   const { 
@@ -117,7 +121,7 @@ export default function Register() {
 
     setUploadingImage(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/upload-pharmacy-image', {
+      const response = await fetch(`${serverUrl}/api/auth/upload-pharmacy-image`, {
         method: 'POST',
         body: formData
       });
@@ -625,7 +629,7 @@ export default function Register() {
                         {fields.pharmacyOutsidePicture && (
                           <div className="mt-2 text-success small d-flex align-items-center gap-1">
                             <span>✓ Image uploaded successfully!</span>
-                            <a href={`http://localhost:5000${fields.pharmacyOutsidePicture}`} target="_blank" rel="noreferrer" className="text-decoration-underline text-primary">View Photo</a>
+                            <a href={`${serverUrl}${fields.pharmacyOutsidePicture}`} target="_blank" rel="noreferrer" className="text-decoration-underline text-primary">View Photo</a>
                           </div>
                         )}
                         <Form.Control.Feedback type="invalid">Pharmacy outside photo is required.</Form.Control.Feedback>
