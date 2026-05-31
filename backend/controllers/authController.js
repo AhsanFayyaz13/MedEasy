@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const https = require('https');
 const { normalizePhone } = require('../utils/phone');
 const { generateVerificationCode, logVerificationCode } = require('../utils/verification');
+const { sendVerificationEmail, sendResetPasswordEmail } = require('../utils/mailer');
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -133,6 +134,15 @@ exports.register = async (req, res) => {
       identifier: verificationChannel === 'email' ? email : normalizedPhone,
       code: verificationCode
     });
+
+    // Send actual SMTP verification email if email channel is selected
+    if (verificationChannel === 'email' && email) {
+      try {
+        await sendVerificationEmail(email.toLowerCase(), verificationCode);
+      } catch (err) {
+        console.error('Failed to send verification email via SMTP:', err.message);
+      }
+    }
 
     res.status(200).json({
       message: 'Verification code sent successfully',
@@ -311,6 +321,15 @@ exports.resendVerificationCode = async (req, res) => {
       identifier: pending.verificationChannel === 'email' ? pending.email : pending.phone,
       code: newCode
     });
+
+    // Send actual SMTP verification email if email channel is selected
+    if (pending.verificationChannel === 'email' && pending.email) {
+      try {
+        await sendVerificationEmail(pending.email.toLowerCase(), newCode);
+      } catch (err) {
+        console.error('Failed to resend verification email via SMTP:', err.message);
+      }
+    }
 
     res.status(200).json({
       message: 'Verification code resent successfully',
@@ -705,6 +724,15 @@ exports.forgotPassword = async (req, res) => {
       identifier: isEmail ? user.email : user.phone,
       code: resetCode
     });
+
+    // Send actual SMTP recovery email if user identifier is email
+    if (isEmail && user.email) {
+      try {
+        await sendResetPasswordEmail(user.email.toLowerCase(), resetCode);
+      } catch (err) {
+        console.error('Failed to send password reset email via SMTP:', err.message);
+      }
+    }
 
     res.status(200).json({
       message: 'Password reset code sent successfully.',

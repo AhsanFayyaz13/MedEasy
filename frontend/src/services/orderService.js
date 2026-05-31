@@ -12,8 +12,6 @@
 
 import api from './api';
 import MOCK_ORDERS from '../data/mockOrders';
-import { storage } from '../firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false';
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));

@@ -4,8 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash, FaUserPlus, FaKey, FaHospital, FaStethoscope, FaPills, FaEnvelopeOpenText, FaMobileAlt } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { ROLE_DASHBOARD } from '../context/AuthContext';
-import { auth } from '../firebase';
-import { RecaptchaVerifier, signInWithPhoneNumber, createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
 import './Auth.css';
 
 
@@ -222,77 +220,11 @@ export default function Register() {
 
       // 1. Submit basic details to create PendingUser record
       const data = await register(payload);
-
-      // 2. Trigger verification based on selected channel
-      if (fields.verificationChannel === 'phone') {
-        setSendingSms(true);
-        try {
-          // Normalize phone to E.164 format for Firebase Phone Auth
-          let standardPhone = fields.phone.trim();
-          if (standardPhone.startsWith('0')) {
-            standardPhone = '+92' + standardPhone.substring(1);
-          } else if (!standardPhone.startsWith('+')) {
-            standardPhone = '+' + standardPhone;
-          }
-
-          // Setup invisible recaptcha div
-          let recaptchaEl = document.getElementById('recaptcha-container');
-          if (!recaptchaEl) {
-            recaptchaEl = document.createElement('div');
-            recaptchaEl.id = 'recaptcha-container';
-            document.body.appendChild(recaptchaEl);
-          }
-
-          const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            size: 'invisible'
-          });
-
-          const result = await signInWithPhoneNumber(auth, standardPhone, verifier);
-          setConfirmationResult(result);
-          
-          setPendingPhone(data.phone);
-          setVerificationStep(true);
-          setResendTimer(60);
-          setErrors({});
-        } catch (err) {
-          console.error('Firebase Phone Auth Error:', err);
-          alert(`Failed to send verification SMS: ${err.message}. Double-check your phone format.`);
-        } finally {
-          setSendingSms(false);
-        }
-      } else {
-        // Firebase Email Verification flow
-        setSendingSms(true);
-        try {
-          let user;
-          try {
-            // Attempt to create user in Firebase Auth
-            const userCred = await createUserWithEmailAndPassword(auth, fields.email.trim(), fields.password);
-            user = userCred.user;
-          } catch (createErr) {
-            // If the user already exists in Firebase, sign in instead to obtain the current session
-            if (createErr.code === 'auth/email-already-in-use') {
-              const userCred = await signInWithEmailAndPassword(auth, fields.email.trim(), fields.password);
-              user = userCred.user;
-            } else {
-              throw createErr;
-            }
-          }
-
-          // Send verification email to the user
-          await sendEmailVerification(user);
-
-          setPendingPhone(data.phone);
-          setVerificationStep(true);
-          setResendTimer(60);
-          setErrors({});
-        } catch (err) {
-          console.error('Firebase Email Verification Error:', err);
-          alert(`Failed to send verification email: ${err.message}`);
-        } finally {
-          setSendingSms(false);
-        }
-      }
+      
+      setPendingPhone(data.phone);
+      setVerificationStep(true);
+      setResendTimer(60);
+      setErrors({});
     } catch {
       // Handled by authError in useAuth
     }
@@ -301,50 +233,14 @@ export default function Register() {
   const handleVerifySubmit = async (e) => {
     e.preventDefault();
 
-    // If the channel is email and the user clicked verify without typing a code, check Firebase Email Verification
-    if (fields.verificationChannel === 'email' && !verificationCode) {
-      try {
-        setSuccess(false);
-        const firebaseUser = auth.currentUser;
-        if (!firebaseUser) {
-          throw new Error('No active Firebase session found. Please try registering again.');
-        }
-
-        await firebaseUser.reload();
-        if (!firebaseUser.emailVerified) {
-          throw new Error('Your email address is not yet verified. Please check your inbox and click the verification link.');
-        }
-
-        const token = await firebaseUser.getIdToken();
-        const { role } = await verifyRegistration(pendingPhone, token);
-        setSuccess(true);
-        setTimeout(() => {
-          navigate(ROLE_DASHBOARD[role] || '/', { replace: true });
-        }, 1500);
-      } catch (err) {
-        console.error(err);
-        setErrors({ code: err.message || 'Verification failed. Make sure you clicked the email link.' });
-      }
-      return;
-    }
-
     if (!verificationCode || verificationCode.length !== 6) {
       setErrors({ code: 'Please enter a valid 6-digit verification code.' });
       return;
     }
 
     try {
-      let codeToSubmit = verificationCode;
-
-      // If verifying via Phone, confirm client-side with Firebase first
-      if (fields.verificationChannel === 'phone' && confirmationResult) {
-        setSuccess(false); // reset
-        const result = await confirmationResult.confirm(verificationCode);
-        const firebaseUser = result.user;
-        codeToSubmit = await firebaseUser.getIdToken(); // send token as the verification code
-      }
-
-      const { role } = await verifyRegistration(pendingPhone, codeToSubmit);
+      setSuccess(false);
+      const { role } = await verifyRegistration(pendingPhone, verificationCode);
       setSuccess(true);
       setTimeout(() => {
         navigate(ROLE_DASHBOARD[role] || '/', { replace: true });
@@ -358,23 +254,10 @@ export default function Register() {
   const handleResend = async () => {
     if (resendTimer > 0) return;
     try {
-      if (fields.verificationChannel === 'phone') {
-        // Trigger resend via standard submit
-        setResendTimer(60);
-        alert('Please go back and re-submit your registration details to resend the code.');
-      } else {
-        const firebaseUser = auth.currentUser;
-        if (firebaseUser) {
-          await sendEmailVerification(firebaseUser);
-          setResendTimer(60);
-          setErrors({});
-          alert('Verification email has been resent to your email address!');
-        } else {
-          await resendVerification(pendingPhone);
-          setResendTimer(60);
-          setErrors({});
-        }
-      }
+      await resendVerification(pendingPhone);
+      setResendTimer(60);
+      setErrors({});
+      alert('A new verification code has been dispatched successfully!');
     } catch {
       // Handled by authError in useAuth
     }
@@ -478,14 +361,14 @@ export default function Register() {
                     <p className="auth-subtitle px-2 mt-3 text-muted">
                       {isEmailChannel ? (
                         <>
-                          We have sent a verification link to your email address:
+                          We have sent a 6-digit verification code to your email address:
                           <br />
                           <span className="email-badge-capsule font-monospace mt-2 mb-1 text-primary">
                             {fields.email}
                           </span>
                           <br />
                           <span className="text-secondary d-block mt-3 px-3 fs-6" style={{ lineHeight: '1.5' }}>
-                            Please click the secure verification link inside your email, then click the <strong>Confirm Email Verification</strong> button below to activate your account.
+                            Please check your inbox, retrieve the 6-digit verification code, and enter it below to activate your account.
                           </span>
                         </>
                       ) : (
@@ -515,84 +398,39 @@ export default function Register() {
                   )}
 
                   <Form noValidate onSubmit={handleVerifySubmit}>
-                    {isEmailChannel ? (
-                      <>
-                        <Button
-                          type="submit"
-                          className="btn-verify-gradient w-100 mb-4 py-3"
-                          disabled={loading || success}
-                        >
-                          {loading ? (
-                            <>
-                              <Spinner animation="border" size="sm" className="me-2" />
-                              Verifying Status…
-                            </>
-                          ) : (
-                            'Confirm Email Verification'
-                          )}
-                        </Button>
+                    <Form.Group className="mb-4" controlId="otpCode">
+                      <Form.Label className="text-center w-100 font-semibold mb-2 text-muted" style={{ fontSize: '0.85rem' }}>
+                        6-Digit Verification Code
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="••••••"
+                        maxLength={6}
+                        className="text-center font-monospace fs-3 border-0 py-3 shadow-inner"
+                        style={{ letterSpacing: '0.35em', background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                        isInvalid={!!errors.code}
+                      />
+                      <Form.Control.Feedback type="invalid" className="text-center mt-2 font-semibold">
+                        {errors.code}
+                      </Form.Control.Feedback>
+                    </Form.Group>
 
-                        <div className="dev-fallback-box shadow-sm mb-4">
-                          <p className="mb-2 text-muted font-bold text-center" style={{ fontSize: '0.8rem', letterSpacing: '0.05em' }}>
-                            🔧 LOCAL DEVELOPMENT FALLBACK
-                          </p>
-                          <Form.Group controlId="otpCode">
-                            <Form.Label className="text-center w-100 mb-2 text-muted" style={{ fontSize: '0.75rem' }}>
-                              Enter manual 6-digit simulated OTP code:
-                            </Form.Label>
-                            <Form.Control
-                              type="text"
-                              placeholder="••••••"
-                              maxLength={6}
-                              className="text-center font-monospace fs-5 border-0 shadow-inner py-2"
-                              style={{ letterSpacing: '0.25em', background: '#ffffff', borderRadius: '10px' }}
-                              value={verificationCode}
-                              onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                              isInvalid={!!errors.code}
-                            />
-                            <Form.Control.Feedback type="invalid" className="text-center mt-1 font-semibold">
-                              {errors.code}
-                            </Form.Control.Feedback>
-                          </Form.Group>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <Form.Group className="mb-4" controlId="otpCode">
-                          <Form.Label className="text-center w-100 font-semibold mb-2 text-muted" style={{ fontSize: '0.85rem' }}>
-                            6-Digit Verification Code
-                          </Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder="••••••"
-                            maxLength={6}
-                            className="text-center font-monospace fs-3 border-0 py-3 shadow-inner"
-                            style={{ letterSpacing: '0.35em', background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}
-                            value={verificationCode}
-                            onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                            isInvalid={!!errors.code}
-                          />
-                          <Form.Control.Feedback type="invalid" className="text-center mt-2 font-semibold">
-                            {errors.code}
-                          </Form.Control.Feedback>
-                        </Form.Group>
-
-                        <Button
-                          type="submit"
-                          className="btn-verify-gradient w-100 mb-4 py-3"
-                          disabled={loading || success}
-                        >
-                          {loading ? (
-                            <>
-                              <Spinner animation="border" size="sm" className="me-2" />
-                              Verifying Code…
-                            </>
-                          ) : (
-                            'Verify Phone Code'
-                          )}
-                        </Button>
-                      </>
-                    )}
+                    <Button
+                      type="submit"
+                      className="btn-verify-gradient w-100 mb-4 py-3"
+                      disabled={loading || success}
+                    >
+                      {loading ? (
+                        <>
+                          <Spinner animation="border" size="sm" className="me-2" />
+                          Verifying Code…
+                        </>
+                      ) : (
+                        isEmailChannel ? 'Verify Email Code' : 'Verify Phone Code'
+                      )}
+                    </Button>
                   </Form>
 
                   <div className="text-center mt-2">
