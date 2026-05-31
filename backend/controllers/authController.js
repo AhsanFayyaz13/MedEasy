@@ -135,13 +135,10 @@ exports.register = async (req, res) => {
       code: verificationCode
     });
 
-    // Send actual SMTP verification email if email channel is selected
+    // Send actual SMTP verification email in the background to avoid blocking the HTTP response
     if (verificationChannel === 'email' && email) {
-      try {
-        await sendVerificationEmail(email.toLowerCase(), verificationCode);
-      } catch (err) {
-        console.error('Failed to send verification email via SMTP:', err.message);
-      }
+      sendVerificationEmail(email.toLowerCase(), verificationCode)
+        .catch((err) => console.error('Failed to send verification email via SMTP in background:', err.message));
     }
 
     res.status(200).json({
@@ -322,13 +319,10 @@ exports.resendVerificationCode = async (req, res) => {
       code: newCode
     });
 
-    // Send actual SMTP verification email if email channel is selected
+    // Send actual SMTP verification email in the background to avoid blocking the HTTP response
     if (pending.verificationChannel === 'email' && pending.email) {
-      try {
-        await sendVerificationEmail(pending.email.toLowerCase(), newCode);
-      } catch (err) {
-        console.error('Failed to resend verification email via SMTP:', err.message);
-      }
+      sendVerificationEmail(pending.email.toLowerCase(), newCode)
+        .catch((err) => console.error('Failed to send verification email via SMTP in background:', err.message));
     }
 
     res.status(200).json({
@@ -725,13 +719,10 @@ exports.forgotPassword = async (req, res) => {
       code: resetCode
     });
 
-    // Send actual SMTP recovery email if user identifier is email
+    // Send actual SMTP recovery email in the background to avoid blocking the HTTP response
     if (isEmail && user.email) {
-      try {
-        await sendResetPasswordEmail(user.email.toLowerCase(), resetCode);
-      } catch (err) {
-        console.error('Failed to send password reset email via SMTP:', err.message);
-      }
+      sendResetPasswordEmail(user.email.toLowerCase(), resetCode)
+        .catch((err) => console.error('Failed to send password reset email via SMTP in background:', err.message));
     }
 
     res.status(200).json({
