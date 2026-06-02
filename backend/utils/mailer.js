@@ -1,36 +1,35 @@
 /**
  * MedEasy Transactional Mailer Utility
  * ─────────────────────────────────────────────────────────────
- * Sends verification OTP and recovery emails via Brevo's HTTP API (Port 443).
+ * Sends verification OTP and recovery emails via Resend's HTTP API (Port 443).
  * This completely avoids outbound SMTP port blocking on hosting plans like Render Free.
  */
 
 /**
- * Dispatch verification OTP code directly to user's email via Brevo.
+ * Dispatch verification OTP code directly to user's email via Resend.
  * @param {string} recipientEmail Recipient email address
  * @param {string} otpCode 6-digit numeric OTP code
  */
 exports.sendVerificationEmail = async (recipientEmail, otpCode) => {
-  const brevoApiKey = process.env.BREVO_API_KEY;
-  const senderEmail = process.env.SENDER_EMAIL || 'support@medeasy.systems';
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const senderEmail = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
 
-  if (!brevoApiKey) {
-    console.log(`[Diagnostic Fallback] Brevo API Key not set. Code for ${recipientEmail}: ${otpCode}`);
+  if (!resendApiKey) {
+    console.log(`[Diagnostic Fallback] Resend API Key not set. Code for ${recipientEmail}: ${otpCode}`);
     return;
   }
 
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+  const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      'api-key': brevoApiKey,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Authorization': `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      sender: { name: "MedEasy Support", email: senderEmail },
-      to: [{ email: recipientEmail }],
+      from: `MedEasy Support <${senderEmail}>`,
+      to: [recipientEmail],
       subject: 'MedEasy — Account Verification OTP',
-      htmlContent: `
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
           <div style="text-align: center; margin-bottom: 20px;">
             <h2 style="color: #0284c7; margin: 0; font-size: 28px; font-weight: bold; font-family: sans-serif;">MedEasy</h2>
@@ -58,38 +57,37 @@ exports.sendVerificationEmail = async (recipientEmail, otpCode) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Brevo API returned status ${response.status}: ${errorText}`);
+    throw new Error(`Resend API returned status ${response.status}: ${errorText}`);
   }
 
   return response.json();
 };
 
 /**
- * Dispatch password recovery reset code to user's email via Brevo.
+ * Dispatch password recovery reset code to user's email via Resend.
  * @param {string} recipientEmail Recipient email address
  * @param {string} resetCode 6-digit password reset code
  */
 exports.sendResetPasswordEmail = async (recipientEmail, resetCode) => {
-  const brevoApiKey = process.env.BREVO_API_KEY;
-  const senderEmail = process.env.SENDER_EMAIL || 'support@medeasy.systems';
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const senderEmail = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
 
-  if (!brevoApiKey) {
-    console.log(`[Diagnostic Fallback] Brevo API Key not set. Reset code for ${recipientEmail}: ${resetCode}`);
+  if (!resendApiKey) {
+    console.log(`[Diagnostic Fallback] Resend API Key not set. Reset code for ${recipientEmail}: ${resetCode}`);
     return;
   }
 
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+  const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      'api-key': brevoApiKey,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Authorization': `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      sender: { name: "MedEasy Support", email: senderEmail },
-      to: [{ email: recipientEmail }],
+      from: `MedEasy Support <${senderEmail}>`,
+      to: [recipientEmail],
       subject: 'MedEasy — Account Password Reset Code',
-      htmlContent: `
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
           <div style="text-align: center; margin-bottom: 20px;">
             <h2 style="color: #ef4444; margin: 0; font-size: 28px; font-weight: bold; font-family: sans-serif;">MedEasy</h2>
@@ -117,7 +115,7 @@ exports.sendResetPasswordEmail = async (recipientEmail, resetCode) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Brevo API returned status ${response.status}: ${errorText}`);
+    throw new Error(`Resend API returned status ${response.status}: ${errorText}`);
   }
 
   return response.json();
