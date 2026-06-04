@@ -8,6 +8,7 @@ import api from './api';
 import MOCK_MEDICINES from '../data/mockMedicines';
 import MOCK_ORDERS    from '../data/mockOrders';
 import MOCK_PRESCRIPTIONS from '../data/mockPrescriptions';
+import { mapPrescriptionToFrontend } from './prescriptionService';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false';
 const delay    = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -161,7 +162,8 @@ export async function fetchPendingPrescriptions() {
       .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
   }
   const { data } = await api.get('/prescriptions/', { params: { status: 'pending' } });
-  return data.results ?? data;
+  const list = data.results ?? data;
+  return Array.isArray(list) ? list.map(mapPrescriptionToFrontend) : [];
 }
 
 /**

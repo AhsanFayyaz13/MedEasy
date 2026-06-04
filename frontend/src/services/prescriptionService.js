@@ -38,6 +38,31 @@ export async function uploadPrescription(file, notes = '') {
     return newRx;
   }
 
+export function mapPrescriptionToFrontend(rx) {
+  if (!rx) return null;
+  const urlParts = rx.fileUrl ? rx.fileUrl.split('/') : [];
+  const extractedFileName = urlParts.length > 0 ? urlParts[urlParts.length - 1] : 'prescription.png';
+
+  let fileType = 'image/jpeg';
+  if (extractedFileName.toLowerCase().endsWith('.pdf')) {
+    fileType = 'application/pdf';
+  } else if (extractedFileName.toLowerCase().endsWith('.png')) {
+    fileType = 'image/png';
+  } else if (extractedFileName.toLowerCase().endsWith('.webp')) {
+    fileType = 'image/webp';
+  }
+
+  return {
+    ...rx,
+    id: rx._id || rx.id,
+    fileName: rx.fileName || extractedFileName,
+    fileSize: rx.fileSize || 0,
+    fileType: rx.fileType || fileType,
+    uploadedAt: rx.createdAt || rx.uploadedAt || new Date().toISOString(),
+    notes: rx.notes || '',
+  };
+}
+
   const form = new FormData();
   form.append('prescription',  file); // Mapped to 'prescription' to match backend single-upload parser
   form.append('notes', notes);
@@ -45,7 +70,7 @@ export async function uploadPrescription(file, notes = '') {
   const { data } = await api.post('/prescriptions/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return data;
+  return mapPrescriptionToFrontend(data);
 }
 
 // ─── Fetch list ───────────────────────────────────────────────────────────────
@@ -63,7 +88,8 @@ export async function fetchPrescriptions() {
   }
 
   const { data } = await api.get('/prescriptions/');
-  return data.results ?? data;
+  const list = data.results ?? data;
+  return Array.isArray(list) ? list.map(mapPrescriptionToFrontend) : [];
 }
 
 // ─── Delete ───────────────────────────────────────────────────────────────────

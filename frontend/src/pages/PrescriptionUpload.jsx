@@ -3,12 +3,15 @@ import { Container, Row, Col, Card, Form, Button, Alert, Badge, Spinner } from '
 import {
   FaUpload, FaFileMedical, FaFilePdf, FaFileImage, FaTimes,
   FaCheckCircle, FaTimesCircle, FaClock, FaTrash, FaInfoCircle,
-  FaRedo, FaShieldAlt, FaExclamationTriangle, FaLink,
+  FaRedo, FaShieldAlt, FaExclamationTriangle, FaLink, FaEye,
 } from 'react-icons/fa';
 import { Link, useLocation } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { uploadPrescription, fetchPrescriptions, deletePrescription } from '../services/prescriptionService';
+import api from '../services/api';
 import './PrescriptionUpload.css';
+
+const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'https://medeasy-backend-a5yi.onrender.com';
 
 const MAX_FILE_MB = 10;
 const ALLOWED_TYPES = ['image/jpeg','image/jpg','image/png','image/webp','application/pdf'];
@@ -130,6 +133,11 @@ function PrescriptionCard({ rx, onDelete }) {
           </div>
         )}
         <div className="rx-card-actions">
+          {rx.fileUrl && (
+            <Button variant="outline-primary" size="sm" className="me-2 rx-view-btn" href={`${serverUrl}${rx.fileUrl}`} target="_blank" rel="noreferrer">
+              <FaEye className="me-1"/>View File
+            </Button>
+          )}
           {rx.status==='rejected' && (
             <span className="rx-reupload-hint"><FaRedo className="me-1"/>Please re-upload a valid prescription.</span>
           )}

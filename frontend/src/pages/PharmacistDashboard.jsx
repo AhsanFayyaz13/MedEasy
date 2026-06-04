@@ -775,8 +775,24 @@ function OrdersPage({ mode = 'active' }) {
                   </div>
                   
                   {detail.prescriptionId && (
-                    <div className="p-2.5 bg-warning-light border-warning rounded-3 text-warning-dark d-flex align-items-center gap-2 mt-3 animate-pulse" style={{ fontSize: '0.78rem' }}>
-                      <FaFileMedical /> <span>Required Prescription: <code>{detail.prescriptionId}</code></span>
+                    <div className="p-2.5 bg-warning-light border-warning rounded-3 text-warning-dark d-flex align-items-center justify-content-between gap-2 mt-3" style={{ fontSize: '0.78rem' }}>
+                      <div className="d-flex align-items-center gap-2">
+                        <FaFileMedical /> 
+                        <span>Required Prescription: <code>{typeof detail.prescriptionId === 'object' ? (detail.prescriptionId._id || detail.prescriptionId.id) : detail.prescriptionId}</code></span>
+                      </div>
+                      {typeof detail.prescriptionId === 'object' && detail.prescriptionId.fileUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline-primary"
+                          href={`${serverUrl}${detail.prescriptionId.fileUrl}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="py-0.5 px-2 bg-white"
+                          style={{ fontSize: '0.7rem' }}
+                        >
+                          <FaEye className="me-1" /> View
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -877,7 +893,11 @@ function PrescriptionsPage() {
               <div className="rx-preview-box" role="button"
                 onClick={() => setEnlarged(rx)}
                 title="Click to enlarge">
-                <span className="rx-preview-icon">{RX_ICON[rx.fileType] || '📎'}</span>
+                {rx.fileUrl && rx.fileType !== 'application/pdf' ? (
+                  <img src={`${serverUrl}${rx.fileUrl}`} alt="prescription" className="rx-thumbnail-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                ) : (
+                  <span className="rx-preview-icon">{RX_ICON[rx.fileType] || '📎'}</span>
+                )}
                 <div className="rx-preview-overlay"><FaEye /></div>
               </div>
 
@@ -942,11 +962,40 @@ function PrescriptionsPage() {
           <Modal.Title>{enlarged?.fileName}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center p-3">
-          <div className="rx-enlarge-placeholder">
-            <span style={{ fontSize:'5rem' }}>{RX_ICON[enlarged?.fileType] || '📎'}</span>
-            <p className="mt-2 text-muted">{enlarged?.fileName}</p>
-            <p className="text-muted small">{enlarged && fmtBytes(enlarged.fileSize)}</p>
-          </div>
+          {enlarged?.fileUrl ? (
+            enlarged.fileType === 'application/pdf' ? (
+              <div className="d-flex flex-column align-items-center justify-content-center p-4">
+                <FaFilePdf style={{ fontSize: '4rem', color: '#ef4444' }} />
+                <p className="mt-3 fw-bold">{enlarged.fileName}</p>
+                <p className="text-muted small">PDF Document ({fmtBytes(enlarged.fileSize)})</p>
+                <Button 
+                  variant="primary" 
+                  href={`${serverUrl}${enlarged.fileUrl}`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="mt-2"
+                >
+                  Open PDF in New Tab
+                </Button>
+              </div>
+            ) : (
+              <div className="rx-image-container">
+                <img 
+                  src={`${serverUrl}${enlarged.fileUrl}`} 
+                  alt={enlarged.fileName} 
+                  className="img-fluid rounded shadow-sm"
+                  style={{ maxHeight: '70vh', objectFit: 'contain' }}
+                />
+              </div>
+            )
+          ) : (
+            <div className="rx-enlarge-placeholder">
+              <span style={{ fontSize:'5rem' }}>{RX_ICON[enlarged?.fileType] || '📎'}</span>
+              <p className="mt-2 text-muted">{enlarged?.fileName}</p>
+              <p className="text-muted small">{enlarged && fmtBytes(enlarged.fileSize)}</p>
+              <p className="small text-danger">No file source available in demo mode</p>
+            </div>
+          )}
         </Modal.Body>
       </Modal>
 
