@@ -25,6 +25,8 @@ MONGO_URI=mongodb://localhost:27017/medeasy
 JWT_SECRET=your_jwt_secret
 FRONTEND_ORIGIN=http://localhost:5173,http://localhost:5174
 MAX_UPLOAD_BYTES=5242880
+RESEND_API_KEY=your_resend_api_key_here
+SENDER_EMAIL=medeasy@medeasy.systems
 ```
 
 > If Vite starts on a different port, add that port to `FRONTEND_ORIGIN` as a comma-separated value. The server also accepts both `localhost` and `127.0.0.1` origins for local development.
@@ -95,3 +97,4 @@ Expected response:
 - JWT tokens are stored in `localStorage` under `medeasy_access_token`.
 - Uploaded prescriptions are saved to `backend/uploads`.
 - CORS is configured to accept requests from `FRONTEND_ORIGIN`.
+- Transactional Emails (verification codes and password recovery) are sent using the Resend HTTP API. If `RESEND_API_KEY` is not set locally, codes will fallback to being output to the backend console logs.

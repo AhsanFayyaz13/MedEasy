@@ -11,6 +11,8 @@ MONGO_URI=mongodb://localhost:27017/medeasy
 JWT_SECRET=your_jwt_secret
 FRONTEND_ORIGIN=http://localhost:5173,http://localhost:5174
 MAX_UPLOAD_BYTES=5242880
+RESEND_API_KEY=your_resend_api_key_here
+SENDER_EMAIL=medeasy@medeasy.systems
 ```
 
 > Tip: The backend allows requests from both `localhost` and `127.0.0.1` on the configured frontend ports.
@@ -46,6 +48,7 @@ npm run seed
 Notes:
 - Uploads are stored in the `uploads/` folder. Max file size controlled by `MAX_UPLOAD_BYTES`.
 - CORS allows `FRONTEND_ORIGIN`.
+- Transactional Emails: Sent via Resend HTTP API (Port 443). If `RESEND_API_KEY` is not defined, email notifications are printed directly to the backend console logs.
 
 ## Frontend (Vite + React)
 

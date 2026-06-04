@@ -29,7 +29,7 @@ Users registers via the frontend, specifying their details and selecting a prefe
 
 1. **Pending Registrations**: Registration details are stored securely in a temporary mongoose collection (`PendingUser`) using a **TTL index**.
 2. **TTL Index (Automatic Cleanup)**: Accounts not verified within 15 minutes (900 seconds) are automatically expunged from the database by MongoDB background threads.
-3. **Verification Code Execution**: An encrypted, numeric 6-digit OTP is generated. The OTP delivery is simulated and printed clearly in the backend terminal logs.
+3. **Verification Code Execution & Dispatch**: A cryptographically random 6-digit OTP is generated. The platform dispatches this code as an HTML email via the **Resend HTTP API** (port 443) using the `RESEND_API_KEY` and `SENDER_EMAIL` environment variables. If these variables are not configured (e.g., in a local testing environment), the delivery agent executes a diagnostics fallback and outputs the code directly to the backend terminal console.
 4. **Promotion to Active Users**: Once verified, the credentials are encrypted using bcrypt, saved into the active `User` collection, and the temporary `PendingUser` record is removed.
 
 ```mermaid
@@ -94,6 +94,22 @@ exports.normalizePhone = (phone) => {
   if (cleaned.startsWith('03')) cleaned = '92' + cleaned.substring(1);
   if (cleaned.startsWith('3')) cleaned = '92' + cleaned;
   return cleaned.length === 12 && cleaned.startsWith('923') ? cleaned : null;
+};
+```
+
+#### 📂 `backend/utils/mailer.js`
+Handles sending verification codes and password recovery codes using the **Resend HTTP API** (avoiding outbound SMTP blockages on hosts like Render):
+```javascript
+exports.sendVerificationEmail = async (recipientEmail, otpCode) => {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const senderEmail = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+
+  if (!resendApiKey) {
+    console.log(`[Diagnostic Fallback] Resend API Key not set. Code for ${recipientEmail}: ${otpCode}`);
+    return;
+  }
+
+  // Sends POST request to https://api.resend.com/emails with html body...
 };
 ```
 
@@ -182,6 +198,7 @@ Here is a full directory index of every component created or customized to const
 * 📂 [backend/routes/auth.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/routes/auth.js) – API routers mapping verification and authentication controllers.
 * 📂 [backend/utils/verification.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/utils/verification.js) – OTP generation and logging terminal toolkit.
 * 📂 [backend/utils/phone.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/utils/phone.js) – Hashed string cleaning and phone normalization tools.
+* 📂 [backend/utils/mailer.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/utils/mailer.js) – Sends transactional emails (verification OTPs and password recovery codes) using the Resend HTTP API over Port 443, complete with a terminal diagnostics fallback for local setups.
 
 ### 2. Frontend Components & Stylesheets
 * 📂 [frontend/src/components/Navbar.jsx](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/components/Navbar.jsx) – Configured Admin top-bar links, query active highlights, and custom logo click reloads.
