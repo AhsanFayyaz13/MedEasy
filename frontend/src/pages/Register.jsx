@@ -14,10 +14,11 @@ const PHONE_RE = /^[+]?[\d\s\-().]{7,15}$/;
 function validate(fields) {
   const errors = {};
 
-  if (!fields.name.trim())
-    errors.name = 'Full name is required.';
-  else if (fields.name.trim().length < 2)
-    errors.name = 'Name must be at least 2 characters.';
+  if (!fields.name.trim()) {
+    errors.name = fields.role === 'pharmacy' ? 'Pharmacy name is required.' : 'Full name is required.';
+  } else if (fields.name.trim().length < 2) {
+    errors.name = fields.role === 'pharmacy' ? 'Pharmacy name must be at least 2 characters.' : 'Name must be at least 2 characters.';
+  }
 
   // Email is optional unless they select Email verification
   if (fields.verificationChannel === 'email' && !fields.email.trim()) {
@@ -36,8 +37,8 @@ function validate(fields) {
     errors.role = 'Please select your role.';
 
   if (fields.role === 'pharmacy') {
-    if (!fields.pharmacyName || !fields.pharmacyName.trim())
-      errors.pharmacyName = 'Pharmacy name is required.';
+    if (!fields.ownerName || !fields.ownerName.trim())
+      errors.ownerName = 'Owner name is required.';
     if (!fields.pharmacyLocation || !fields.pharmacyLocation.trim())
       errors.pharmacyLocation = 'Pharmacy address is required.';
     if (!fields.pharmacyOutsidePicture)
@@ -594,9 +595,10 @@ export default function Register() {
                           value={fields.ownerName || ''}
                           onChange={handleChange}
                           onBlur={handleBlur}
-                          isInvalid={touched.ownerName && !fields.ownerName?.trim()}
+                          isValid={isValid('ownerName')}
+                          isInvalid={isInvalid('ownerName')}
                         />
-                        <Form.Control.Feedback type="invalid">Owner name is required.</Form.Control.Feedback>
+                        <Form.Control.Feedback type="invalid">{errors.ownerName}</Form.Control.Feedback>
                       </Form.Group>
 
                       {/* Pharmacy Location */}
@@ -609,9 +611,10 @@ export default function Register() {
                           value={fields.pharmacyLocation || ''}
                           onChange={handleChange}
                           onBlur={handleBlur}
-                          isInvalid={touched.pharmacyLocation && !fields.pharmacyLocation?.trim()}
+                          isValid={isValid('pharmacyLocation')}
+                          isInvalid={isInvalid('pharmacyLocation')}
                         />
-                        <Form.Control.Feedback type="invalid">Pharmacy location/address is required.</Form.Control.Feedback>
+                        <Form.Control.Feedback type="invalid">{errors.pharmacyLocation}</Form.Control.Feedback>
                       </Form.Group>
 
                       {/* Pharmacy Outside Picture Upload */}
@@ -622,7 +625,7 @@ export default function Register() {
                             type="file"
                             accept="image/*"
                             onChange={handlePharmacyImageUpload}
-                            isInvalid={touched.pharmacyOutsidePicture && !fields.pharmacyOutsidePicture}
+                            isInvalid={isInvalid('pharmacyOutsidePicture')}
                           />
                           {uploadingImage && <Spinner animation="border" size="sm" className="text-primary" />}
                         </div>
@@ -632,7 +635,7 @@ export default function Register() {
                             <a href={`${serverUrl}${fields.pharmacyOutsidePicture}`} target="_blank" rel="noreferrer" className="text-decoration-underline text-primary">View Photo</a>
                           </div>
                         )}
-                        <Form.Control.Feedback type="invalid">Pharmacy outside photo is required.</Form.Control.Feedback>
+                        <Form.Control.Feedback type="invalid">{errors.pharmacyOutsidePicture}</Form.Control.Feedback>
                       </Form.Group>
                     </Card>
                   )}
