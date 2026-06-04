@@ -10,6 +10,31 @@ import MOCK_PRESCRIPTIONS from '../data/mockPrescriptions';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false';
 const delay    = (ms) => new Promise((res) => setTimeout(res, ms));
 
+export function mapPrescriptionToFrontend(rx) {
+  if (!rx) return null;
+  const urlParts = rx.fileUrl ? rx.fileUrl.split('/') : [];
+  const extractedFileName = urlParts.length > 0 ? urlParts[urlParts.length - 1] : 'prescription.png';
+
+  let fileType = 'image/jpeg';
+  if (extractedFileName.toLowerCase().endsWith('.pdf')) {
+    fileType = 'application/pdf';
+  } else if (extractedFileName.toLowerCase().endsWith('.png')) {
+    fileType = 'image/png';
+  } else if (extractedFileName.toLowerCase().endsWith('.webp')) {
+    fileType = 'image/webp';
+  }
+
+  return {
+    ...rx,
+    id: rx._id || rx.id,
+    fileName: rx.fileName || extractedFileName,
+    fileSize: rx.fileSize || 0,
+    fileType: rx.fileType || fileType,
+    uploadedAt: rx.createdAt || rx.uploadedAt || new Date().toISOString(),
+    notes: rx.notes || '',
+  };
+}
+
 // ─── Upload ───────────────────────────────────────────────────────────────────
 /**
  * Upload a prescription file.
@@ -37,31 +62,6 @@ export async function uploadPrescription(file, notes = '') {
     MOCK_PRESCRIPTIONS.unshift(newRx);
     return newRx;
   }
-
-export function mapPrescriptionToFrontend(rx) {
-  if (!rx) return null;
-  const urlParts = rx.fileUrl ? rx.fileUrl.split('/') : [];
-  const extractedFileName = urlParts.length > 0 ? urlParts[urlParts.length - 1] : 'prescription.png';
-
-  let fileType = 'image/jpeg';
-  if (extractedFileName.toLowerCase().endsWith('.pdf')) {
-    fileType = 'application/pdf';
-  } else if (extractedFileName.toLowerCase().endsWith('.png')) {
-    fileType = 'image/png';
-  } else if (extractedFileName.toLowerCase().endsWith('.webp')) {
-    fileType = 'image/webp';
-  }
-
-  return {
-    ...rx,
-    id: rx._id || rx.id,
-    fileName: rx.fileName || extractedFileName,
-    fileSize: rx.fileSize || 0,
-    fileType: rx.fileType || fileType,
-    uploadedAt: rx.createdAt || rx.uploadedAt || new Date().toISOString(),
-    notes: rx.notes || '',
-  };
-}
 
   const form = new FormData();
   form.append('prescription',  file); // Mapped to 'prescription' to match backend single-upload parser
