@@ -22,7 +22,7 @@ const api = axios.create({
 // Attach the JWT access token from localStorage to every request.
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('medeasy_access_token');
+    const token = sessionStorage.getItem('medeasy_access_token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
@@ -36,9 +36,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Clear stored credentials and redirect to login
-      localStorage.removeItem('medeasy_access_token');
-      localStorage.removeItem('medeasy_refresh_token');
-      localStorage.removeItem('medeasy_user');
+      sessionStorage.removeItem('medeasy_access_token');
+      sessionStorage.removeItem('medeasy_refresh_token');
+      sessionStorage.removeItem('medeasy_user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

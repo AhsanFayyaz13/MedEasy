@@ -31,19 +31,19 @@ const STORAGE_KEYS = {
 };
 
 function persistSession(accessToken, refreshToken, user) {
-  localStorage.setItem(STORAGE_KEYS.ACCESS,  accessToken);
-  if (refreshToken) localStorage.setItem(STORAGE_KEYS.REFRESH, refreshToken);
-  localStorage.setItem(STORAGE_KEYS.USER,    JSON.stringify(user));
+  sessionStorage.setItem(STORAGE_KEYS.ACCESS,  accessToken);
+  if (refreshToken) sessionStorage.setItem(STORAGE_KEYS.REFRESH, refreshToken);
+  sessionStorage.setItem(STORAGE_KEYS.USER,    JSON.stringify(user));
 }
 
 function clearSession() {
-  Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
+  Object.values(STORAGE_KEYS).forEach((k) => sessionStorage.removeItem(k));
 }
 
 function loadSession() {
   try {
-    const token = localStorage.getItem(STORAGE_KEYS.ACCESS);
-    const raw   = localStorage.getItem(STORAGE_KEYS.USER);
+    const token = sessionStorage.getItem(STORAGE_KEYS.ACCESS);
+    const raw   = sessionStorage.getItem(STORAGE_KEYS.USER);
     const user  = raw ? JSON.parse(raw) : null;
     return { token, user };
   } catch {
