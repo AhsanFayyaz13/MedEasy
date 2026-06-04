@@ -16,7 +16,7 @@
 MedEasy uses a modern decoupled architecture:
 *   **Frontend**: React client scaffolded with Vite, featuring dynamic custom Vanilla CSS, React Bootstrap, React Icons, and interactive Chart.js dashboards.
 *   **Backend**: Node.js + Express.js API engine interfacing with MongoDB through Mongoose schemas.
-*   **Authentication**: JSON Web Token (JWT) session authorization, secure bcrypt hashing, and local storage state persistence.
+*   **Authentication**: JSON Web Token (JWT) session authorization, secure bcrypt hashing, and tab-isolated sessionStorage persistence (enabling multiple active sessions in different tabs).
 
 ```mermaid
 graph TD
@@ -50,6 +50,10 @@ sequenceDiagram
     A->>P: Delete cached record
     A-->>C: Return 201 Created & JWT Token
 ```
+
+### 🔒 Tab-Isolated Multi-Session Authentication
+*   **Tab-Level Auth Scoping**: JWT authentication tokens and active user profile details are stored in tab-scoped `sessionStorage`. This isolates sessions, enabling you to login as different users (e.g. Patient on one tab and Doctor/Pharmacist on another) simultaneously without logging each other out.
+*   **Cross-Tab E2E Communication**: Mock database resources like clinical chat rooms (`medeasy_chats`) and client-side notifications/reports remain in shared `localStorage` so that independent browser tab sessions can interact with each other in real-time.
 
 ### 📧 Transactional Mail Engine
 *   **Resend HTTP API Integration**: Emails (OTPs and password recovery codes) are dispatched via Resend's HTTPS API over Port 443. This bypasses common SMTP port-blocking policies enforced by hosts like Render Free.
