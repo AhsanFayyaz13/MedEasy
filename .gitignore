@@ -5,3 +5,6 @@ dist/
 .DS_Store
 mongodb-data/
 backend/uploads/
+.vscode/
+.postman/
+postman/
