@@ -1,217 +1,297 @@
-# MedEasy Web Platform – System & Codebase Documentation
+# 🏥 MedEasy Web Platform — Production-Grade Technical & System Architecture Specification
 
-This document provides a comprehensive, high-fidelity overview of the custom features, security guardrails, system integrations, and codebase modifications engineered on the **MedEasy Web Platform**.
+This document provides a comprehensive, industry-standard technical overview of the **MedEasy Web Platform** codebase. It outlines the architecture, data models, state flows, security measures, and API specifications of the application.
 
 ---
 
-## 🛠️ 1. Architecture & System Overview
+## 📄 1. Document Control & Metadata
 
-The **MedEasy Web Platform** is built using a modern full-stack JavaScript architecture:
-* **Frontend**: React (Vite client) styled with dynamic custom Vanilla CSS, utilizing React Bootstrap components, React Icons, and Chart.js dashboards.
-* **Backend**: Node.js, Express, and Mongoose (MongoDB) database interface.
-* **Session Management**: JsonWebToken (JWT) authentication, secure HTTP headers, and state persistence with localStorage.
+*   **Title**: MedEasy Technical & System Architecture Specification
+*   **Version**: 1.1.0
+*   **Date**: June 4, 2026
+*   **Status**: Approved
+*   **Target Audience**: Systems Engineers, Security Architects, Full-Stack Developers, Database Administrators
+*   **Document Purpose**: To serve as the definitive system design blueprint and integration handbook for developers and system auditors.
+
+---
+
+## 🛠️ 2. Architectural & System Design Overview
+
+MedEasy is built on a **decoupled client-server architecture**:
+1.  **Frontend Web Client**: A Single Page Application (SPA) built using React (Vite), styled with dynamic custom Vanilla CSS, utilizing React Bootstrap components, React Icons, and Chart.js dashboards.
+2.  **Backend REST API**: A stateless Node.js Express server handling business logic, authentication middleware, uploads validation, and transaction pipelines.
+3.  **Database Layer**: MongoDB Document Store, managed through Mongoose Object-Document Mapping (ODM) schemas.
 
 ```mermaid
 graph TD
-    Client[React Frontend] -->|HTTP Requests| Express[Express Server]
-    Express -->|Queries/Updates| Mongo[(MongoDB Database)]
-    Express -->|Auth Guard & TTL| PendingCol[(PendingUsers Mongoose TTL Collection)]
+    Client[React SPA Client] -->|HTTPS Requests / Bearer JWT| Express[Express.js Server]
+    Express -->|Auth & Router Middlewares| Controllers[Request Controllers]
+    Controllers -->|Mongoose Queries| Mongo[(MongoDB Instance)]
+    Controllers -->|Port 443 HTTP API| Resend[Resend Email Service]
+    Express -->|Upload Pipeline| FS[Local Uploads Dir]
 ```
 
 ---
 
-## 🔒 2. Registration & Dynamic OTP Verification System
+## 🗄️ 3. Database Architecture & Data Models
 
-To prevent spam accounts and secure registrations, we engineered a state-of-the-art, dual-channel verification workspace.
+All MongoDB collections are mapped to Mongoose schemas. Database schemas enforce type safety, validation rules, default configurations, and indexing.
 
-### A. The Verification Database Flow
-Users registers via the frontend, specifying their details and selecting a preferred `verificationChannel` (either `email` or `phone`). 
+### A. User Schema (`User` Collection)
+Stores profile credentials and meta-data for all actors: Patients, Doctors, Pharmacists, Administrators, and Pharmacies.
 
-1. **Pending Registrations**: Registration details are stored securely in a temporary mongoose collection (`PendingUser`) using a **TTL index**.
-2. **TTL Index (Automatic Cleanup)**: Accounts not verified within 15 minutes (900 seconds) are automatically expunged from the database by MongoDB background threads.
-3. **Verification Code Execution & Dispatch**: A cryptographically random 6-digit OTP is generated. The platform dispatches this code as an HTML email via the **Resend HTTP API** (port 443) using the `RESEND_API_KEY` and `SENDER_EMAIL` environment variables. If these variables are not configured (e.g., in a local testing environment), the delivery agent executes a diagnostics fallback and outputs the code directly to the backend terminal console.
-4. **Promotion to Active Users**: Once verified, the credentials are encrypted using bcrypt, saved into the active `User` collection, and the temporary `PendingUser` record is removed.
+| Field Name | Data Type | Validation / Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `name` | `String` | Required | Registered full name of the user |
+| `email` | `String` | Unique, Sparse | Optional, must be unique if provided |
+| `phone` | `String` | Unique, Required | Primary identifier (Normalized Pakistani format) |
+| `password` | `String` | Required | Hashed credentials (bcrypt, salt rounds = 10) |
+| `role` | `String` | Enum: `patient`, `pharmacist`, `doctor`, `admin`, `pharmacy` | Default: `patient`. Defines RBAC rights |
+| `profileImage` | `String` | Optional | Absolute URL to user's uploaded avatar image |
+| `address` | `String` | Optional | General mailing address |
+| `isVerifiedProfile`| `Boolean`| Default: `false` | Admin-verified flag for doctor/pharmacist profiles |
+| `pharmacyName` | `String` | Optional (Pharmacy/Pharmacist only) | Commercial pharmacy organization name |
+| `pharmacyLocation` | `String` | Optional (Pharmacy/Pharmacist only) | Geo-location or street address of the pharmacy |
+| `degreeName` | `String` | Optional (Pharmacist only) | Professional degree (e.g. Pharm.D, B.Pharm) |
+| `licenseNumber` | `String` | Optional (Pharmacist only) | Pharmacy Council Registration number |
+| `pharmacistDetails`| `Object` | Optional nested object | Active representative pharmacist profile (Admin audited) |
+| `specialty` | `String` | Optional (Doctor only) | Medical specialization (e.g., Cardiologist) |
+| `pmcRegistration` | `String` | Optional (Doctor only) | PMC / PMDC Registration License number |
+| `experience` | `Number` | Optional (Doctor only) | Number of active years of practice |
+| `consultationFee` | `Number` | Optional (Doctor only) | Pricing per session in Pakistani Rupees (PKR) |
+| `availableDays` | `[String]`| Default: `[]` | Schedule days (e.g. `['Monday', 'Wednesday']`) |
+| `resetPasswordCode`| `String`| Optional | 6-digit numeric recovery code |
+| `resetPasswordExpires`| `Date` | Optional | Expiration timestamp for reset code |
+
+### B. PendingUser Schema (`PendingUser` Collection)
+Holds cached registrant data temporarily during the verification process. Uses MongoDB TTL index for automatic expiration.
+
+| Field Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `name` / `password` | `String` | Required | Registration credentials |
+| `phone` | `String` | Required | Target phone number for OTP |
+| `email` | `String` | Optional | Target email address |
+| `role` | `String` | Enum: `patient`, `pharmacist`, `doctor`, `admin` | Default: `patient` |
+| `verificationCode` | `String` | Required | 6-digit verification OTP |
+| `verificationCodeExpires`| `Date` | Required | OTP validation limit (usually 15m) |
+| `verificationChannel`| `String` | Enum: `email`, `phone` | Path utilized for sending OTP |
+| `createdAt` | `Date` | Default: `Date.now`, **Expires: 900** | **TTL Index**: Document deleted automatically after 15m |
+
+### C. Medicine Schema (`Medicine` Collection)
+Defines catalog inventory records.
+
+| Field Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `name` / `category` | `String` | Required | Name and category of drug (e.g., Antibiotic) |
+| `description` | `String` | Required | Detailed usage guidelines |
+| `price` | `Number` | Required | Selling price in PKR |
+| `stock` | `Number` | Required, Default: `0` | Available stock count |
+| `requiresPrescription`| `Boolean`| Default: `false` | If true, checkout requires uploading a prescription |
+| `imageUrl` | `String` | Optional | Image URL of medicine packaging |
+
+### D. Appointment Schema (`Appointment` Collection)
+Enables booking transactions between Patients and Doctors.
+
+| Field Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `patientId` | `ObjectId` | Required, Ref: `User` | The patient booking the session |
+| `doctorId` | `ObjectId` | Required, Ref: `User` | The target medical professional |
+| `date` / `time` | `Date` / `String`| Required | Date and session time slot |
+| `status` | `String` | Enum: `scheduled`, `completed`, `cancelled` | Default: `scheduled` |
+| `consultationNotes`| `String` | Optional | Summary provided by the doctor |
+| `prescription` | `String` | Optional | Prescribed medicines/dosage notes |
+
+### E. Order Schema (`Order` Collection)
+Tracks pharmacy purchases.
+
+| Field Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `userId` | `ObjectId` | Required, Ref: `User` | The patient placing the order |
+| `items` | `Array` | Required | Array containing `{ medicineId, quantity, price }` |
+| `prescriptionId` | `ObjectId` | Optional, Ref: `Prescription` | Verified prescription verification reference |
+| `totalAmount` | `Number` | Required | Total checkout price |
+| `status` | `String` | Enum: `pending`, `confirmed`, `processing`, `dispatched`, `delivered`, `cancelled` | Default: `pending` |
+| `paymentStatus` | `String` | Enum: `pending`, `paid`, `refunded` | Default: `pending` |
+| `shippingAddress` | `Object` | Required nested fields | Delivery destination contact and address details |
+
+### F. Prescription Schema (`Prescription` Collection)
+Defines user-submitted files validating prescription-only medicine orders.
+
+| Field Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `userId` | `ObjectId` | Required, Ref: `User` | Owner of the prescription |
+| `doctorId` | `ObjectId` | Optional, Ref: `User` | The prescribing physician |
+| `fileUrl` | `String` | Required | File path to stored image or PDF document |
+| `status` | `String` | Enum: `pending`, `verified`, `rejected` | Default: `pending`. Audited by Pharmacists |
+
+---
+
+## 🔒 4. Registration, Security & Verification Engine
+
+To maintain system integrity and prevent unauthorized spam accounts, MedEasy utilizes a strict dual-stage registration flow.
+
+### A. The Verification Database & OTP Sequence
+
+1.  **Staging Phase**: User posts credentials to `/api/auth/register`. A 6-digit numerical OTP is generated and the user record is written to `PendingUser` collection (marked with an automatic 15-minute TTL expiration index).
+2.  **Dispatch Phase**: The OTP is sent dynamically using the preferred channel:
+    *   **Email Channel**: Routed via the **Resend HTTP API** (port 443) using the `RESEND_API_KEY` token.
+    *   **SMS/Phone Channel**: Simulates delivery, writing the notification to the backend terminal log.
+    *   **Fallback Strategy**: If `RESEND_API_KEY` is not present, email dispatches fallback to console terminal logging.
+3.  **Activation Phase**: The user submits the code to `/api/auth/verify-registration`. The system matches the OTP, deletes the `PendingUser` record, hashes the password using bcrypt, and creates a permanent record in the `User` collection.
 
 ```mermaid
 sequenceDiagram
     participant C as React Client
     participant A as Auth Controller
     participant P as PendingUser (TTL)
+    participant M as Mailer (Resend API)
     participant U as Active User DB
 
-    C->>A: POST /api/auth/register (Channel = phone/email)
-    A->>P: Save temporarily (Expires in 15m)
-    A-->>A: Generate & Log OTP to Terminal
-    C->>A: POST /api/auth/verify-registration (Phone, Code)
-    A->>P: Fetch & Validate OTP
-    P-->>A: Match Validated
-    A->>U: Create encrypted Profile in User Collection
-    A->>P: Delete Pending Record
-    A-->>C: Return 201 Created & JWT Token
+    C->>A: POST /api/auth/register (payload)
+    A->>P: Save temporarily (auto-expires in 15m)
+    alt Resend API Key is set
+        A->>M: POST https://api.resend.com/emails
+        M-->>A: Status 200 OK
+    else API Key missing
+        A-->>A: Log OTP directly to Server console
+    end
+    A-->>C: Return 200 (OTP sent successfully)
+    C->>A: POST /api/auth/verify-registration (phone + code)
+    A->>P: Retrieve code & validate
+    A->>U: Move to User Collection (bcrypt hash password)
+    A->>P: Delete PendingUser record
+    A-->>C: Return 201 Created + Session JWT Token
 ```
 
-### B. Core Verification Backend Components
+### B. Pakistani Phone Number Normalization
+Contact numbers in Pakistan are standardized using `backend/utils/phone.js` to prevent database duplicate states:
+*   Converts `03xxxxxxxxx` or `+923xxxxxxxxx` or `3xxxxxxxxx` formats into a clean `923xxxxxxxxx` string (exactly 12 digits, starting with `923`).
+*   Returns `null` if the input is malformed.
 
-#### 📂 `backend/models/PendingUser.js`
-Defines the schema for temporary registrants with automated deletion hooks.
-```javascript
-const mongoose = require('mongoose');
-
-const pendingUserSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String },
-  phone: { type: String, required: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ['patient', 'pharmacist', 'doctor', 'admin'], default: 'patient' },
-  address: { type: String },
-  verificationCode: { type: String, required: true },
-  verificationCodeExpires: { type: Date, required: true },
-  verificationChannel: { type: String, enum: ['email', 'phone'], required: true },
-  createdAt: { type: Date, default: Date.now, expires: 900 } // TTL 15 Minutes
-});
-```
-
-#### 📂 `backend/utils/verification.js`
-Generates cryptographically random 6-digit verification codes and logs them in a clear diagnostic layout:
-```javascript
-function generateVerificationCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function logVerificationCode({ method, identifier, code }) {
-  const address = method === 'email' ? `email ${identifier}` : `phone ${identifier}`;
-  console.log(`Verification code sent to ${address}: ${code}`);
-}
-```
-
-#### 📂 `backend/utils/phone.js`
-Normalizes Pakistani contact numbers (e.g. converting `03001234567` or `+923001234567` into a standardized format `923001234567`) to maintain database integrity:
-```javascript
-exports.normalizePhone = (phone) => {
-  if (!phone) return null;
-  let cleaned = phone.replace(/\D/g, '');
-  if (cleaned.startsWith('00')) cleaned = cleaned.substring(2);
-  if (cleaned.startsWith('03')) cleaned = '92' + cleaned.substring(1);
-  if (cleaned.startsWith('3')) cleaned = '92' + cleaned;
-  return cleaned.length === 12 && cleaned.startsWith('923') ? cleaned : null;
-};
-```
-
-#### 📂 `backend/utils/mailer.js`
-Handles sending verification codes and password recovery codes using the **Resend HTTP API** (avoiding outbound SMTP blockages on hosts like Render):
-```javascript
-exports.sendVerificationEmail = async (recipientEmail, otpCode) => {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const senderEmail = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
-
-  if (!resendApiKey) {
-    console.log(`[Diagnostic Fallback] Resend API Key not set. Code for ${recipientEmail}: ${otpCode}`);
-    return;
-  }
-
-  // Sends POST request to https://api.resend.com/emails with html body...
-};
-```
+### C. Authentication & Session Security Guardrails
+*   **JWT Architecture**: Sessions use JWT tokens signed with a secret hash (`JWT_SECRET`). Tokens are sent in the HTTP `Authorization` header as a `Bearer` token.
+*   **Role Transformation Middleware**:
+    If a `pharmacy` user logs in, the auth middleware (`backend/middleware/auth.js`) transparently maps the role alias to `pharmacist` for route authorization if a valid `pharmacistDetails` representative is bound to the account.
+*   **Login-Required Checkout Prompt**: Unauthenticated guest users are blocked from adding items to a checkout cart. Instead, the `LoginRequiredModal.jsx` intercepts the request and redirects them to the signup page while preserving catalog state.
+*   **Session Purge Observer**: A React `useEffect` inside `CartContext.jsx` monitors the authentication state. If the user logs out or the token expires, the shopping cart is instantly cleared and all local storage persistence caches are wiped clean:
+    ```javascript
+    useEffect(() => {
+      if (!isAuthenticated) {
+        setCartItems([]);
+      }
+    }, [isAuthenticated]);
+    ```
 
 ---
 
-## 🛒 3. Platform Security Guardrails & Cart Synchronization
+## 👥 5. Role-Based Access Control (RBAC) & Interactive Portals
 
-To guarantee that users do not interact with cart operations or leave orphaned checkout items in localized memory on session expiration:
+Access controls are enforced on both the client (router checks) and backend (middleware).
 
-### A. Login-Required Cart Modal
-Unauthenticated users browsing the catalog are blocked from adding items to their cart. Instead of experiencing a silent failure or page redirection, the system triggers a beautiful, interactive **Login-Required Modal** (`LoginRequiredModal.jsx`). 
-This prompts the user to either log in or quickly create a new account, informing them that their in-progress catalog selection will be fully preserved in the transition.
-
-### B. Session State Cart Purge (`CartContext.jsx`)
-To prevent session cross-contamination, a custom `useEffect` observer was built into the `CartProvider` workspace. 
-When the authentication context states that `isAuthenticated` becomes `false` (e.g. manual logouts or token expirations), the shopping cart is instantly cleared and all local storage persistence caches are wiped clean:
-```javascript
-useEffect(() => {
-  if (!isAuthenticated) {
-    setCartItems([]);
-  }
-}, [isAuthenticated]);
-```
+### A. Provider Dashboards Customizations
+1.  **Personalized Greeting Engine**: Welcome banners dynamically query `user.name` rather than printing role descriptors (e.g. welcome back, "Dr. Ali" instead of "doctor").
+2.  **Dashboard Active Query Synchronization**: Tab states inside the `AdminDashboard.jsx` synchronize with the URL query parameters (e.g., `?tab=users` or `?tab=verifications`). This allows clean deep-linking without redrawing layouts or dropping state.
+3.  **Sidebar Drawer Filters**: Dashboard routes containing a `hiddenFromSidebar: true` metadata flag are automatically hidden from side layout navigation menus:
+    ```javascript
+    const visibleTabs = TABS.filter(t => !t.hiddenFromSidebar);
+    ```
+4.  **Top Navbar Highlights**: To prevent overlapping active borders, `Navbar.jsx` matches active classes strictly using query constraints:
+    *   **Admin Dashboard Overview**: Highlighted only if path is `/admin` and tab is empty or `overview`.
+    *   **User Management**: Highlighted only if path is `/admin` and tab parameter is `users`.
+    *   **Verification Approvals**: Highlighted only if path is `/admin` and tab parameter is `verifications`.
+5.  **Brand Clean Reload**: Clicking the top-left `MedEasy` logo resets state by executing `window.location.href = '/'` or dashboard roots.
 
 ---
 
-## ⚡ 4. Dynamic Dashboard & Workspace Updates
+## 🔌 6. REST API Endpoint Specification
 
-### A. Professional User Personalized Greetings
-Previously, dashboards welcomed users using their structural role strings (e.g., *"Welcome back, pharmacist"*). We refactored these layouts to access the authenticated user's actual registered name dynamically, maintaining structural fallback names for robust security:
-```javascript
-{/* Displays dynamic user names e.g. "Ahmed Apothecary" instead of raw role */}
-<h2>Welcome back, {user?.name || 'Pharmacist'}!</h2>
-```
-This is fully configured and integrated into:
-* **Doctor Dashboard (`DoctorDashboard.jsx`)**
-* **Pharmacist Dashboard (`PharmacistDashboard.jsx`)**
-* **Admin Dashboard (`AdminDashboard.jsx`)**
+All API responses return JSON content. Protected routes require a valid `Authorization: Bearer <JWT_Token>` header.
 
-### B. Global Navbar & Admin Shortcuts Integration
-To streamline the platform administrator experience, we moved direct management shortcuts up to the global top navigation bar while keeping them strictly hidden from standard users:
+### A. Authentication & Profiles (`/api/auth`)
 
-```
-[ MedEasy Brand ]   [ Admin Dashboard ] [ User Management ] [ Verification Requests ]   [ User Toggle V ]
-```
+#### `POST /api/auth/register`
+Creates an unverified registrant entry and sends a 6-digit OTP code.
+*   **Payload**: `{ name, phone, password, verificationChannel }`
+*   **Response (200)**: `{ message: 'Verification code sent to phone 923xxxxxxxxx' }`
 
-1. **Active URL Parameter State Synchronization**: We introduced a state-syncing pipeline using `useLocation()` inside `AdminDashboard.jsx` to dynamically swap active tabs on query string changes (`?tab=users` or `?tab=verifications`), preventing the need for full browser reloads.
-2. **Sidebar Redundancy Cleanup (`hiddenFromSidebar`)**: To keep the admin layout extremely clean, the new top-navbar pages are filtered out from the side menu drawers. We introduced a `hiddenFromSidebar: true` metadata flag in the global `TABS` array:
-   ```javascript
-   const TABS = [
-     { key: 'overview',      label: 'Dashboard Overview',   icon: <FaChartBar /> },
-     { key: 'verifications', label: 'Verification Requests', icon: <FaUserCheck />, hiddenFromSidebar: true },
-     { key: 'users',         label: 'User Management',       icon: <FaUsers />, hiddenFromSidebar: true },
-     ...
-   ];
-   ```
-   During layout rendering, hidden options are skipped:
-   ```javascript
-   TABS.filter(t => !t.hiddenFromSidebar).map(...)
-   ```
+#### `POST /api/auth/verify-registration`
+Validates the registration OTP code and upgrades the account to a permanent User.
+*   **Payload**: `{ phone, code }`
+*   **Response (201)**: `{ message: 'Verification successful', token: 'eyJhbGciOi...', user: { id, name, phone, role } }`
 
-### C. Fine-Tuned Top Navbar Active Highlights
-* **The Bug**: Since the top navbar links all share the same base path (`/admin`), default routing matching highlighted all three admin links simultaneously, creating a glowing active box around all three items.
-* **The Resolution**: Configured custom, query-based active checks inside `Navbar.jsx`:
-  * **Admin Dashboard**: Marked active only when `pathname === '/admin'` AND `tab` is empty or `'overview'`.
-  * **User Management**: Marked active only when `pathname === '/admin'` AND `tab === 'users'`.
-  * **Verification Requests**: Marked active only when `pathname === '/admin'` AND `tab === 'verifications'`.
-  This allows items to display their glowing active highlights only when currently selected, reverting to standard text highlights on `:hover`.
+#### `POST /api/auth/login`
+Authenticates user and returns JWT.
+*   **Payload**: `{ phone, password }`
+*   **Response (200)**: `{ token: 'eyJhbGciOi...', user: { id, name, role } }`
 
-### D. MedEasy Brand Reload (Clear Memory Workspace)
-When a logged-in provider (Admin, Doctor, or Pharmacist) clicks the `MedEasy` name on the top-left, the system performs a clean browser reload (`window.location.href`). This clears the transient React state, resetting the workspace dashboard and loading the **Dashboard Overview** fresh.
-
-### E. Restored Appointment Oversight Date Engine
-Fixed a runtime `ReferenceError` inside `AdminDashboard.jsx` by implementing the localized Pakistani date formatting utility `fmtDate` at the top of the scope, resolving the previous layout crash.
+#### `GET /api/auth/profile` *(Protected)*
+Gets current authenticated user's profile details.
+*   **Response (200)**: Complete user document (excluding password).
 
 ---
 
-## 📁 5. Codebase Modifications Directory Index
+### B. Administrative Endpoints (`/api/admin`) *(Protected, Role = admin)*
 
-Here is a full directory index of every component created or customized to construct this ecosystem:
+#### `GET /api/admin/users/pending`
+Lists all medical practitioners (doctors/pharmacists) awaiting verification approval.
+*   **Response (200)**: `[ { id, name, role, isVerifiedProfile, pmcRegistration ... } ]`
 
-### 1. Backend Core & Schemas
-* 📂 [backend/models/PendingUser.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/models/PendingUser.js) – Mongoose collection schema for holding unverified registrants with active TTL indexing (15m expiration).
-* 📂 [backend/models/User.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/models/User.js) – Modified properties to includePMC/PCP licensing, specialty fields, and verification status profiles.
-* 📂 [backend/controllers/authController.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/controllers/authController.js) – Programmed registration flows, login verification steps, profile photo updates, and OTP checks.
-* 📂 [backend/routes/auth.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/routes/auth.js) – API routers mapping verification and authentication controllers.
-* 📂 [backend/utils/verification.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/utils/verification.js) – OTP generation and logging terminal toolkit.
-* 📂 [backend/utils/phone.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/utils/phone.js) – Hashed string cleaning and phone normalization tools.
-* 📂 [backend/utils/mailer.js](file:///d:/Antigravity/Web%20Engineering/MedEasy/backend/utils/mailer.js) – Sends transactional emails (verification OTPs and password recovery codes) using the Resend HTTP API over Port 443, complete with a terminal diagnostics fallback for local setups.
+#### `PUT /api/admin/users/:id/approve`
+Approves a practitioner's profile, turning `isVerifiedProfile` to `true`.
+*   **Response (200)**: `{ message: 'User approved successfully' }`
 
-### 2. Frontend Components & Stylesheets
-* 📂 [frontend/src/components/Navbar.jsx](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/components/Navbar.jsx) – Configured Admin top-bar links, query active highlights, and custom logo click reloads.
-* 📂 [frontend/src/components/Navbar.css](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/components/Navbar.css) – Added stylish, premium custom hover animations for navigation buttons.
-* 📂 [frontend/src/components/LoginRequiredModal.jsx](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/components/LoginRequiredModal.jsx) – Login required overlay prompting guest catalog conversions.
-* 📂 [frontend/src/components/LoginRequiredModal.css](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/components/LoginRequiredModal.css) – Glassmorphic shading, customized panels, and smooth alert entry animation styles.
+---
 
-### 3. Context State Managers
-* 📂 [frontend/src/context/AuthContext.jsx](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/context/AuthContext.jsx) – Integrates server response data, verifies registration states, and passes active credentials.
-* 📂 [frontend/src/context/AuthModalContext.jsx](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/context/AuthModalContext.jsx) – State manager for toggling guest guardrail prompts.
-* 📂 [frontend/src/context/CartContext.jsx](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/context/CartContext.jsx) – Observes authentication flags and clears client-side memory states automatically on session logout.
+### C. Medicine Management (`/api/medicines`)
 
-### 4. Specialized Dashboard Modules
-* 📂 [frontend/src/pages/AdminDashboard.jsx](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/pages/AdminDashboard.jsx) – Dashboard tab views, verification request audit queue, modal tables, and dynamic routing updates.
-* 📂 [frontend/src/pages/AdminDashboard.css](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/pages/AdminDashboard.css) – Visual grids, badge styles, auditing cards, and list tables.
-* 📂 [frontend/src/pages/DoctorDashboard.jsx](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/pages/DoctorDashboard.jsx) & [frontend/src/pages/PharmacistDashboard.jsx](file:///d:/Antigravity/Web%20Engineering/MedEasy/frontend/src/pages/PharmacistDashboard.jsx) – Integrates dynamic, personalized username greetings and credential alerts.
+#### `GET /api/medicines`
+Lists all products in the catalog. Supports query parameter filtering.
+*   **Response (200)**: `[ { id, name, brand, category, price, stock, requiresPrescription } ]`
+
+#### `POST /api/medicines` *(Protected, Roles = admin, pharmacist)*
+Appends a new medicine item to the inventory catalog.
+*   **Payload**: `{ name, brand, description, category, price, stock, requiresPrescription }`
+*   **Response (201)**: Created medicine object.
+
+---
+
+### D. Appointments (`/api/appointments`) *(Protected)*
+
+#### `POST /api/appointments/book` *(Role = patient)*
+Requests a session slot with a doctor.
+*   **Payload**: `{ doctorId, date, time }`
+*   **Response (201)**: Created appointment object.
+
+#### `GET /api/appointments`
+Returns a list of appointments for the current user (patient or doctor).
+*   **Response (200)**: List of appointments with populated doctor/patient profiles.
+
+---
+
+## 🌐 7. Integrations & Deployment Architecture
+
+### A. Resend HTTP Mailer Integration
+To avoid Port 25/587 outbound firewall blockages common on container hosts like Render:
+*   All emails are sent as HTTP POST requests to `https://api.resend.com/emails`.
+*   Requires a valid `Authorization: Bearer RESEND_API_KEY` token.
+*   Default sender address is defined via `SENDER_EMAIL` env variable, falling back to `onboarding@resend.dev`.
+
+### B. CORS Configuration
+The backend explicitly lists authorized domains under `FRONTEND_ORIGIN` (separated by commas). Requests from non-registered domains are blocked by CORS policies.
+
+### C. File Upload Specifications
+*   Middleware: `multer` disk storage (`backend/uploads/`).
+*   File Filters: Accepts images (jpeg, png, gif) and documents (pdf).
+*   Maximum File Size: Configured via `MAX_UPLOAD_BYTES` (default: 5MB).
+
+---
+
+## 🛠️ 8. Error Handling & Failure Recoveries
+
+*   **API Standard Response**: Every route failure returns a standardized payload:
+    ```json
+    {
+      "message": "Descriptive error message details"
+    }
+    ```
+*   **Seeding & Recovery Scripts**: A migration and seeding dataset (`backend/utils/seed.js`) allows restoring default platform users and catalogs within seconds.

@@ -5,64 +5,137 @@
 [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white&style=flat-square)](https://vitejs.dev/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white&style=flat-square)](https://www.mongodb.com/)
 [![Resend](https://img.shields.io/badge/Resend-Email_API-000000?style=flat-square)](https://resend.com/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-**MedEasy** is a responsive, full-stack digital healthcare application designed to connect patients, doctors, pharmacists, and administrators on a single platform. The portal supports role-based dashboards, secure registrations, real-time cart updates, and prescription uploads.
-
----
-
-## ✨ Core Features
-
-*   👥 **Multi-Role Dashboards**: Personalized workspaces for Patients, Doctors, Pharmacists, and Administrators to manage tasks relevant to their roles.
-*   🔒 **Secure Account Verification**: Real-time 6-digit OTP verification via email/phone upon registration.
-*   🛒 **Catalog & Shopping Cart**: Browse medicines, search the pharmacy catalog, and manage a persistent checkout cart.
-*   📄 **Prescription Uploads**: Patients can securely upload doctor prescriptions when requesting order fulfillments.
-*   📊 **Administrative Panel**: Manage user lists, view verification statuses, and approve medical practitioner requests.
+**MedEasy** is a state-of-the-art, responsive full-stack web platform designed to streamline digital healthcare. Featuring role-based dashboards, secure dynamic registrations, transactional communication systems, and interactive catalog systems, MedEasy provides a premium portal for patients, doctors, pharmacists, and administrators.
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ Architecture & System Design
 
-*   **Frontend**: React (Vite), React Bootstrap, React Icons, HSL tailormade Vanilla CSS.
-*   **Backend**: Node.js, Express.js.
-*   **Database**: MongoDB, Mongoose.
-*   **Services**: Resend HTTP API (for transactional OTP/verification emails).
+MedEasy uses a modern decoupled architecture:
+*   **Frontend**: React client scaffolded with Vite, featuring dynamic custom Vanilla CSS, React Bootstrap, React Icons, and interactive Chart.js dashboards.
+*   **Backend**: Node.js + Express.js API engine interfacing with MongoDB through Mongoose schemas.
+*   **Authentication**: JSON Web Token (JWT) session authorization, secure bcrypt hashing, and local storage state persistence.
+
+```mermaid
+graph TD
+    Client[React Frontend] -->|HTTP API Requests| Express[Express.js Backend Server]
+    Express -->|Queries & Indexes| Mongo[(MongoDB Database)]
+    Express -->|Session & Verification TTL| PendingCol[(PendingUsers TTL Collection)]
+```
+
+---
+
+## 🌟 Key Features
+
+### 🔒 Registration & OTP Verification Workspace
+*   **Dual-Channel Delivery**: Users can request verification codes via `email` or `phone`.
+*   **Mongoose TTL Indexing**: Unverified registration requests are written to a temporary `PendingUser` collection with a **15-minute Time-To-Live (TTL) index**. Accounts not verified within 15 minutes are automatically purged by MongoDB background processes to keep databases clutter-free.
+*   **Pakistani Phone Normalization**: Input formats (e.g., `03001234567`, `+923001234567`, or `3001234567`) are automatically normalized to standard database-compatible country format (`923001234567`).
+
+```mermaid
+sequenceDiagram
+    participant C as React Client
+    participant A as Auth Controller
+    participant P as PendingUser (TTL)
+    participant U as Active User DB
+
+    C->>A: POST /api/auth/register
+    A->>P: Temporarily cache user (TTL 15m expiration)
+    A-->>A: Generate & send 6-digit OTP
+    C->>A: POST /api/auth/verify-registration (OTP code)
+    A->>P: Verify matching code
+    A->>U: Move to Active User Collection (Bcrypt encryption)
+    A->>P: Delete cached record
+    A-->>C: Return 201 Created & JWT Token
+```
+
+### 📧 Transactional Mail Engine
+*   **Resend HTTP API Integration**: Emails (OTPs and password recovery codes) are dispatched via Resend's HTTPS API over Port 443. This bypasses common SMTP port-blocking policies enforced by hosts like Render Free.
+*   **Diagnostic Fallback**: When `RESEND_API_KEY` is not present (for local testing), emails gracefully execute a diagnostic fallback printing OTP verification details directly to the backend terminal.
+
+### 🛒 Session Cart Guardrails & Synchronization
+*   **Login-Required Checkout Prompt**: Unauthenticated guest users are blocked from adding items to carts. Instead, a glassmorphic modal prompts them to login/register, maintaining their in-progress selections seamlessly.
+*   **Session Purge Observer**: If the user's JWT session expires or they trigger a manual logout, local storage cart caches are instantly cleared to avoid state cross-contamination.
+
+### ⚡ Interactive Multi-Role Dashboards
+*   **Personalized Greeting Engine**: Custom greetings display the authenticated user's actual registered name dynamically, falling back securely to role titles if undefined.
+*   **Active Tab Query Sync**: URL query parameter states (e.g. `?tab=users`) synchronize dynamically inside dashboards using `useLocation()`, preventing full page reloads.
+*   **Admin Sidebar Navigation Filters**: Custom `hiddenFromSidebar` properties filter utility views out of side navigation drawers to keep dashboards clean.
+*   **Top Navbar Active Highlights**: Navbar icons display active indicators specifically matched against URL paths and queries, falling back to standard text highlights on hover.
+*   **Pakistani Date Engine**: Localized appointment dates use tailored utility functions matching the local region.
+*   **Brand Reload Workspace**: Clicking the logo triggers a full memory reload (`window.location.href`) resetting dashboards fresh.
+
+---
+
+## 📁 Repository Directory Structure
+
+```
+MedEasy/
+├── backend/                   # Express.js REST API Server
+│   ├── controllers/           # Auth, User, and Business Controllers
+│   ├── models/                # Mongoose Schemas (User, PendingUser, Medicine...)
+│   ├── routes/                # Express Route Handlers
+│   ├── utils/                 # Utilities (mailer.js, phone.js, verification.js)
+│   └── uploads/               # Local prescription and profile photo uploads
+├── frontend/                  # React client build (Vite framework)
+│   ├── src/
+│   │   ├── components/        # Modals, Navbar, and Reusable Components
+│   │   ├── context/           # Global State Providers (Auth, Cart, Modals...)
+│   │   ├── pages/             # Doctor, Pharmacist, Admin, and User Views
+│   │   └── main.jsx           # Entrypoint and routes
+│   └── package.json           # Client dependency configurations
+├── package.json               # root configurations & concurrently startup scripts
+└── system_documentation.md    # High-fidelity architectural breakdown
+```
 
 ---
 
 ## 🚀 Local Setup & Configuration
 
 ### 1. Prerequisites
-Make sure you have the following installed locally:
+Ensure you have the following installed on your system:
 *   [Node.js](https://nodejs.org/) (v18.x or higher)
-*   [MongoDB Community Server](https://www.mongodb.com/try/download/community)
+*   [MongoDB Community Server](https://www.mongodb.com/try/download/community) (running locally on port `27017`)
 
 ---
 
 ### 2. Configure Environment Variables
 
-Create a `.env` file inside the `backend` folder:
+#### Backend Configuration
+Copy the template env file:
+```powershell
+copy backend\.env.example backend\.env
+```
+Open `backend/.env` and update the properties:
 ```ini
 MONGO_URI=mongodb://localhost:27017/medeasy
-JWT_SECRET=your_jwt_secret_key
+JWT_SECRET=your_super_secure_jwt_secret_key
 FRONTEND_ORIGIN=http://localhost:5173,http://localhost:5174
 MAX_UPLOAD_BYTES=5242880
 
-# Resend Transactional Email API (Optional for Local Diagnostics)
+# Resend Transactional Email Setup (HTTP API)
 RESEND_API_KEY=your_resend_api_key_here
 SENDER_EMAIL=medeasy@medeasy.systems
 ```
-*(If no `RESEND_API_KEY` is provided, OTP codes are logged directly in the backend terminal logs for local testing.)*
+
+#### Frontend Configuration (Optional)
+If required, configure a `.env` file in the `frontend` folder:
+```ini
+VITE_API_BASE_URL=http://localhost:5000/api
+```
 
 ---
 
-### 3. Install & Seed Database
+### 3. Installation & Database Seeding
 
-From the root directory, install all dependencies:
+From the repository root, install dependencies for both the frontend and backend:
 ```powershell
 npm run install-all
 ```
 
-Seed the database with default medicines and demo accounts:
+Seed the database with sample medicines and user credentials:
 ```powershell
 cd backend
 npm run seed
@@ -70,24 +143,39 @@ npm run seed
 
 ---
 
-### 4. Run the Application
+### 4. Running the Application
 
-Launch both the backend API and frontend client concurrently:
+You can launch both services concurrently with a single command from the repository root:
 ```powershell
 npm run start
 ```
-*   **Frontend Client**: `http://localhost:5173`
-*   **Backend Server**: `http://localhost:5000`
+*   **React Frontend** starts on `http://localhost:5173` (Vite)
+*   **Express Backend** starts on `http://localhost:5000`
+
+> **Note**: Alternatively, you can start the backend individually using `npm run start-backend` and frontend using `npm run start-frontend`.
+
+#### Health Verification
+Verify that your API server is running correctly:
+*   Endpoint: `GET http://localhost:5000/api/health`
+*   Expected Output: `{ "status": "ok", "timestamp": 1234567890000 }`
 
 ---
 
-## 👥 Demo Accounts
+## 👥 Seed User Credentials
 
-Use these pre-seeded accounts to explore the different portal interfaces:
+Use the following pre-seeded users to audit the system's role-based permissions:
 
-| Role | Email | Password | Access & Capabilities |
+| Role | Email | Password | Access Level |
 | :--- | :--- | :--- | :--- |
-| **Administrator** | `admin@medeasy.local` | `AdminPass123` | Approves registrations, views audit stats |
-| **Doctor** | `doctor@medeasy.local` | `DoctorPass123` | Manages appointments, writes/views prescriptions |
-| **Pharmacist** | `pharm@medeasy.local` | `PharmPass123` | Reviews medicine stocks, updates apothecary dashboard |
-| **Patient** | `patient@medeasy.local` | `PatientPass123` | Browses catalog, uploads prescriptions, checks out |
+| **Administrator** | `admin@medeasy.local` | `AdminPass123` | Global Auditing, Verification Approvals, User Lists |
+| **Doctor** | `doctor@medeasy.local` | `DoctorPass123` | Patient Prescriptions, Dashboard Diagnostics |
+| **Pharmacist** | `pharm@medeasy.local` | `PharmPass123` | Medicine Stocks, Apothecary Sales Dashboard |
+| **Patient** | `patient@medeasy.local` | `PatientPass123` | Medicine Shop, Prescription Uploads, Cart checkout |
+
+---
+
+## 🌐 Production Deployment Guide
+
+*   **Backend**: Deploy to services like **Render** or **Railway**. 
+    *   *Tip*: Make sure to expose the variables `MONGO_URI`, `JWT_SECRET`, `RESEND_API_KEY`, and `SENDER_EMAIL` in the environment settings on your host dashboard.
+*   **Frontend**: Build the distribution bundle using `npm run build` and deploy static assets to **Vercel**, **Netlify**, or **GitHub Pages**. Set the `VITE_API_BASE_URL` to point to your live backend domain.
