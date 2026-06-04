@@ -169,11 +169,11 @@ Contact numbers in Pakistan are standardized using `backend/utils/phone.js` to p
 *   Returns `null` if the input is malformed.
 
 ### C. Authentication & Session Security Guardrails
-*   **JWT Architecture**: Sessions use JWT tokens signed with a secret hash (`JWT_SECRET`). Tokens are sent in the HTTP `Authorization` header as a `Bearer` token.
+*   **JWT Architecture & Tab-Isolated Multi-Session Persistence**: Sessions use JWT tokens signed with a secret hash (`JWT_SECRET`). Tokens (`medeasy_access_token`, `medeasy_refresh_token`, `medeasy_user`) are persisted in the browser's tab-scoped `sessionStorage`. This isolates user sessions on a per-tab basis, allowing a user to run separate active sessions concurrently (e.g. logging in as a Doctor in one tab and as a Patient in another) without cross-tab session pollution.
 *   **Role Transformation Middleware**:
     If a `pharmacy` user logs in, the auth middleware (`backend/middleware/auth.js`) transparently maps the role alias to `pharmacist` for route authorization if a valid `pharmacistDetails` representative is bound to the account.
 *   **Login-Required Checkout Prompt**: Unauthenticated guest users are blocked from adding items to a checkout cart. Instead, the `LoginRequiredModal.jsx` intercepts the request and redirects them to the signup page while preserving catalog state.
-*   **Session Purge Observer**: A React `useEffect` inside `CartContext.jsx` monitors the authentication state. If the user logs out or the token expires, the shopping cart is instantly cleared and all local storage persistence caches are wiped clean:
+*   **Session Purge Observer**: A React `useEffect` inside `CartContext.jsx` monitors the authentication state. If the user logs out or the token expires, the shopping cart is instantly cleared:
     ```javascript
     useEffect(() => {
       if (!isAuthenticated) {
