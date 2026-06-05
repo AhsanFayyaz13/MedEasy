@@ -7,3 +7,62 @@
 .review-author { display: flex; justify-content: space-between; margin-top: 1rem; font-size: 0.85rem; }
 .review-date { color: #9ca3af; }
 .review-form-card { border: none; border-radius: 18px; box-shadow: 0 6px 25px rgba(0,0,0,0.09); max-width: 600px; }
+
+/* Interactive Rating Star Selector */
+.star-select-btn {
+  background: none !important;
+  border: none !important;
+  padding: 0.25rem !important;
+  cursor: pointer;
+  transition: transform 0.15s ease-in-out;
+  outline: none !important;
+}
+.star-select-btn:hover {
+  transform: scale(1.25);
+}
+.star-select-btn:active {
+  transform: scale(0.95);
+}
+.star-select-btn .star-icon {
+  font-size: 1.6rem;
+  color: #cbd5e1;
+  transition: color 0.15s ease-in-out;
+}
+.star-select-btn .star-icon.filled,
+.star-select-btn.active .star-icon {
+  color: #f59e0b;
+  filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.2));
+}
+
+.rating-value-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #475569 !important;
+}
+
+/* Review Avatar & Card Details */
+.review-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.review-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.82rem;
+  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.2);
+  flex-shrink: 0;
+}
+.review-author-name {
+  font-weight: 700;
+  color: #0d1b2a;
+  font-size: 0.85rem;
+}
+

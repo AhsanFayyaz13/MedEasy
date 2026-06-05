@@ -13,6 +13,11 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, unique: true, required: true },
   profileImage: { type: String },
   address: { type: String },
+  status: { 
+    type: String, 
+    enum: ['active', 'suspended'], 
+    default: 'active' 
+  },
   
   // Profile verification status for professional roles (doctor, pharmacist, pharmacy)
   isVerifiedProfile: { type: Boolean, default: false },

@@ -45,7 +45,7 @@ const SAMPLE_MEDICINES = [
     in_stock: true,
     badge: 'Bestseller',
     badgeColor: '#34d399',
-    emoji: '💊',
+    emoji: '/panadol.png',
   },
   {
     id: 2,
@@ -60,7 +60,7 @@ const SAMPLE_MEDICINES = [
     in_stock: true,
     badge: 'Rx Required',
     badgeColor: '#f59e0b',
-    emoji: '🧪',
+    emoji: '/amoxil.png',
   },
   {
     id: 3,
@@ -75,7 +75,7 @@ const SAMPLE_MEDICINES = [
     in_stock: true,
     badge: null,
     badgeColor: null,
-    emoji: '💉',
+    emoji: '/risek.png',
   },
   {
     id: 4,
@@ -90,7 +90,7 @@ const SAMPLE_MEDICINES = [
     in_stock: true,
     badge: 'Popular',
     badgeColor: '#818cf8',
-    emoji: '🌿',
+    emoji: '/zyrtec.png',
   },
   {
     id: 5,
@@ -105,7 +105,7 @@ const SAMPLE_MEDICINES = [
     in_stock: false,
     badge: 'Out of Stock',
     badgeColor: '#ef4444',
-    emoji: '🔬',
+    emoji: '/glucophage.png',
   },
   {
     id: 6,
@@ -120,7 +120,7 @@ const SAMPLE_MEDICINES = [
     in_stock: true,
     badge: 'Rx Required',
     badgeColor: '#f59e0b',
-    emoji: '❤️',
+    emoji: '/norvasc.png',
   },
 ];
 
@@ -217,9 +217,26 @@ function HomeMedicineCard({ medicine }) {
 
       {/* Image area */}
       <Link to={`/medicines/${medicine.id}`} className="med-img-link">
-        <div className="med-emoji-box" style={{ display: 'flex', justifyContent: 'center', padding: '1.25rem 0' }}>
-          <MedicalIcon emoji={medicine.emoji} category={medicine.category} size={38} />
-        </div>
+        {(() => {
+          const isRealImage = medicine.emoji && (
+            medicine.emoji.startsWith('data:') || 
+            medicine.emoji.startsWith('/') || 
+            medicine.emoji.startsWith('http') || 
+            medicine.emoji.includes('.')
+          );
+          return (
+            <div 
+              className="med-emoji-box" 
+              style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                padding: isRealImage ? '0' : '1.25rem 0' 
+              }}
+            >
+              <MedicalIcon emoji={medicine.emoji} category={medicine.category} size={38} />
+            </div>
+          );
+        })()}
       </Link>
 
       {/* Info */}
@@ -297,7 +314,8 @@ export default function Home() {
                 price: dbMatch.price,
                 requires_prescription: dbMatch.requiresPrescription || false,
                 name: dbMatch.name,
-                brand: dbMatch.brand || sample.brand
+                brand: dbMatch.brand || sample.brand,
+                emoji: dbMatch.imageUrl || sample.emoji
               };
             }
             return sample;

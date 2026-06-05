@@ -58,7 +58,8 @@ exports.register = async (req, res) => {
     const { 
       name, email, password, role, phone, address, verificationChannel,
       pharmacyName, pharmacyLocation, pharmacyOutsidePicture, pharmacistName,
-      degreeName, degreePlace, licenseNumber, ownerName
+      degreeName, degreePlace, licenseNumber, ownerName,
+      specialty, pmcRegistration, degree, experience, clinicAddress, availableDays, consultationFee
     } = req.body;
 
     // Validate input - name, password, phone, and verificationChannel are required
@@ -69,6 +70,12 @@ exports.register = async (req, res) => {
     if (role === 'pharmacy') {
       if (!pharmacyName || !pharmacyLocation || !pharmacyOutsidePicture) {
         return res.status(400).json({ message: 'Missing pharmacy registration details: name, location, or outside picture.' });
+      }
+    }
+
+    if (role === 'doctor') {
+      if (!specialty || !pmcRegistration || !degree || experience === undefined || !clinicAddress || !availableDays || availableDays.length === 0 || consultationFee === undefined) {
+        return res.status(400).json({ message: 'Missing professional doctor registration details.' });
       }
     }
 
@@ -125,7 +132,14 @@ exports.register = async (req, res) => {
       pharmacistName,
       degreeName,
       degreePlace,
-      licenseNumber
+      licenseNumber,
+      specialty,
+      pmcRegistration,
+      degree,
+      experience,
+      clinicAddress,
+      availableDays,
+      consultationFee
     });
 
     // Log the verification code for temporary local testing in terminal
@@ -259,7 +273,14 @@ exports.verifyRegistration = async (req, res) => {
       isVerifiedProfile: pending.role === 'pharmacy' ? true : false,
       pharmacistDetails: {
         status: 'none'
-      }
+      },
+      specialty: pending.specialty,
+      pmcRegistration: pending.pmcRegistration,
+      degree: pending.degree,
+      experience: pending.experience,
+      clinicAddress: pending.clinicAddress,
+      availableDays: pending.availableDays,
+      consultationFee: pending.consultationFee
     };
     if (pending.email) {
       userFields.email = pending.email;
@@ -372,6 +393,10 @@ exports.login = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ message: 'This email or phone number is not registered. Please create an account.' });
+    }
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'Your account has been suspended by the administrator.' });
     }
 
     if (user) {
@@ -560,16 +585,33 @@ exports.uploadProfilePhoto = async (req, res) => {
 
     const user = await User.findById(req.user._id);
     if (!user) {
+      const fs = require('fs');
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Save the relative URL of the uploaded image
-    user.profileImage = `/uploads/${req.file.filename}`;
+    const fs = require('fs');
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const mimeType = req.file.mimetype;
+    const base64Data = fileBuffer.toString('base64');
+    user.profileImage = `data:${mimeType};base64,${base64Data}`;
+
+    // Clean up local temp file
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (err) {
+      console.error('Error deleting temp file:', err);
+    }
+
     await user.save();
 
     const updatedUser = await User.findById(user._id).select('-password');
     res.json(updatedUser);
   } catch (error) {
+    if (req.file && req.file.path) {
+      const fs = require('fs');
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
     res.status(500).json({ message: error.message });
   }
 };
@@ -674,8 +716,25 @@ exports.uploadPharmacistPhoto = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No photo file uploaded or invalid format.' });
     }
-    res.status(200).json({ filePath: `/uploads/${req.file.filename}` });
+    const fs = require('fs');
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const mimeType = req.file.mimetype;
+    const base64Data = fileBuffer.toString('base64');
+    const base64Url = `data:${mimeType};base64,${base64Data}`;
+
+    // Clean up local temp file
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (err) {
+      console.error('Error deleting temp file:', err);
+    }
+
+    res.status(200).json({ filePath: base64Url });
   } catch (error) {
+    if (req.file && req.file.path) {
+      const fs = require('fs');
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
     res.status(500).json({ message: error.message });
   }
 };

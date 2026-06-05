@@ -19,9 +19,30 @@ import './DoctorDashboard.css';
 const fmtDate = (d) => {
   if (!d) return '—';
   try {
-    return new Date(d + 'T00:00:00').toLocaleDateString('en-PK', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+    const dateStr = String(d);
+    const hasTimeOrIsIso = dateStr.includes('T') || dateStr.includes(' ') || dateStr.length > 10;
+    const targetDate = hasTimeOrIsIso ? new Date(dateStr) : new Date(dateStr + 'T00:00:00');
+    
+    if (isNaN(targetDate.getTime())) {
+      const fallbackDate = new Date(dateStr);
+      if (!isNaN(fallbackDate.getTime())) {
+        return fallbackDate.toLocaleDateString('en-PK', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      }
+      return dateStr;
+    }
+    return targetDate.toLocaleDateString('en-PK', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   } catch (e) {
-    return d;
+    return String(d);
+  }
+};
+
+const safeFmtTime = (t) => {
+  if (!t) return '—';
+  try {
+    const d = new Date(t);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    return '—';
   }
 };
 
@@ -891,7 +912,7 @@ export default function DoctorDashboard() {
                         {isMe ? 'You' : m.senderName}
                       </span>
                       <span className="text-muted" style={{ fontSize: '0.65rem' }}>
-                        {new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {safeFmtTime(m.time)}
                       </span>
                     </div>
                     <div 

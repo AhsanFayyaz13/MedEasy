@@ -35,8 +35,25 @@ router.post('/upload-pharmacy-image', upload.single('pharmacyImage'), (req, res)
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded or invalid format. Images/PDFs only.' });
     }
-    res.status(200).json({ filePath: `/uploads/${req.file.filename}` });
+    const fs = require('fs');
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const mimeType = req.file.mimetype;
+    const base64Data = fileBuffer.toString('base64');
+    const base64Url = `data:${mimeType};base64,${base64Data}`;
+
+    // Clean up local temp file
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (err) {
+      console.error('Error deleting temp file:', err);
+    }
+
+    res.status(200).json({ filePath: base64Url });
   } catch (error) {
+    if (req.file && req.file.path) {
+      const fs = require('fs');
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
     res.status(500).json({ message: error.message });
   }
 });

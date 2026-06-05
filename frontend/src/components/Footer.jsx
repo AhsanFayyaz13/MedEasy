@@ -3,14 +3,15 @@ import { Container, Row, Col } from 'react-bootstrap';
 import {
   FaPills,
   FaFacebookF,
-  FaTwitter,
   FaInstagram,
   FaLinkedinIn,
+  FaGithub,
   FaPhoneAlt,
   FaEnvelope,
   FaMapMarkerAlt,
   FaHeart,
 } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 import { useAuth } from '../context/AuthContext';
 import './Footer.css';
 
@@ -19,7 +20,7 @@ import './Footer.css';
  */
 export default function AppFooter() {
   const year = new Date().getFullYear();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userRole } = useAuth();
 
   return (
     <footer className="medeasy-footer">
@@ -39,9 +40,10 @@ export default function AppFooter() {
             </p>
             <div className="social-links">
               <a href="#" aria-label="Facebook"><FaFacebookF /></a>
-              <a href="#" aria-label="Twitter"><FaTwitter /></a>
+              <a href="#" aria-label="X (Twitter)"><FaXTwitter /></a>
               <a href="#" aria-label="Instagram"><FaInstagram /></a>
               <a href="https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><FaLinkedinIn /></a>
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><FaGithub /></a>
             </div>
           </Col>
 
@@ -53,6 +55,9 @@ export default function AppFooter() {
               <li><Link to="/medicines">Medicines</Link></li>
               <li><Link to="/appointments">Appointments</Link></li>
               <li><Link to="/cart">Cart</Link></li>
+              {isAuthenticated && userRole !== 'admin' && (
+                <li><Link to="/contact">Contact Us</Link></li>
+              )}
               <li><Link to="/orders">Order Tracking</Link></li>
             </ul>
           </Col>

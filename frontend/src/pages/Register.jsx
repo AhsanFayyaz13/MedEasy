@@ -7,6 +7,25 @@ import { ROLE_DASHBOARD } from '../context/AuthContext';
 import './Auth.css';
 
 
+// Specialty choices for Doctors
+const SPECIALTIES = [
+  'General Physician',
+  'Cardiologist',
+  'Dermatologist',
+  'Pediatrician',
+  'Gynecologist',
+  'Psychiatrist',
+  'Orthopedist',
+  'Neurologist',
+  'Ophthalmologist',
+  'ENT Specialist'
+];
+
+// Days of the week
+const DAYS_OF_WEEK = [
+  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+];
+
 // ─── Validation ───────────────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+]?[\d\s\-().]{7,15}$/;
@@ -45,6 +64,27 @@ function validate(fields) {
       errors.pharmacyOutsidePicture = 'Pharmacy outside picture is required.';
   }
 
+  if (fields.role === 'doctor') {
+    if (!fields.specialty)
+      errors.specialty = 'Specialty is required.';
+    if (!fields.pmcRegistration || !fields.pmcRegistration.trim())
+      errors.pmcRegistration = 'PMC/PMDC registration number is required.';
+    if (!fields.degree || !fields.degree.trim())
+      errors.degree = 'Medical degree is required.';
+    if (fields.experience === '' || fields.experience === null || fields.experience === undefined)
+      errors.experience = 'Years of experience is required.';
+    else if (Number(fields.experience) < 0)
+      errors.experience = 'Experience cannot be negative.';
+    if (!fields.clinicAddress || !fields.clinicAddress.trim())
+      errors.clinicAddress = 'Clinic physical address is required.';
+    if (fields.consultationFee === '' || fields.consultationFee === null || fields.consultationFee === undefined)
+      errors.consultationFee = 'Consultation fee is required.';
+    else if (Number(fields.consultationFee) < 0)
+      errors.consultationFee = 'Fee cannot be negative.';
+    if (!fields.availableDays || fields.availableDays.length === 0)
+      errors.availableDays = 'Please select at least one available day.';
+  }
+
   // Simplified password: only require 8 characters minimum
   if (!fields.password)
     errors.password = 'Password is required.';
@@ -80,7 +120,12 @@ function passwordStrength(pwd) {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-const INITIAL = { name: '', email: '', phone: '', role: '', password: '', confirmPassword: '', verificationChannel: 'phone', pharmacyName: '', ownerName: '' };
+const INITIAL = { 
+  name: '', email: '', phone: '', role: '', password: '', confirmPassword: '', 
+  verificationChannel: 'phone', pharmacyName: '', ownerName: '',
+  specialty: '', pmcRegistration: '', degree: '', experience: '', clinicAddress: '',
+  availableDays: [], consultationFee: ''
+};
 
 const serverUrl = import.meta.env?.VITE_API_BASE_URL
   ? import.meta.env.VITE_API_BASE_URL.replace('/api', '')
@@ -221,6 +266,16 @@ export default function Register() {
         payload.ownerName = fields.ownerName;
         payload.pharmacyLocation = fields.pharmacyLocation;
         payload.pharmacyOutsidePicture = fields.pharmacyOutsidePicture;
+      }
+
+      if (fields.role === 'doctor') {
+        payload.specialty = fields.specialty;
+        payload.pmcRegistration = fields.pmcRegistration;
+        payload.degree = fields.degree;
+        payload.experience = Number(fields.experience);
+        payload.clinicAddress = fields.clinicAddress;
+        payload.availableDays = fields.availableDays;
+        payload.consultationFee = Number(fields.consultationFee);
       }
 
       // 1. Submit basic details to create PendingUser record
@@ -632,10 +687,147 @@ export default function Register() {
                         {fields.pharmacyOutsidePicture && (
                           <div className="mt-2 text-success small d-flex align-items-center gap-1">
                             <span>✓ Image uploaded successfully!</span>
-                            <a href={`${serverUrl}${fields.pharmacyOutsidePicture}`} target="_blank" rel="noreferrer" className="text-decoration-underline text-primary">View Photo</a>
+                            <a href={fields.pharmacyOutsidePicture.startsWith('data:') ? fields.pharmacyOutsidePicture : `${serverUrl}${fields.pharmacyOutsidePicture}`} target="_blank" rel="noreferrer" className="text-decoration-underline text-primary">View Photo</a>
                           </div>
                         )}
                         <Form.Control.Feedback type="invalid">{errors.pharmacyOutsidePicture}</Form.Control.Feedback>
+                      </Form.Group>
+                    </Card>
+                  )}
+
+                  {/* Doctor Details */}
+                  {fields.role === 'doctor' && (
+                    <Card className="border-0 shadow-sm bg-light p-3 mb-4 rounded-3">
+                      <h6 className="fw-bold text-primary mb-3"><FaStethoscope className="me-2 text-primary" />Doctor Professional Details</h6>
+                      
+                      {/* Medical Specialty */}
+                      <Form.Group className="mb-3" controlId="regSpecialty">
+                        <Form.Label className="small fw-semibold">Medical Specialty <span className="required-star">*</span></Form.Label>
+                        <Form.Select
+                          name="specialty"
+                          value={fields.specialty || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isValid={isValid('specialty')}
+                          isInvalid={isInvalid('specialty')}
+                        >
+                          <option value="">-- Select Specialty --</option>
+                          {SPECIALTIES.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </Form.Select>
+                        <Form.Control.Feedback type="invalid">{errors.specialty}</Form.Control.Feedback>
+                      </Form.Group>
+
+                      {/* PMC Registration Number */}
+                      <Form.Group className="mb-3" controlId="regPmc">
+                        <Form.Label className="small fw-semibold">PMC/PMDC Registration Number <span className="required-star">*</span></Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="pmcRegistration"
+                          placeholder="e.g. 12345-P"
+                          value={fields.pmcRegistration || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isValid={isValid('pmcRegistration')}
+                          isInvalid={isInvalid('pmcRegistration')}
+                        />
+                        <Form.Control.Feedback type="invalid">{errors.pmcRegistration}</Form.Control.Feedback>
+                      </Form.Group>
+
+                      {/* Medical Degree */}
+                      <Form.Group className="mb-3" controlId="regDegree">
+                        <Form.Label className="small fw-semibold">Medical Degree(s) <span className="required-star">*</span></Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="degree"
+                          placeholder="e.g. MBBS, FCPS (Cardiology)"
+                          value={fields.degree || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isValid={isValid('degree')}
+                          isInvalid={isInvalid('degree')}
+                        />
+                        <Form.Control.Feedback type="invalid">{errors.degree}</Form.Control.Feedback>
+                      </Form.Group>
+
+                      {/* Years of Experience */}
+                      <Form.Group className="mb-3" controlId="regExperience">
+                        <Form.Label className="small fw-semibold">Years of Experience <span className="required-star">*</span></Form.Label>
+                        <Form.Control
+                          type="number"
+                          name="experience"
+                          placeholder="e.g. 8"
+                          min="0"
+                          value={fields.experience || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isValid={isValid('experience')}
+                          isInvalid={isInvalid('experience')}
+                        />
+                        <Form.Control.Feedback type="invalid">{errors.experience}</Form.Control.Feedback>
+                      </Form.Group>
+
+                      {/* Physical Clinic Address */}
+                      <Form.Group className="mb-3" controlId="regClinicAddress">
+                        <Form.Label className="small fw-semibold">Clinic Physical Address <span className="required-star">*</span></Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="clinicAddress"
+                          placeholder="e.g. Room 101, Shifa Clinic, Gulberg, Lahore"
+                          value={fields.clinicAddress || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isValid={isValid('clinicAddress')}
+                          isInvalid={isInvalid('clinicAddress')}
+                        />
+                        <Form.Control.Feedback type="invalid">{errors.clinicAddress}</Form.Control.Feedback>
+                      </Form.Group>
+
+                      {/* Consultation Fee */}
+                      <Form.Group className="mb-3" controlId="regFee">
+                        <Form.Label className="small fw-semibold">Consultation Fee (PKR) <span className="required-star">*</span></Form.Label>
+                        <Form.Control
+                          type="number"
+                          name="consultationFee"
+                          placeholder="e.g. 1500"
+                          min="0"
+                          value={fields.consultationFee || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isValid={isValid('consultationFee')}
+                          isInvalid={isInvalid('consultationFee')}
+                        />
+                        <Form.Control.Feedback type="invalid">{errors.consultationFee}</Form.Control.Feedback>
+                      </Form.Group>
+
+                      {/* Available Days */}
+                      <Form.Group className="mb-2">
+                        <Form.Label className="small fw-semibold">Available Consultation Days <span className="required-star">*</span></Form.Label>
+                        <div className="d-flex flex-wrap gap-3 mt-2 px-1 py-1 bg-white rounded border">
+                          {DAYS_OF_WEEK.map(day => {
+                            const isChecked = fields.availableDays?.includes(day);
+                            return (
+                              <Form.Check
+                                key={day}
+                                type="checkbox"
+                                id={`day-${day}`}
+                                label={day}
+                                checked={isChecked}
+                                className="small text-muted"
+                                style={{ minWidth: '110px' }}
+                                onChange={(e) => {
+                                  const updatedDays = e.target.checked
+                                    ? [...(fields.availableDays || []), day]
+                                    : (fields.availableDays || []).filter(d => d !== day);
+                                  setFields(prev => ({ ...prev, availableDays: updatedDays }));
+                                  setTouched(prev => ({ ...prev, availableDays: true }));
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                        {errors.availableDays && <div className="text-danger small mt-1 font-semibold">{errors.availableDays}</div>}
                       </Form.Group>
                     </Card>
                   )}

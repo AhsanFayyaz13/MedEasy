@@ -110,3 +110,35 @@ exports.deleteMedicine = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Upload medicine photo
+// @route   POST /api/medicines/upload-photo
+// @access  Private (Pharmacist/Admin)
+exports.uploadMedicinePhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file uploaded or invalid file format.' });
+    }
+
+    const fs = require('fs');
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const mimeType = req.file.mimetype;
+    const base64Data = fileBuffer.toString('base64');
+    const base64Url = `data:${mimeType};base64,${base64Data}`;
+
+    // Clean up local temp file
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (err) {
+      console.error('Error deleting temp file:', err);
+    }
+
+    res.status(200).json({ imageUrl: base64Url });
+  } catch (error) {
+    if (req.file && req.file.path) {
+      const fs = require('fs');
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+    res.status(500).json({ message: error.message });
+  }
+};

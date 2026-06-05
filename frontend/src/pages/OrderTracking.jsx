@@ -45,10 +45,22 @@ const STATUS_TABS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch (e) {
+    return String(iso);
+  }
 }
 function fmtTime(iso) {
-  return new Date(iso).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' });
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? String(iso) : d.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    return String(iso);
+  }
 }
 
 // ─── Progress bar row ─────────────────────────────────────────────────────────

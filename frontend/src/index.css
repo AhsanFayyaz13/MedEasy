@@ -234,3 +234,80 @@ body {
     font-size: 1.5rem;
   }
 }
+
+/* ── Global Theme Overrides ─────────────────────────────────── */
+
+/* Primary Buttons */
+.btn-primary, .btn-primary-custom {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1a3a5c 100%);
+  border: none;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(13, 27, 42, 0.2);
+  transition: all 0.2s ease-in-out;
+  border-radius: 10px;
+}
+.btn-primary:hover:not(:disabled), .btn-primary-custom:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(13, 27, 42, 0.3);
+  color: #ffffff;
+}
+.btn-primary:active, .btn-primary-custom:active {
+  transform: translateY(0);
+}
+.btn-primary:disabled, .btn-primary-custom:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+/* Outline Primary Buttons */
+.btn-outline-primary {
+  border-color: #38bdf8;
+  color: #38bdf8;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.2s ease-in-out;
+}
+.btn-outline-primary:hover:not(:disabled) {
+  background: #38bdf8;
+  border-color: #38bdf8;
+  color: #0d1b2a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+}
+
+/* Form inputs & selects focus rings */
+.form-control:focus,
+.form-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+  outline: none;
+}
+
+/* Page titles */
+.page-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #0d1b2a;
+  position: relative;
+  margin-bottom: 2.25rem;
+  display: block;
+}
+.page-title::after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 99px;
+  margin-top: 0.5rem;
+}
+
+/* Primary text & navy colors */
+.text-primary {
+  color: #38bdf8;
+}
+.text-navy {
+  color: #0d1b2a;
+}

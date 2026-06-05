@@ -67,18 +67,18 @@ async function seed() {
 
   // Sample medicines
   const meds = [
-    { name: 'Paracetamol 500mg', brand: 'Panadol', description: 'Pain reliever', category: 'Analgesics', price: 50, originalPrice: 65, stock: 200, requiresPrescription: false, manufacturer: 'GSK Pakistan Ltd.' },
-    { name: 'Amoxicillin 250mg', brand: 'Amoxil', description: 'Antibiotic', category: 'Antibiotics', price: 180, originalPrice: 200, stock: 80, requiresPrescription: true, manufacturer: 'PharmEvo Pvt. Ltd.' },
-    { name: 'Omeprazole 20mg', brand: 'Risek', description: 'Gastric relief', category: 'Gastroenterology', price: 95, originalPrice: 110, stock: 150, requiresPrescription: false, manufacturer: 'AGP Ltd.' },
-    { name: 'Cetirizine 10mg', brand: 'Zyrtec', description: 'Antihistamine', category: 'Antihistamines', price: 65, originalPrice: 75, stock: 320, requiresPrescription: false, manufacturer: 'GSK Pakistan Ltd.' },
-    { name: 'Metformin 500mg', brand: 'Glucophage', description: 'Anti-diabetic medicine', category: 'Diabetes', price: 120, originalPrice: 140, stock: 140, requiresPrescription: true, manufacturer: 'Merck Pvt. Ltd.' },
-    { name: 'Amlodipine 5mg', brand: 'Norvasc', description: 'Calcium channel blocker for blood pressure', category: 'Cardiology', price: 140, originalPrice: 160, stock: 160, requiresPrescription: true, manufacturer: 'Pfizer Pakistan' },
-    { name: 'Vitamin D3 5000 IU', brand: 'D-Vit', description: 'Essential vitamin for bone health', category: 'Vitamins & Supplements', price: 280, originalPrice: 320, stock: 210, requiresPrescription: false, manufacturer: 'Nutrifactor' },
-    { name: 'Atorvastatin 20mg', brand: 'Lipitor', description: 'Cholesterol lowering statin', category: 'Cardiology', price: 320, originalPrice: 350, stock: 130, requiresPrescription: true, manufacturer: 'Pfizer Pakistan' },
-    { name: 'Salbutamol Inhaler', brand: 'Ventolin', description: 'Respiratory bronchodilator', category: 'Respiratory', price: 450, originalPrice: 480, stock: 95, requiresPrescription: true, manufacturer: 'GSK Pakistan Ltd.' },
-    { name: 'Ibuprofen 400mg', brand: 'Brufen', description: 'Non-steroidal anti-inflammatory drug (NSAID)', category: 'Analgesics', price: 75, originalPrice: 90, stock: 240, requiresPrescription: false, manufacturer: 'Abbott Laboratories' },
-    { name: 'Loratadine 10mg', brand: 'Claritin', description: 'Second-generation non-drowsy antihistamine', category: 'Antihistamines', price: 55, originalPrice: 70, stock: 185, requiresPrescription: false, manufacturer: 'Bayer Pakistan' },
-    { name: 'Zinc 20mg Tablets', brand: 'Zincovit', description: 'Essential mineral supplement for immunity', category: 'Vitamins & Supplements', price: 160, originalPrice: 180, stock: 300, requiresPrescription: false, manufacturer: 'HealthCorp' },
+    { name: 'Paracetamol 500mg', brand: 'Panadol', description: 'Pain reliever', category: 'Analgesics', price: 50, originalPrice: 65, stock: 200, requiresPrescription: false, manufacturer: 'GSK Pakistan Ltd.', imageUrl: 'uploads/panadol.png' },
+    { name: 'Amoxicillin 250mg', brand: 'Amoxil', description: 'Antibiotic', category: 'Antibiotics', price: 180, originalPrice: 200, stock: 80, requiresPrescription: true, manufacturer: 'PharmEvo Pvt. Ltd.', imageUrl: 'uploads/amoxil.png' },
+    { name: 'Omeprazole 20mg', brand: 'Risek', description: 'Gastric relief', category: 'Gastroenterology', price: 95, originalPrice: 110, stock: 150, requiresPrescription: false, manufacturer: 'AGP Ltd.', imageUrl: 'uploads/risek.png' },
+    { name: 'Cetirizine 10mg', brand: 'Zyrtec', description: 'Antihistamine', category: 'Antihistamines', price: 65, originalPrice: 75, stock: 320, requiresPrescription: false, manufacturer: 'GSK Pakistan Ltd.', imageUrl: 'uploads/zyrtec.png' },
+    { name: 'Metformin 500mg', brand: 'Glucophage', description: 'Anti-diabetic medicine', category: 'Diabetes', price: 120, originalPrice: 140, stock: 140, requiresPrescription: true, manufacturer: 'Merck Pvt. Ltd.', imageUrl: 'uploads/glucophage.png' },
+    { name: 'Amlodipine 5mg', brand: 'Norvasc', description: 'Calcium channel blocker for blood pressure', category: 'Cardiology', price: 140, originalPrice: 160, stock: 160, requiresPrescription: true, manufacturer: 'Pfizer Pakistan', imageUrl: 'uploads/norvasc.png' },
+    { name: 'Vitamin D3 5000 IU', brand: 'D-Vit', description: 'Essential vitamin for bone health', category: 'Vitamins & Supplements', price: 280, originalPrice: 320, stock: 210, requiresPrescription: false, manufacturer: 'Nutrifactor', imageUrl: 'uploads/d-vit.png' },
+    { name: 'Atorvastatin 20mg', brand: 'Lipitor', description: 'Cholesterol lowering statin', category: 'Cardiology', price: 320, originalPrice: 350, stock: 130, requiresPrescription: true, manufacturer: 'Pfizer Pakistan', imageUrl: 'uploads/lipitor.png' },
+    { name: 'Salbutamol Inhaler', brand: 'Ventolin', description: 'Respiratory bronchodilator', category: 'Respiratory', price: 450, originalPrice: 480, stock: 95, requiresPrescription: true, manufacturer: 'GSK Pakistan Ltd.', imageUrl: 'uploads/ventolin.png' },
+    { name: 'Ibuprofen 400mg', brand: 'Brufen', description: 'Non-steroidal anti-inflammatory drug (NSAID)', category: 'Analgesics', price: 75, originalPrice: 90, stock: 240, requiresPrescription: false, manufacturer: 'Abbott Laboratories', imageUrl: 'uploads/brufen.png' },
+    { name: 'Loratadine 10mg', brand: 'Claritin', description: 'Second-generation non-drowsy antihistamine', category: 'Antihistamines', price: 55, originalPrice: 70, stock: 185, requiresPrescription: false, manufacturer: 'Bayer Pakistan', imageUrl: 'uploads/claritin.png' },
+    { name: 'Zinc 20mg Tablets', brand: 'Zincovit', description: 'Essential mineral supplement for immunity', category: 'Vitamins & Supplements', price: 160, originalPrice: 180, stock: 300, requiresPrescription: false, manufacturer: 'HealthCorp', imageUrl: 'uploads/zincovit.png' },
   ];
 
   for (const m of meds) {

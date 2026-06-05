@@ -12,16 +12,27 @@ const delay    = (ms) => new Promise((res) => setTimeout(res, ms));
 
 export function mapPrescriptionToFrontend(rx) {
   if (!rx) return null;
-  const urlParts = rx.fileUrl ? rx.fileUrl.split('/') : [];
-  const extractedFileName = urlParts.length > 0 ? urlParts[urlParts.length - 1] : 'prescription.png';
 
   let fileType = 'image/jpeg';
-  if (extractedFileName.toLowerCase().endsWith('.pdf')) {
-    fileType = 'application/pdf';
-  } else if (extractedFileName.toLowerCase().endsWith('.png')) {
-    fileType = 'image/png';
-  } else if (extractedFileName.toLowerCase().endsWith('.webp')) {
-    fileType = 'image/webp';
+  let extractedFileName = 'prescription.png';
+
+  if (rx.fileUrl && rx.fileUrl.startsWith('data:')) {
+    const matches = rx.fileUrl.match(/^data:([^;]+);base64,/);
+    if (matches && matches[1]) {
+      fileType = matches[1];
+    }
+    const ext = fileType.split('/')[1] || 'png';
+    extractedFileName = `prescription.${ext}`;
+  } else if (rx.fileUrl) {
+    const urlParts = rx.fileUrl.split('/');
+    extractedFileName = urlParts.length > 0 ? urlParts[urlParts.length - 1] : 'prescription.png';
+    if (extractedFileName.toLowerCase().endsWith('.pdf')) {
+      fileType = 'application/pdf';
+    } else if (extractedFileName.toLowerCase().endsWith('.png')) {
+      fileType = 'image/png';
+    } else if (extractedFileName.toLowerCase().endsWith('.webp')) {
+      fileType = 'image/webp';
+    }
   }
 
   return {
@@ -104,6 +115,6 @@ export async function deletePrescription(id) {
     if (idx !== -1) MOCK_PRESCRIPTIONS.splice(idx, 1);
     return { success: true };
   }
-  await api.delete(`/prescriptions/${id}/`);
+  await api.delete(`/prescriptions/${id}`);
   return { success: true };
 }

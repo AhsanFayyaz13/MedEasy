@@ -7,7 +7,12 @@ const {
   prescriptionAnalytics,
   listPendingProfessionals,
   approveProfessional,
-  declineProfessional
+  declineProfessional,
+  listAllUsers,
+  createAdminUser,
+  toggleUserStatus,
+  deleteUser,
+  updateUserRole
 } = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middleware/auth');
 
@@ -19,6 +24,12 @@ router.get('/sales', salesReport);
 router.get('/inventory', inventoryReport);
 router.get('/users', userStats);
 router.get('/prescriptions/analytics', prescriptionAnalytics);
+
+router.get('/users/all', listAllUsers);
+router.post('/users', createAdminUser);
+router.put('/users/:id/status', toggleUserStatus);
+router.put('/users/:id/role', updateUserRole);
+router.delete('/users/:id', deleteUser);
 
 router.get('/users/pending', listPendingProfessionals);
 router.put('/users/:id/approve', approveProfessional);

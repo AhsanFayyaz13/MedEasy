@@ -10,7 +10,18 @@ exports.uploadPrescription = async (req, res) => {
     if (req.body.fileUrl) {
       fileUrl = req.body.fileUrl;
     } else if (req.file) {
-      fileUrl = `/uploads/${req.file.filename}`;
+      const fs = require('fs');
+      const fileBuffer = fs.readFileSync(req.file.path);
+      const mimeType = req.file.mimetype;
+      const base64Data = fileBuffer.toString('base64');
+      fileUrl = `data:${mimeType};base64,${base64Data}`;
+
+      // Clean up local temp file
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (err) {
+        console.error('Error deleting temp file:', err);
+      }
     } else {
       return res.status(400).json({ message: 'No file uploaded or URL provided' });
     }
@@ -23,6 +34,10 @@ exports.uploadPrescription = async (req, res) => {
 
     res.status(201).json(prescription);
   } catch (error) {
+    if (req.file && req.file.path) {
+      const fs = require('fs');
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
     res.status(500).json({ message: error.message });
   }
 };
@@ -63,6 +78,34 @@ exports.verifyPrescription = async (req, res) => {
     } else {
       res.status(404).json({ message: 'Prescription not found' });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete a pending prescription
+// @route   DELETE /api/prescriptions/:id
+// @access  Private (Patient/Owner)
+exports.deletePrescription = async (req, res) => {
+  try {
+    const prescription = await Prescription.findById(req.params.id);
+
+    if (!prescription) {
+      return res.status(404).json({ message: 'Prescription not found' });
+    }
+
+    // Ensure the user owns the prescription
+    if (prescription.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this prescription' });
+    }
+
+    // Only allow deleting pending prescriptions
+    if (prescription.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending prescriptions can be deleted' });
+    }
+
+    await prescription.deleteOne();
+    res.json({ message: 'Prescription removed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -180,3 +180,135 @@ exports.declineProfessional = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    List all users
+// @route   GET /api/admin/users/all
+// @access  Private (Admin)
+exports.listAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}).select('-password');
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Create a user
+// @route   POST /api/admin/users
+// @access  Private (Admin)
+exports.createAdminUser = async (req, res) => {
+  try {
+    const { name, email, password, role, phone, address } = req.body;
+
+    if (!name || !password || !phone) {
+      return res.status(400).json({ message: 'Name, password, and phone number are required.' });
+    }
+
+    // Check if user already exists
+    let existingUser = await User.findOne({ phone });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this phone number already exists.' });
+    }
+    if (email) {
+      existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: 'User with this email already exists.' });
+      }
+    }
+
+    const newUser = new User({
+      name,
+      email,
+      password,
+      role: role || 'patient',
+      phone,
+      address,
+      isVerifiedProfile: true // Auto-verify accounts created by admin
+    });
+
+    await newUser.save();
+    
+    // Respond without password
+    const userResponse = newUser.toObject();
+    delete userResponse.password;
+
+    res.status(201).json(userResponse);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Toggle user status (active/suspended)
+// @route   PUT /api/admin/users/:id/status
+// @access  Private (Admin)
+exports.toggleUserStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent admin from suspending themselves
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot suspend your own admin account.' });
+    }
+
+    user.status = user.status === 'suspended' ? 'active' : 'suspended';
+    await user.save();
+
+    res.json({ message: `User status changed to ${user.status}`, user: { _id: user._id, status: user.status } });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Delete user
+// @route   DELETE /api/admin/users/:id
+// @access  Private (Admin)
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent admin from deleting themselves
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot delete your own admin account.' });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update user role
+// @route   PUT /api/admin/users/:id/role
+// @access  Private (Admin)
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot change your own role.' });
+    }
+
+    const validRoles = ['patient', 'pharmacist', 'doctor', 'admin', 'pharmacy'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role.' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({ message: `User role changed to ${role}`, user: { _id: user._id, role: user.role } });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

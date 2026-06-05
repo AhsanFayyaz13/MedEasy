@@ -12,13 +12,8 @@
  *   rating,         ← 0–5 float
  *   reviews_count,
  *   requires_prescription,
- *   description, usage, side_effects, storage,
- *   manufacturer, country_of_origin,
- *   image,          ← emoji used as placeholder
- *   tags[]
- * }
+ *   description, usage, side_effects, storage, manufacturer, country_of_origin, image, tags
  */
-
 const MEDICINES = [
   {
     id: 1,
@@ -42,7 +37,7 @@ const MEDICINES = [
     storage: 'Store below 30°C. Keep away from direct sunlight and moisture.',
     manufacturer: 'GSK Pakistan Ltd.',
     country_of_origin: 'Pakistan',
-    image: '💊',
+    image: '/panadol.png',
     tags: ['fever', 'headache', 'pain', 'paracetamol'],
   },
   {
@@ -67,7 +62,7 @@ const MEDICINES = [
     storage: 'Store at room temperature (15–25°C). Keep dry.',
     manufacturer: 'PharmEvo Pvt. Ltd.',
     country_of_origin: 'Pakistan',
-    image: '🧪',
+    image: '/amoxil.png',
     tags: ['antibiotic', 'infection', 'bacteria', 'respiratory'],
   },
   {
@@ -92,7 +87,7 @@ const MEDICINES = [
     storage: 'Store below 25°C. Keep in original packaging.',
     manufacturer: 'AGP Ltd.',
     country_of_origin: 'Pakistan',
-    image: '🔬',
+    image: '/risek.png',
     tags: ['gastric', 'acid', 'GERD', 'ulcer'],
   },
   {
@@ -116,7 +111,7 @@ const MEDICINES = [
     storage: 'Store at room temperature. Keep away from moisture.',
     manufacturer: 'Pfizer Pakistan Ltd.',
     country_of_origin: 'Pakistan',
-    image: '🌿',
+    image: '/zyrtec.png',
     tags: ['allergy', 'antihistamine', 'hay fever', 'itching'],
   },
   {
@@ -141,7 +136,7 @@ const MEDICINES = [
     storage: 'Store at room temperature, away from heat and moisture.',
     manufacturer: 'Merck Healthcare',
     country_of_origin: 'Germany',
-    image: '🩸',
+    image: '/glucophage.png',
     tags: ['diabetes', 'metformin', 'blood sugar', 'type 2'],
   },
   {
@@ -166,7 +161,7 @@ const MEDICINES = [
     storage: 'Store at 15–25°C away from light.',
     manufacturer: 'Pfizer Pakistan Ltd.',
     country_of_origin: 'Pakistan',
-    image: '❤️',
+    image: '/norvasc.png',
     tags: ['blood pressure', 'hypertension', 'heart', 'cardiology'],
   },
   {
@@ -190,7 +185,7 @@ const MEDICINES = [
     storage: 'Store in a cool, dry place below 25°C.',
     manufacturer: 'Sanofi Pakistan',
     country_of_origin: 'France',
-    image: '☀️',
+    image: '/d-vit.png',
     tags: ['vitamin d', 'supplement', 'bone', 'immune'],
   },
   {
@@ -215,7 +210,7 @@ const MEDICINES = [
     storage: 'Store at room temperature, protect from light and moisture.',
     manufacturer: 'Pfizer Pakistan Ltd.',
     country_of_origin: 'Pakistan',
-    image: '🫀',
+    image: '/lipitor.png',
     tags: ['cholesterol', 'statin', 'heart', 'lipitor'],
   },
   {
@@ -240,7 +235,7 @@ const MEDICINES = [
     storage: 'Store below 30°C. Do not puncture or incinerate even if apparently empty.',
     manufacturer: 'GSK Pakistan Ltd.',
     country_of_origin: 'Pakistan',
-    image: '💨',
+    image: '/ventolin.png',
     tags: ['asthma', 'inhaler', 'bronchodilator', 'respiratory'],
   },
   {
@@ -265,7 +260,7 @@ const MEDICINES = [
     storage: 'Store below 30°C. Keep away from moisture.',
     manufacturer: 'Abbott Laboratories Pakistan',
     country_of_origin: 'Pakistan',
-    image: '🩹',
+    image: '/brufen.png',
     tags: ['pain', 'inflammation', 'NSAID', 'fever'],
   },
   {
@@ -288,7 +283,7 @@ const MEDICINES = [
     storage: 'Store at room temperature. Keep dry.',
     manufacturer: 'Bayer Pakistan',
     country_of_origin: 'Germany',
-    image: '🌸',
+    image: '/claritin.png',
     tags: ['allergy', 'antihistamine', 'non-drowsy', 'rhinitis'],
   },
   {
@@ -311,9 +306,9 @@ const MEDICINES = [
     storage: 'Store in a cool, dry place. Keep out of reach of children.',
     manufacturer: 'Sami Pharmaceuticals',
     country_of_origin: 'Pakistan',
-    image: '⚡',
+    image: '/zincovit.png',
     tags: ['zinc', 'immune', 'supplement', 'mineral'],
-  },
+  }
 ];
 
 export default MEDICINES;

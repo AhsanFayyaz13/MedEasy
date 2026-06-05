@@ -96,7 +96,12 @@ export default function Reviews() {
                   <StarDisplay rating={r.rating} />
                   <p className="review-text mt-2">"{r.comment || r.text}"</p>
                   <div className="review-author d-flex justify-content-between align-items-center">
-                    <strong>{r.user?.name || 'Anonymous'}</strong>
+                    <div className="review-user-info d-flex align-items-center gap-2">
+                      <div className="review-avatar">
+                        {r.user?.name ? r.user.name[0].toUpperCase() : 'A'}
+                      </div>
+                      <strong className="review-author-name">{r.user?.name || 'Anonymous'}</strong>
+                    </div>
                     <span className="review-date text-muted">{r.createdAt?.slice(0, 10)}</span>
                   </div>
                 </Card.Body>
@@ -111,12 +116,23 @@ export default function Reviews() {
             {error && <Alert variant="danger">{error}</Alert>}
             <Form onSubmit={handleSubmit}>
               <Form.Group className="mb-3" controlId="reviewRating">
-                <Form.Label>Rating</Form.Label>
-                <Form.Select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
-                  {[5, 4, 3, 2, 1].map((n) => (
-                    <option key={n} value={n}>{n} Star{n > 1 ? 's' : ''}</option>
+                <Form.Label className="d-block mb-2">Rating</Form.Label>
+                <div className="interactive-stars-wrap d-flex gap-2">
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <button
+                      type="button"
+                      key={num}
+                      className={`star-select-btn ${num <= rating ? 'active' : ''}`}
+                      onClick={() => setRating(num)}
+                      aria-label={`${num} Star`}
+                    >
+                      {num <= rating ? <FaStar className="star-icon filled" /> : <FaRegStar className="star-icon" />}
+                    </button>
                   ))}
-                </Form.Select>
+                  <span className="ms-2 rating-value-label text-muted align-self-center">
+                    {rating} Star{rating > 1 ? 's' : ''}
+                  </span>
+                </div>
               </Form.Group>
               <Form.Group className="mb-3" controlId="reviewComment">
                 <Form.Label>Your Review</Form.Label>

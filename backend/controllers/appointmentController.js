@@ -91,7 +91,7 @@ exports.getMyAppointments = async (req, res) => {
 // @access  Private (Doctor or Patient)
 exports.updateAppointment = async (req, res) => {
   try {
-    const { status, consultationNotes, notes, prescription } = req.body;
+    const { status, consultationNotes, notes, prescription, date, time } = req.body;
     const appointment = await Appointment.findById(req.params.id);
 
     if (!appointment) {
@@ -124,6 +124,12 @@ exports.updateAppointment = async (req, res) => {
     }
     if (prescription && (isDoctor || req.user.role === 'admin')) {
       appointment.prescription = prescription;
+    }
+    if (date && (isDoctor || req.user.role === 'admin')) {
+      appointment.date = date;
+    }
+    if (time && (isDoctor || req.user.role === 'admin')) {
+      appointment.time = time;
     }
 
     const updatedAppointment = await appointment.save();

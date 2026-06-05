@@ -1,0 +1,147 @@
+/* ═══════════════════════════════════════════════════════════════
+   MedEasy – Contact Us Page Styles (Blue Theme Alignment)
+   ═══════════════════════════════════════════════════════════════ */
+
+.contact-page-wrapper {
+  background-color: #f8fafc;
+  min-height: calc(100vh - 140px); /* Adjust based on navbar/footer height */
+  display: flex;
+  align-items: center;
+}
+
+/* ── Header Section ────────────────────────────────────────── */
+.contact-subheading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+}
+
+.sub-icon {
+  color: var(--color-accent);
+}
+
+.contact-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.contact-title .text-highlight {
+  color: var(--color-accent);
+}
+
+.contact-subtitle {
+  font-size: 0.95rem;
+  color: #64748b;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+/* ── Card Styling ──────────────────────────────────────────── */
+.contact-card {
+  border-radius: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ── Form Inputs & Labels ──────────────────────────────────── */
+.form-label-with-icon {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.label-icon {
+  color: var(--color-accent);
+  font-size: 0.95rem;
+}
+
+/* Read-Only inputs (Disabled look) */
+.contact-input-readonly:disabled {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: not-allowed;
+  box-shadow: none !important;
+}
+
+/* Editable Select & Inputs */
+.contact-select,
+.contact-textarea {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #0f172a;
+  background-color: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.contact-textarea {
+  resize: vertical;
+}
+
+.contact-select:focus,
+.contact-textarea:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15) !important;
+  outline: none;
+}
+
+/* Placeholder styling */
+.contact-select::placeholder,
+.contact-textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* ── Submit Button ─────────────────────────────────────────── */
+.contact-btn-submit {
+  background: linear-gradient(135deg, #0d1b2a, #1a3a5c) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 14px rgba(13, 27, 42, 0.2) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.contact-btn-submit:hover:not(:disabled) {
+  opacity: 0.92 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(13, 27, 42, 0.3) !important;
+}
+
+.contact-btn-submit:active {
+  transform: translateY(0);
+}
+
+.contact-btn-submit:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none !important;
+}
+
+/* ── Responsiveness ───────────────────────────────────────── */
+@media (max-width: 576px) {
+  .contact-title {
+    font-size: 2rem;
+  }
+  
+  .contact-card {
+    border-radius: 16px;
+  }
+}

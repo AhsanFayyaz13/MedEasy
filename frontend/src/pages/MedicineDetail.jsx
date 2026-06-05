@@ -186,9 +186,29 @@ export default function MedicineDetail() {
               )}
 
               {/* Emoji "image" replaced with MedicalIcon */}
-              <div className="detail-emoji-box" style={{ display: 'flex', justifyContent: 'center', padding: '2.5rem 0', background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', borderRadius: '16px' }}>
-                <MedicalIcon emoji={med.image} category={med.category} size={64} />
-              </div>
+              {(() => {
+                const isRealImage = med.image && (
+                  med.image.startsWith('data:') || 
+                  med.image.startsWith('/') || 
+                  med.image.startsWith('http') || 
+                  med.image.includes('.')
+                );
+                return (
+                  <div 
+                    className="detail-emoji-box" 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      padding: isRealImage ? '0' : '2.5rem 0', 
+                      background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', 
+                      borderRadius: '16px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <MedicalIcon emoji={med.image} category={med.category} size={64} />
+                  </div>
+                );
+              })()}
 
               {/* Rx alert */}
               {med.requires_prescription && (

@@ -301,22 +301,7 @@ export default function AppNavbar() {
                     >
                       <FaTachometerAlt className="nav-icon" /> Admin Dashboard
                     </Nav.Link>
-                    <Nav.Link
-                      as={Link}
-                      to="/admin?tab=users"
-                      onClick={closeNav}
-                      className={`dashboard-link ${(location.pathname === '/admin' && activeTab === 'users') ? 'active' : ''}`}
-                    >
-                      <FaUsers className="nav-icon" /> User Management
-                    </Nav.Link>
-                    <Nav.Link
-                      as={Link}
-                      to="/admin?tab=verifications"
-                      onClick={closeNav}
-                      className={`dashboard-link ${(location.pathname === '/admin' && activeTab === 'verifications') ? 'active' : ''}`}
-                    >
-                      <FaUserCheck className="nav-icon" /> Verification Requests
-                    </Nav.Link>
+
                   </>
                 ) : (
                   roleMeta.dashPath && (

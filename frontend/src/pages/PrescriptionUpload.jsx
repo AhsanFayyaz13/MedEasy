@@ -22,7 +22,15 @@ function fmtBytes(b) {
   return `${(b/(1024*1024)).toFixed(2)} MB`;
 }
 function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('en-PK', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  } catch (e) {
+    return String(iso);
+  }
 }
 function validateFile(f) {
   if (!f) return 'Please select a file.';
@@ -92,11 +100,30 @@ function PrescriptionCard({ rx, onDelete }) {
   const [deleting, setDeleting] = useState(false);
   const handleDelete = async () => { setDeleting(true); await onDelete(rx.id); setDeleting(false); };
 
+  const isImage = rx.fileType && rx.fileType !== 'application/pdf';
+
   return (
     <div className={`rx-history-card status-${rx.status}`} style={{borderLeftColor:cfg.border}}>
-      <div className="rx-card-icon-wrap" style={{background:cfg.bg}}>
-        <FileTypeIcon type={rx.fileType} size="1.5rem"/>
-      </div>
+      {isImage && rx.fileUrl ? (
+        <a 
+          href={rx.fileUrl.startsWith('data:') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} 
+          target="_blank" 
+          rel="noreferrer" 
+          className="rx-card-image-preview-link"
+        >
+          <img 
+            src={rx.fileUrl.startsWith('data:') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} 
+            alt="Prescription preview" 
+          />
+          <div className="rx-image-hover-overlay">
+            <FaEye size={18} />
+          </div>
+        </a>
+      ) : (
+        <div className="rx-card-icon-wrap" style={{background:cfg.bg}}>
+          <FileTypeIcon type={rx.fileType} size="1.5rem"/>
+        </div>
+      )}
       <div className="rx-card-body">
         <div className="rx-card-top">
           <div className="rx-name-wrap">
@@ -134,7 +161,7 @@ function PrescriptionCard({ rx, onDelete }) {
         )}
         <div className="rx-card-actions">
           {rx.fileUrl && (
-            <Button variant="outline-primary" size="sm" className="me-2 rx-view-btn" href={`${serverUrl}${rx.fileUrl}`} target="_blank" rel="noreferrer">
+            <Button variant="outline-primary" size="sm" className="me-2 rx-view-btn" href={rx.fileUrl.startsWith('data:') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} target="_blank" rel="noreferrer">
               <FaEye className="me-1"/>View File
             </Button>
           )}

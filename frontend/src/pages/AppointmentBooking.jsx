@@ -17,18 +17,33 @@ import { useLocation } from 'react-router-dom';
 import './AppointmentBooking.css';
 
 const fmtDate = (d) => {
-  if (!d) return '';
-  const dateStr = String(d);
-  const targetDate = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00');
-  
-  if (isNaN(targetDate.getTime())) {
-    const directDate = new Date(dateStr);
-    if (!isNaN(directDate.getTime())) {
-      return directDate.toLocaleDateString('en-PK', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+  if (!d) return '—';
+  try {
+    const dateStr = String(d);
+    const hasTimeOrIsIso = dateStr.includes('T') || dateStr.includes(' ') || dateStr.length > 10;
+    const targetDate = hasTimeOrIsIso ? new Date(dateStr) : new Date(dateStr + 'T00:00:00');
+    
+    if (isNaN(targetDate.getTime())) {
+      const fallbackDate = new Date(dateStr);
+      if (!isNaN(fallbackDate.getTime())) {
+        return fallbackDate.toLocaleDateString('en-PK', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      }
+      return dateStr;
     }
-    return 'Invalid Date';
+    return targetDate.toLocaleDateString('en-PK', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  } catch (e) {
+    return String(d);
   }
-  return targetDate.toLocaleDateString('en-PK', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+};
+
+const safeFmtTime = (t) => {
+  if (!t) return '—';
+  try {
+    const d = new Date(t);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    return '—';
+  }
 };
 
 const STATUS_CFG = {
@@ -260,8 +275,13 @@ export default function AppointmentBooking() {
   const getBookedSlots = () => {
     if (!selectedDoc || !date) return [];
     const combined = [...myApts, ...MOCK_APPOINTMENTS];
+    const targetDateStr = date.split('T')[0];
     return combined
-      .filter(a => a.doctorId === selectedDoc.id && a.date === date && a.status === 'scheduled')
+      .filter(a => {
+        if (a.doctorId !== selectedDoc.id || a.status !== 'scheduled' || !a.date) return false;
+        const apptDateStr = String(a.date).split('T')[0];
+        return apptDateStr === targetDateStr;
+      })
       .map(a => a.time);
   };
   const bookedSlots = getBookedSlots();
@@ -596,7 +616,7 @@ export default function AppointmentBooking() {
                           {isMe ? 'You' : m.senderName}
                         </span>
                         <span className="text-muted" style={{ fontSize: '0.65rem' }}>
-                          {new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {safeFmtTime(m.time)}
                         </span>
                       </div>
                       <div 

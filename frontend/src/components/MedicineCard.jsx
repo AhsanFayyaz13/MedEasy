@@ -24,7 +24,8 @@ export default function MedicineCard({ medicine }) {
     id,
     name,
     brand         = '',
-    image         = '💊',
+    image,
+    imageUrl,
     price,
     original_price,
     discount_pct  = 0,
@@ -34,6 +35,8 @@ export default function MedicineCard({ medicine }) {
     reviews_count = 0,
     requires_prescription = false,
   } = medicine;
+
+  const displayImage = image || imageUrl || '💊';
 
   const inStock  = stock > 0;
   const lowStock = inStock && stock <= 20;
@@ -87,7 +90,7 @@ export default function MedicineCard({ medicine }) {
       {/* Image area */}
       <Link to={`/medicines/${id}`} className="card-img-link" tabIndex={-1}>
         <div className="medicine-img-box">
-          <MedicalIcon emoji={image} category={category} size={40} />
+          <MedicalIcon emoji={displayImage} category={category} size={40} />
         </div>
         {requires_prescription && (
           <Badge bg="warning" text="dark" className="rx-badge">Rx Required</Badge>

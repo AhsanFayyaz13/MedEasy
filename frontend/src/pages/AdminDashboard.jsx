@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../services/api';
 import {
@@ -19,12 +19,10 @@ import {
   Title, Tooltip, Legend,
 } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
-import {
-  MOCK_USERS, MONTHLY_SALES, TOP_MEDICINES, SALES_KPI,
-  INVENTORY_KPI, LOW_STOCK_ITEMS, RX_KPI, RX_BY_MONTH,
-} from '../data/mockAdminData';
+
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 import './AdminDashboard.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler, Title, Tooltip, Legend);
@@ -33,14 +31,32 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 const ROLES = ['patient','doctor','pharmacist','admin'];
 const ROLE_COLOR = { patient:'primary', doctor:'info', pharmacist:'success', admin:'danger' };
 const STATUS_COLOR = { active:'success', suspended:'warning' };
-const fmtRs = (n) => `Rs. ${n.toLocaleString()}`;
+const fmtRs = (n) => `Rs. ${(n || 0).toLocaleString()}`;
 const fmtDate = (d) => {
   if (!d) return '—';
   try {
-    return new Date(d + 'T00:00:00').toLocaleDateString('en-PK', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+    const dateStr = String(d);
+    const hasTime = dateStr.includes('T') || dateStr.includes(' ') || dateStr.length > 10;
+    const dt = hasTime ? new Date(dateStr) : new Date(dateStr + 'T00:00:00');
+    if (isNaN(dt.getTime())) return dateStr;
+    return dt.toLocaleDateString('en-PK', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   } catch (e) {
-    return d;
+    return String(d);
   }
+};
+const safeFmtDateOnly = (t) => {
+  if (!t) return '—';
+  try {
+    const d = new Date(t);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-PK');
+  } catch (e) { return '—'; }
+};
+const safeFmtJoined = (t) => {
+  if (!t) return '—';
+  try {
+    const d = new Date(t);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  } catch (e) { return '—'; }
 };
 const pdfPlaceholder = (label) => alert(`PDF download for "${label}" will be available once backend is connected.`);
 const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'https://medeasy-backend-a5yi.onrender.com';
@@ -66,15 +82,32 @@ function KpiCard({ label, value, icon, color, sub }) {
 }
 
 /* ═══════════════ TAB 0 – OVERVIEW (LANDING) ═══════════════════ */
-function OverviewTab({ setActive, stats }) {
+function OverviewTab({ setActive, stats, orders }) {
   const { user } = useAuth();
-  const barData = {
-    labels: MONTHLY_SALES.labels,
-    datasets: [
-      { label:'Revenue (Rs.)', data: MONTHLY_SALES.revenue, backgroundColor:'rgba(167, 139, 250, 0.7)', borderRadius:8, borderSkipped:false },
-      { label:'Orders',        data: MONTHLY_SALES.orders,  backgroundColor:'rgba(56, 189, 248, 0.7)', borderRadius:8, borderSkipped:false },
-    ],
-  };
+
+  // Compute last-6-months chart from real orders
+  const barData = useMemo(() => {
+    const now = new Date();
+    const labels = [], revenue = [], orderCounts = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      labels.push(d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+      const mo = (orders || []).filter(o => {
+        if (o.status === 'cancelled') return false;
+        const od = new Date(o.createdAt);
+        return od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth();
+      });
+      revenue.push(mo.reduce((s, o) => s + (o.totalAmount || 0), 0));
+      orderCounts.push(mo.length);
+    }
+    return {
+      labels,
+      datasets: [
+        { label: 'Revenue (Rs.)', data: revenue,      backgroundColor: 'rgba(167, 139, 250, 0.7)', borderRadius: 8, borderSkipped: false },
+        { label: 'Orders',        data: orderCounts,  backgroundColor: 'rgba(56, 189, 248, 0.7)',  borderRadius: 8, borderSkipped: false },
+      ],
+    };
+  }, [orders]);
 
   const shortcuts = [
     { label: 'User Management', tab: 'users', icon: <FaUsers size={24} />, bg: '#e0f2fe', color: '#0369a1', desc: 'Manage patients, doctors & roles' },
@@ -95,9 +128,9 @@ function OverviewTab({ setActive, stats }) {
 
       {/* KPI Cards Grid */}
       <Row className="g-3 mb-4">
-        <Col sm={6} xl={3}><KpiCard label="Total Platform Users" value="5,200" icon={<FaUsers />} color="#818cf8" sub="+12% from last month" /></Col>
-        <Col sm={6} xl={3}><KpiCard label="Orders Today" value={stats.ordersCount} icon={<FaShoppingCart />} color="#38bdf8" sub="Processing" /></Col>
-        <Col sm={6} xl={3}><KpiCard label="Revenue MTD" value="Rs. 2.4M" icon={<FaMoneyBillWave />} color="#10b981" sub="Target: Rs. 3.0M" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Total Platform Users" value={stats.usersCount} icon={<FaUsers />} color="#818cf8" sub="Registered Accounts" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Orders Today" value={stats.ordersCount} icon={<FaShoppingCart />} color="#38bdf8" sub="Total active/processed" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Revenue MTD" value={fmtRs(stats.revenueMtd)} icon={<FaMoneyBillWave />} color="#10b981" sub="Month to Date" /></Col>
         <Col sm={6} xl={3}><KpiCard label="Platform Appointments" value={stats.aptsCount} icon={<FaCalendarCheck />} color="#f59e0b" sub="Active hospital bookings" /></Col>
       </Row>
 
@@ -145,68 +178,87 @@ function UsersTab({ users, setUsers }) {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newPhone, setNewPhone] = useState('');
   const [newRole, setNewRole] = useState('patient');
 
   const visible = users.filter(u => {
+    if (u.role === 'admin') return false;
     const matchRole   = roleFilter === 'all' || u.role === roleFilter;
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase())
-                     || u.email.toLowerCase().includes(search.toLowerCase());
+                     || (u.email && u.email.toLowerCase().includes(search.toLowerCase()));
     return matchRole && matchSearch;
   });
 
-  const handleRoleChange = (id, newRole) => {
-    setUsers(prev => prev.map(u => u.id === id ? {...u, role: newRole} : u));
-    toast.success(`Role updated to ${newRole}`);
-  };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm('Delete this user? This cannot be undone.')) return;
-    setUsers(prev => prev.filter(u => u.id !== id));
-    toast.success('User removed from platform database');
-  };
-
-  const handleToggleStatus = (id) => {
-    setUsers(prev => prev.map(u => u.id === id
-      ? {...u, status: u.status === 'active' ? 'suspended' : 'active'}
-      : u));
-    const target = users.find(u => u.id === id);
-    if (target) {
-      toast.success(`User Account is now ${target.status === 'active' ? 'Suspended' : 'Activated'}`);
+    try {
+      await api.delete(`/admin/users/${id}`);
+      setUsers(prev => prev.filter(u => u.id !== id));
+      toast.success('User removed from platform database');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete user');
     }
   };
 
-  const handleCreateUser = (e) => {
-    e.preventDefault();
-    if (!newName.trim() || !newEmail.trim() || !newPassword.trim()) return;
-
-    const newUser = {
-      id: Math.max(...users.map(u => u.id), 0) + 1,
-      name: newName,
-      email: newEmail,
-      role: newRole,
-      status: 'active',
-      orders: 0,
-      joined: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-    };
-
-    setUsers(prev => [newUser, ...prev]);
-    toast.success(`Account for ${newName} as ${newRole} created successfully!`);
-    setShowModal(false);
-    setNewName('');
-    setNewEmail('');
-    setNewPassword('');
-    setNewRole('patient');
+  const handleToggleStatus = async (id) => {
+    try {
+      const { data } = await api.put(`/admin/users/${id}/status`);
+      setUsers(prev => prev.map(u => u.id === id
+        ? {...u, status: data.user.status}
+        : u));
+      toast.success(`User Account is now ${data.user.status === 'suspended' ? 'Suspended' : 'Activated'}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update user status');
+    }
   };
 
-  const counts = ROLES.reduce((a, r) => ({...a, [r]: users.filter(u=>u.role===r).length}), {});
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (!newName.trim() || !newEmail.trim() || !newPassword.trim() || !newPhone.trim()) {
+      toast.error('All required fields (*) must be filled.');
+      return;
+    }
+
+    try {
+      const { data } = await api.post('/admin/users', {
+        name: newName,
+        email: newEmail,
+        password: newPassword,
+        role: newRole,
+        phone: newPhone
+      });
+
+      const newUser = {
+        ...data,
+        id: data._id,
+        joined: safeFmtJoined(data.createdAt),
+        orders: 0
+      };
+
+      setUsers(prev => [newUser, ...prev]);
+      toast.success(`Account for ${newName} as ${newRole} created successfully!`);
+      setShowModal(false);
+      setNewName('');
+      setNewEmail('');
+      setNewPassword('');
+      setNewPhone('');
+      setNewRole('patient');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to register account');
+    }
+  };
+
+  const nonAdminUsers = users.filter(u => u.role !== 'admin');
+  const counts = ROLES.filter(r => r !== 'admin').reduce((a, r) => ({...a, [r]: nonAdminUsers.filter(u=>u.role===r).length}), {});
 
   return (
     <>
       {/* Summary pills */}
       <div className="adm-section-toolbar mb-3">
         <div className="adm-user-summary">
-          <span className="adm-user-total">{users.length} total users</span>
-          {ROLES.map(r => (
+          <span className="adm-user-total">{nonAdminUsers.length} total users</span>
+          {ROLES.filter(r => r !== 'admin').map(r => (
             <Badge key={r} bg={ROLE_COLOR[r]} className="adm-role-pill" onClick={() => setRoleFilter(r)} role="button">
               {counts[r]} {r}s
             </Badge>
@@ -224,7 +276,7 @@ function UsersTab({ users, setUsers }) {
         <Form.Select className="adm-role-filter" value={roleFilter}
           onChange={e => setRoleFilter(e.target.value)}>
           <option value="all">All Roles</option>
-          {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase()+r.slice(1)}</option>)}
+          {ROLES.filter(r => r !== 'admin').map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase()+r.slice(1)}</option>)}
         </Form.Select>
         <Button variant="outline-secondary" size="sm" className="adm-dl-btn"
           onClick={() => pdfPlaceholder('User List')}>
@@ -254,10 +306,9 @@ function UsersTab({ users, setUsers }) {
                   </div>
                 </td>
                 <td>
-                  <Form.Select size="sm" className="adm-role-select"
-                    value={u.role} onChange={e => handleRoleChange(u.id, e.target.value)}>
-                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                  </Form.Select>
+                  <Badge bg={ROLE_COLOR[u.role]} className="cat-badge">
+                    {u.role}
+                  </Badge>
                 </td>
                 <td>
                   <Badge bg={STATUS_COLOR[u.status]} text={u.status==='suspended'?'dark':undefined}
@@ -292,6 +343,10 @@ function UsersTab({ users, setUsers }) {
             <Form.Group className="mb-3">
               <Form.Label>Email Address *</Form.Label>
               <Form.Control required type="email" placeholder="ahmed@example.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Phone Number *</Form.Label>
+              <Form.Control required placeholder="03001234567" value={newPhone} onChange={e => setNewPhone(e.target.value)} />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Secure Password *</Form.Label>
@@ -954,20 +1009,74 @@ function OrdersTab({ orders, setOrders }) {
 }
 
 /* ═══════════════ TAB 5 – REPORTS & ANALYTICS ════════════════ */
-function ReportsTab() {
+function ReportsTab({ orders, medicines, apts }) {
+
+  // ── Build last-6-months revenue & order count from real orders ──
+  const monthlyData = useMemo(() => {
+    const now = new Date();
+    const labels = [];
+    const revenue = [];
+    const orderCounts = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      labels.push(label);
+
+      const monthOrders = (orders || []).filter(o => {
+        if (o.status === 'cancelled') return false;
+        const od = new Date(o.createdAt);
+        return od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth();
+      });
+
+      revenue.push(monthOrders.reduce((s, o) => s + (o.totalAmount || 0), 0));
+      orderCounts.push(monthOrders.length);
+    }
+    return { labels, revenue, orderCounts };
+  }, [orders]);
+
+  // ── Top medicines: aggregate units sold from order items ──
+  const topMedicines = useMemo(() => {
+    const map = {};
+    (orders || []).forEach(o => {
+      if (o.status === 'cancelled') return;
+      (o.items || []).forEach(item => {
+        const name = item.medicineName || item.name || 'Unknown';
+        const category = item.category || '—';
+        if (!map[name]) map[name] = { name, category, units: 0, revenue: 0 };
+        map[name].units += item.quantity || 0;
+        map[name].revenue += (item.price || 0) * (item.quantity || 0);
+      });
+    });
+    return Object.values(map)
+      .sort((a, b) => b.units - a.units)
+      .slice(0, 5);
+  }, [orders]);
+
+  // ── Doctor leaderboard: count completed appointments per doctor ──
+  const doctorLeaderboard = useMemo(() => {
+    const map = {};
+    (apts || []).filter(a => a.status === 'completed').forEach(a => {
+      const name = a.doctorName || a.doctorId?.name || 'Unknown Doctor';
+      const dept = a.doctorId?.specialization || a.specialization || '—';
+      if (!map[name]) map[name] = { name, dept, cases: 0 };
+      map[name].cases += 1;
+    });
+    return Object.values(map)
+      .sort((a, b) => b.cases - a.cases)
+      .slice(0, 5);
+  }, [apts]);
+
   const barData = {
-    labels: MONTHLY_SALES.labels,
+    labels: monthlyData.labels,
     datasets: [
-      { label:'Revenue (Rs.)', data: MONTHLY_SALES.revenue, backgroundColor:'rgba(56,189,248,0.7)', borderRadius:8, borderSkipped:false },
-      { label:'Orders',        data: MONTHLY_SALES.orders,  backgroundColor:'rgba(129,140,248,0.7)', borderRadius:8, borderSkipped:false },
+      { label: 'Revenue (Rs.)', data: monthlyData.revenue,     backgroundColor: 'rgba(56,189,248,0.7)', borderRadius: 8, borderSkipped: false },
+      { label: 'Orders',        data: monthlyData.orderCounts, backgroundColor: 'rgba(129,140,248,0.7)', borderRadius: 8, borderSkipped: false },
     ],
   };
 
-  const doctorsList = [
-    { name: 'Dr. Sara Ali', dept: 'Cardiology', cases: 42, rating: 4.9 },
-    { name: 'Dr. Usman Tariq', dept: 'Pediatrics', cases: 38, rating: 4.8 },
-    { name: 'Dr. Farhan Qureshi', dept: 'Dermatology', cases: 31, rating: 4.7 },
-  ];
+  const hasOrders = (orders || []).length > 0;
+  const hasApts   = (apts || []).filter(a => a.status === 'completed').length > 0;
 
   return (
     <>
@@ -978,13 +1087,20 @@ function ReportsTab() {
         </Button>
       </div>
 
-      {/* Bar chart */}
+      {/* Monthly revenue & orders bar chart */}
       <Card className="adm-chart-card mb-4 border-0 shadow-sm">
         <Card.Body>
-          <h6 className="adm-chart-title">Monthly Revenue & Orders</h6>
-          <div style={{height:285}}>
-            <Bar data={barData} options={CHART_OPTS} />
-          </div>
+          <h6 className="adm-chart-title">Monthly Revenue &amp; Orders</h6>
+          {hasOrders ? (
+            <div style={{height: 285}}>
+              <Bar data={barData} options={CHART_OPTS} />
+            </div>
+          ) : (
+            <div className="text-center text-muted py-5">
+              <FaChartBar size={36} className="mb-2 opacity-25" />
+              <p className="mb-0">No order data yet. Chart will populate once orders are placed.</p>
+            </div>
+          )}
         </Card.Body>
       </Card>
 
@@ -993,46 +1109,59 @@ function ReportsTab() {
         <Col lg={6}>
           <Card className="adm-table-card border-0 shadow-sm">
             <Card.Header className="adm-card-header bg-transparent pt-3 border-0">
-              <h6 className="adm-chart-title mb-0"><FaTrophy className="me-2 text-warning" /> Platform Top Doctor Leaderboard</h6>
+              <h6 className="adm-chart-title mb-0"><FaTrophy className="me-2 text-warning" /> Top Doctor Leaderboard</h6>
             </Card.Header>
             <div className="adm-table-wrap">
-              <Table hover className="adm-table">
-                <thead><tr><th>Doctor Name</th><th>Speciality</th><th>Cases Solved</th><th>Rating</th></tr></thead>
-                <tbody>
-                  {doctorsList.map((doc, idx) => (
-                    <tr key={doc.name}>
-                      <td><span className="top-rank me-2">#{idx+1}</span><strong>{doc.name}</strong></td>
-                      <td><Badge bg="info" className="cat-badge">{doc.dept}</Badge></td>
-                      <td className="fw-bold">{doc.cases} consultations</td>
-                      <td><span className="text-warning"><FaStar className="me-1" />{doc.rating}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+              {hasApts ? (
+                <Table hover className="adm-table">
+                  <thead><tr><th>Doctor Name</th><th>Speciality</th><th>Completed Consults</th></tr></thead>
+                  <tbody>
+                    {doctorLeaderboard.map((doc, idx) => (
+                      <tr key={doc.name}>
+                        <td><span className="top-rank me-2">#{idx + 1}</span><strong>{doc.name}</strong></td>
+                        <td><Badge bg="info" className="cat-badge">{doc.dept}</Badge></td>
+                        <td className="fw-bold">{doc.cases} consultations</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              ) : (
+                <div className="text-center text-muted py-4">
+                  <FaCalendarCheck size={28} className="mb-2 opacity-25" />
+                  <p className="mb-0 small">No completed appointments yet.</p>
+                </div>
+              )}
             </div>
           </Card>
         </Col>
 
-        {/* Top medicines table */}
+        {/* Top selling medicines */}
         <Col lg={6}>
           <Card className="adm-table-card border-0 shadow-sm">
             <Card.Header className="adm-card-header bg-transparent pt-3 border-0">
               <h6 className="adm-chart-title mb-0"><FaTrophy className="me-2 text-warning" /> Top Selling Pharmaceutics</h6>
             </Card.Header>
             <div className="adm-table-wrap">
-              <Table hover className="adm-table">
-                <thead><tr><th>Medicine</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
-                <tbody>
-                  {TOP_MEDICINES.slice(0, 3).map((m, i) => (
-                    <tr key={m.name}>
-                      <td><span className="top-rank me-2">#{i+1}</span>{m.name}</td>
-                      <td><Badge bg="secondary" className="cat-badge">{m.category}</Badge></td>
-                      <td>{m.units.toLocaleString()} units</td>
-                      <td className="fw-bold">{fmtRs(m.revenue)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
+              {topMedicines.length > 0 ? (
+                <Table hover className="adm-table">
+                  <thead><tr><th>Medicine</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+                  <tbody>
+                    {topMedicines.map((m, i) => (
+                      <tr key={m.name}>
+                        <td><span className="top-rank me-2">#{i + 1}</span>{m.name}</td>
+                        <td><Badge bg="secondary" className="cat-badge">{m.category}</Badge></td>
+                        <td>{m.units.toLocaleString()} units</td>
+                        <td className="fw-bold">{fmtRs(m.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              ) : (
+                <div className="text-center text-muted py-4">
+                  <FaBoxes size={28} className="mb-2 opacity-25" />
+                  <p className="mb-0 small">No sales data yet. Data will appear once orders are fulfilled.</p>
+                </div>
+              )}
             </div>
           </Card>
         </Col>
@@ -1531,87 +1660,22 @@ export default function AdminDashboard() {
     setActive(tabParam);
   }, [tabParam]);
 
-  // Parent State so changes in one tab persist / display across other tabs
-  const [users, setUsers] = useState([
-    ...MOCK_USERS,
-    {
-      id: 11,
-      name: 'Dr. Usama Qureshi',
-      email: 'usama@medeasy.pk',
-      role: 'doctor',
-      status: 'active',
-      isVerifiedProfile: false,
-      joined: 'May 2026',
-      orders: 0,
-      specialty: 'Cardiology',
-      pmcRegistration: 'PMC-88392-D',
-      degree: 'MBBS, FCPS',
-      degreePlace: 'King Edward Medical University',
-      experience: 8,
-      clinicAddress: 'Heart Care Clinic, DHA Phase 5, Lahore',
-      consultationFee: 1500,
-    },
-    {
-      id: 12,
-      name: 'Zainab Apothecary',
-      email: 'zainab.pharmd@medeasy.pk',
-      role: 'pharmacist',
-      status: 'active',
-      isVerifiedProfile: false,
-      joined: 'May 2026',
-      orders: 0,
-      pharmacyName: 'Zainab Family Pharmacy',
-      degreeName: 'Pharm.D',
-      degreePlace: 'Punjab University College of Pharmacy',
-      licenseNumber: 'PCP-55421-P',
-      address: 'Johar Town Phase 2, Lahore',
-    }
-  ]);
-
-  useEffect(() => {
-    async function fetchRealPending() {
-      try {
-        const { data } = await api.get('/admin/users/pending');
-        // Map real DB users so they conform to the frontend UI expectations
-        const realUsersMapped = data.map(u => ({
-          ...u,
-          id: u._id, // map Mongo _id to standard id
-          joined: new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-        }));
-        setUsers(prev => {
-          // Avoid duplicating if they are already in the array
-          const filteredPrev = prev.filter(p => !data.some(d => d._id === p._id || d._id === p.id));
-          return [...filteredPrev, ...realUsersMapped];
-        });
-      } catch (err) {
-        console.error("Failed to load real pending professionals:", err);
-      }
-    }
-    fetchRealPending();
-  }, []);
-  const [medicines, setMedicines] = useState([
-    { id: 1, name: 'Paracetamol 500mg', category: 'Analgesics', price: 50, stock: 250 },
-    { id: 2, name: 'Amoxicillin 250mg', category: 'Antibiotics', price: 180, stock: 90 },
-    { id: 3, name: 'Omeprazole 20mg', category: 'Gastroenterology', price: 95, stock: 175 },
-    { id: 4, name: 'Cetirizine 10mg', category: 'Antihistamines', price: 65, stock: 310 },
-    { id: 5, name: 'Metformin 500mg', category: 'Diabetes', price: 120, stock: 0 },
-    { id: 6, name: 'Amlodipine 5mg', category: 'Cardiology', price: 140, stock: 82 },
-  ]);
-  const [apts, setApts] = useState([
-    { id: 101, patientName: 'Ahmed Khan', doctorName: 'Dr. Sara Ali', date: '2026-05-22', time: '10:00 AM', reason: 'Fever checkup', status: 'scheduled' },
-    { id: 102, patientName: 'Ayesha Bibi', doctorName: 'Dr. Usman Tariq', date: '2026-05-22', time: '11:30 AM', reason: 'High blood pressure', status: 'scheduled' },
-    { id: 103, patientName: 'Muhammad Ali', doctorName: 'Dr. Sara Ali', date: '2026-05-23', time: '02:00 PM', reason: 'Skin rash', status: 'scheduled' },
-    { id: 104, patientName: 'Fatima Sana', doctorName: 'Dr. Usman Tariq', date: '2026-05-24', time: '09:00 AM', reason: 'General checkup', status: 'scheduled' },
-  ]);
-  const [orders, setOrders] = useState([
-    { id: 'ORD-9982', createdAt: new Date().toISOString(), totalAmount: 450, status: 'pending', paymentStatus: 'pending', items: [{ name: 'Panadol' }], shippingAddress: { firstName: 'Bilal', lastName: 'Siddiqui' } },
-    { id: 'ORD-4091', createdAt: new Date().toISOString(), totalAmount: 180, status: 'dispatched', paymentStatus: 'paid', items: [{ name: 'Disprin' }], shippingAddress: { firstName: 'Zainab', lastName: 'Fatima' } },
-    { id: 'ORD-1224', createdAt: new Date().toISOString(), totalAmount: 1250, status: 'delivered', paymentStatus: 'paid', items: [{ name: 'Amoxicillin' }], shippingAddress: { firstName: 'Ahmed', lastName: 'Khan' } },
-  ]);
+  // ── Pull everything from the global DataContext (single source of truth) ──
+  const {
+    users, setUsers,
+    medicines, setMedicines,
+    orders, setOrders,
+    apts, setApts,
+    loading, error: loadError,
+    refresh: loadAllData,
+    stats,
+  } = useData();
 
   const globalStats = {
-    ordersCount: orders.filter(o => o.status !== 'cancelled').length,
-    aptsCount: apts.filter(a => a.status === 'scheduled').length,
+    usersCount:  stats.usersCount,   // already excludes admin accounts
+    ordersCount: stats.ordersCount,
+    aptsCount:   stats.aptsCount,
+    revenueMtd:  stats.revenueMtd,
   };
 
   const activeTabDetails = TABS.find(t => t.key === active);
@@ -1636,11 +1700,19 @@ export default function AdminDashboard() {
           {/* Quick Metrics */}
           <div className="adm-sidebar-kpis">
             <div className="adm-sidebar-kpi">
-              <span className="adm-sidebar-kpi-val text-primary">{users.length}</span>
+              {loading ? (
+                <span className="adm-sidebar-kpi-val text-muted" style={{fontSize:'1rem'}}>…</span>
+              ) : (
+                <span className="adm-sidebar-kpi-val text-primary">{globalStats.usersCount}</span>
+              )}
               <span className="adm-sidebar-kpi-label">Total Accounts</span>
             </div>
             <div className="adm-sidebar-kpi">
-              <span className="adm-sidebar-kpi-val text-success">Rs. 2.4M</span>
+              {loading ? (
+                <span className="adm-sidebar-kpi-val text-muted" style={{fontSize:'1rem'}}>…</span>
+              ) : (
+                <span className="adm-sidebar-kpi-val text-success">{fmtRs(globalStats.revenueMtd)}</span>
+              )}
               <span className="adm-sidebar-kpi-label">Sales MTD</span>
             </div>
           </div>
@@ -1655,6 +1727,17 @@ export default function AdminDashboard() {
               </button>
             ))}
           </nav>
+
+          {/* Refresh Button */}
+          <button
+            className="adm-refresh-btn"
+            onClick={loadAllData}
+            disabled={loading}
+            title="Reload all live data from the database"
+          >
+            <FaSyncAlt className={loading ? 'spin' : ''} style={{marginRight: 6}} />
+            {loading ? 'Refreshing…' : 'Refresh Data'}
+          </button>
         </aside>
 
         {/* ── Main ── */}
@@ -1667,15 +1750,31 @@ export default function AdminDashboard() {
             <p className="doc-subtitle text-muted mt-1">MedEasy network monitoring board.</p>
           </div>
           <div className="adm-content">
-            {active === 'overview'      && <OverviewTab setActive={setActive} stats={globalStats} />}
-            {active === 'verifications' && <VerificationsTab users={users} setUsers={setUsers} />}
-            {active === 'users'         && <UsersTab users={users} setUsers={setUsers} />}
-            {active === 'medicines'    && <MedicinesTab medicines={medicines} setMedicines={setMedicines} />}
-            {active === 'appointments' && <AppointmentsTab apts={apts} setApts={setApts} />}
-            {active === 'orders'       && <OrdersTab orders={orders} setOrders={setOrders} />}
-            {active === 'reports'      && <ReportsTab />}
-            {active === 'audits'       && <AuditsTab />}
-            {active === 'settings'     && <SettingsTab />}
+            {loadError && (
+              <Alert variant="danger" dismissible onClose={() => setLoadError(null)} className="mb-3">
+                <FaExclamationTriangle className="me-2" />
+                {loadError}
+                <Button size="sm" variant="outline-danger" className="ms-3" onClick={loadAllData}>Retry</Button>
+              </Alert>
+            )}
+            {loading ? (
+              <div className="adm-loading-state">
+                <div className="adm-loading-spinner" />
+                <p className="adm-loading-text">Loading live data from database…</p>
+              </div>
+            ) : (
+              <>
+                {active === 'overview'      && <OverviewTab setActive={setActive} stats={globalStats} orders={orders} />}
+                {active === 'verifications' && <VerificationsTab users={users} setUsers={setUsers} />}
+                {active === 'users'         && <UsersTab users={users} setUsers={setUsers} />}
+                {active === 'medicines'    && <MedicinesTab medicines={medicines} setMedicines={setMedicines} />}
+                {active === 'appointments' && <AppointmentsTab apts={apts} setApts={setApts} />}
+                {active === 'orders'       && <OrdersTab orders={orders} setOrders={setOrders} />}
+                {active === 'reports'      && <ReportsTab orders={orders} medicines={medicines} apts={apts} />}
+                {active === 'audits'       && <AuditsTab />}
+                {active === 'settings'     && <SettingsTab />}
+              </>
+            )}
           </div>
         </main>
       </div>

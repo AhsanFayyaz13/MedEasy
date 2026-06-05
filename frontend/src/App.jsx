@@ -23,12 +23,14 @@ import PharmacistDashboard from './pages/PharmacistDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
+import ContactUs from './pages/ContactUs';
 
 // ── Contexts ──────────────────────────────────────────────────────────────────
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
 import { AuthModalProvider, useAuthModal } from './context/AuthModalContext';
+import { DataProvider } from './context/DataContext';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
@@ -76,6 +78,11 @@ function AppContent() {
               } />
               <Route path="/profile" element={
                 <ProtectedRoute><Profile /></ProtectedRoute>
+              } />
+              <Route path="/contact" element={
+                <ProtectedRoute roles={['patient', 'doctor', 'pharmacist', 'pharmacy']}>
+                  <ContactUs />
+                </ProtectedRoute>
               } />
               <Route path="/prescriptions/upload" element={
                 <ProtectedRoute roles={['patient']}><PrescriptionUpload /></ProtectedRoute>
@@ -141,9 +148,12 @@ export default function App() {
       <AuthModalProvider>
         <CartProvider>
           <ToastProvider>
-            <AppContent />
+            <DataProvider>
+              <AppContent />
+            </DataProvider>
           </ToastProvider>
         </CartProvider>
       </AuthModalProvider>
     </AuthProvider>
-  )};
+  );
+}

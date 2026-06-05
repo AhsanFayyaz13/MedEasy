@@ -17,7 +17,7 @@ import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import MedicalIcon from '../components/MedicalIcon';
 import {
-  fetchAllMedicines, createMedicine, updateMedicine, deleteMedicine,
+  fetchAllMedicines, createMedicine, updateMedicine, deleteMedicine, uploadMedicinePhoto,
   fetchAllOrders, updateOrderStatus, NEXT_STATUSES,
   fetchPendingPrescriptions, verifyPrescription,
 } from '../services/pharmacistService';
@@ -25,9 +25,17 @@ import './PharmacistDashboard.css';
 
 /* ═══════════════════ HELPERS ═══════════════════════════════════ */
 const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'https://medeasy-backend-a5yi.onrender.com';
-const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-PK', {
-  day: 'numeric', month: 'short', year: 'numeric',
-});
+const fmtDate = (iso) => {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('en-PK', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    });
+  } catch (e) {
+    return String(iso);
+  }
+};
 const fmtBytes = (b) => b < 1024 * 1024
   ? `${(b / 1024).toFixed(0)} KB`
   : `${(b / (1024 * 1024)).toFixed(1)} MB`;
@@ -57,6 +65,7 @@ function MedicinesPage() {
   const [form,    setForm]    = useState(EMPTY_MED);
   const [saving,  setSaving]  = useState(false);
   const [delId,   setDelId]   = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -102,6 +111,21 @@ function MedicinesPage() {
       toast.success('Medicine deleted');
     } catch(e) { toast.error(e.message); }
     finally { setDelId(null); }
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const res = await uploadMedicinePhoto(file);
+      setForm(p => ({ ...p, image: res.imageUrl }));
+      toast.success('Medicine photo uploaded successfully');
+    } catch (err) {
+      toast.error(err.message || 'Failed to upload photo');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const visible = meds.filter(m =>
@@ -203,14 +227,52 @@ function MedicinesPage() {
         <Modal.Body>
           <Form onSubmit={handleSave}>
             <Row className="g-3">
+              {form.image && (
+                <Col xs={12} className="d-flex justify-content-center mb-1">
+                  <div 
+                    style={{ 
+                      width: '100px', 
+                      height: '100px', 
+                      borderRadius: '12px', 
+                      border: '1px solid #e2e8f0', 
+                      background: '#f8fafc',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                    }}
+                  >
+                    <MedicalIcon emoji={form.image} category={form.category} size={38} />
+                  </div>
+                </Col>
+              )}
               <Col md={6}><Form.Group><Form.Label>Name *</Form.Label>
                 <Form.Control required placeholder="Paracetamol 500mg" {...fld('name')} /></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Brand</Form.Label>
                 <Form.Control placeholder="Panadol" {...fld('brand')} /></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Category *</Form.Label>
                 <Form.Control required placeholder="Analgesics" {...fld('category')} /></Form.Group></Col>
-              <Col md={6}><Form.Group><Form.Label>Medical Icon Key (e.g. 💊, 🧪 for dynamic vector mapping)</Form.Label>
-                <Form.Control placeholder="💊" {...fld('image')} /></Form.Group></Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Medicine Photo Upload</Form.Label>
+                  <div className="d-flex align-items-center gap-2">
+                    <Form.Control 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handlePhotoUpload} 
+                      disabled={uploading} 
+                    />
+                    {uploading && <Spinner size="sm" animation="border" variant="primary" />}
+                  </div>
+                </Form.Group>
+              </Col>
+              <Col xs={12}>
+                <Form.Group>
+                  <Form.Label>Or Enter Icon Key / Image Path / Data URI</Form.Label>
+                  <Form.Control placeholder="💊 or uploads/image.png or data:image/png;base64,..." {...fld('image')} />
+                </Form.Group>
+              </Col>
               <Col md={4}><Form.Group><Form.Label>Price (Rs.) *</Form.Label>
                 <Form.Control required type="number" min="0" {...fld('price')} /></Form.Group></Col>
               <Col md={4}><Form.Group><Form.Label>Original Price (Rs.)</Form.Label>
@@ -784,7 +846,7 @@ function OrdersPage({ mode = 'active' }) {
                         <Button
                           size="sm"
                           variant="outline-primary"
-                          href={`${serverUrl}${detail.prescriptionId.fileUrl}`}
+                          href={detail.prescriptionId.fileUrl.startsWith('data:') ? detail.prescriptionId.fileUrl : `${serverUrl}${detail.prescriptionId.fileUrl}`}
                           target="_blank"
                           rel="noreferrer"
                           className="py-0.5 px-2 bg-white"
@@ -894,7 +956,7 @@ function PrescriptionsPage() {
                 onClick={() => setEnlarged(rx)}
                 title="Click to enlarge">
                 {rx.fileUrl && rx.fileType !== 'application/pdf' ? (
-                  <img src={`${serverUrl}${rx.fileUrl}`} alt="prescription" className="rx-thumbnail-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                  <img src={rx.fileUrl.startsWith('data:') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} alt="prescription" className="rx-thumbnail-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
                 ) : (
                   <span className="rx-preview-icon">{RX_ICON[rx.fileType] || '📎'}</span>
                 )}
@@ -970,7 +1032,7 @@ function PrescriptionsPage() {
                 <p className="text-muted small">PDF Document ({fmtBytes(enlarged.fileSize)})</p>
                 <Button 
                   variant="primary" 
-                  href={`${serverUrl}${enlarged.fileUrl}`} 
+                  href={enlarged.fileUrl.startsWith('data:') ? enlarged.fileUrl : `${serverUrl}${enlarged.fileUrl}`} 
                   target="_blank" 
                   rel="noreferrer"
                   className="mt-2"
@@ -981,7 +1043,7 @@ function PrescriptionsPage() {
             ) : (
               <div className="rx-image-container">
                 <img 
-                  src={`${serverUrl}${enlarged.fileUrl}`} 
+                  src={enlarged.fileUrl.startsWith('data:') ? enlarged.fileUrl : `${serverUrl}${enlarged.fileUrl}`} 
                   alt={enlarged.fileName} 
                   className="img-fluid rounded shadow-sm"
                   style={{ maxHeight: '70vh', objectFit: 'contain' }}
@@ -1307,7 +1369,7 @@ function PharmacistRepPage() {
                 <div className="d-flex align-items-center gap-4 p-3 border rounded-3 bg-white">
                   <div className="position-relative" style={{ width: 80, height: 80 }}>
                     {photo ? (
-                      <img src={`${serverUrl}${photo}`} alt="Pharmacist representative avatar" className="rounded-circle border w-100 h-100 object-fit-cover shadow-sm" />
+                      <img src={photo.startsWith('data:') ? photo : `${serverUrl}${photo}`} alt="Pharmacist representative avatar" className="rounded-circle border w-100 h-100 object-fit-cover shadow-sm" />
                     ) : (
                       <div className="rounded-circle border w-100 h-100 bg-light d-flex align-items-center justify-content-center text-muted fw-bold" style={{ fontSize: '1.5rem' }}>
                         ?
@@ -1454,10 +1516,38 @@ function PharmacistRepPage() {
         <Col lg={8}>
           <Card className={`ph-glass-card shadow-lg border-0 rounded-4 overflow-hidden ${isApproved ? 'rep-card-approved' : ''}`} style={isApproved ? { borderLeft: '5px solid #d97706' } : {}}>
             <Card.Body className="p-4">
+              {/* Incomplete data warning */}
+              {(!details.photo || !details.age || !details.degreeName || !details.degreePlace) && (
+                <Alert variant="warning" className="d-flex align-items-center gap-2 py-2 mb-3 small">
+                  <FaExclamationTriangle className="flex-shrink-0" />
+                  <span>Some details are missing or incomplete. Click <strong>Update Details</strong> below to fill them in and resubmit for verification.</span>
+                </Alert>
+              )}
               <div className="d-flex flex-column flex-sm-row align-items-center align-items-sm-start gap-4">
                 {/* Photo with dynamic badge overlay */}
                 <div className="position-relative" style={{ width: 120, height: 120 }}>
-                  <img src={`${serverUrl}${details.photo}`} alt={details.name} className="rounded-circle border w-100 h-100 object-fit-cover shadow" />
+                  {details.photo ? (
+                    <img
+                      src={details.photo.startsWith('data:') ? details.photo : `${serverUrl}${details.photo}`}
+                      alt={details.name}
+                      className="rounded-circle border w-100 h-100 object-fit-cover shadow"
+                      onError={e => {
+                        // If the stored URL is broken, fall back to initials avatar
+                        e.target.style.display = 'none';
+                        e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
+                      }}
+                    />
+                  ) : null}
+                  {/* Fallback initials avatar — shown when no photo or image fails to load */}
+                  <div
+                    className="rounded-circle border w-100 h-100 bg-primary d-flex align-items-center justify-content-center text-white fw-bold shadow"
+                    style={{
+                      fontSize: '2rem',
+                      display: details.photo ? 'none' : 'flex',
+                    }}
+                  >
+                    {(details.name || 'P')[0].toUpperCase()}
+                  </div>
                   {isApproved && (
                     <div className="position-absolute bottom-0 end-0 bg-warning text-white rounded-circle shadow border border-white d-flex align-items-center justify-content-center" style={{ width: 32, height: 32, fontSize: '1rem' }} title="Verified representative">
                       🌟
@@ -1472,7 +1562,10 @@ function PharmacistRepPage() {
                     {isPending && <Badge bg="info" className="small">Awaiting Audit</Badge>}
                     {isDeclined && <Badge bg="danger" className="small">Audit Declined</Badge>}
                   </div>
-                  <p className="text-muted small mb-3">{details.degreeName} | Age: {details.age} Years</p>
+                  <p className="text-muted small mb-3">
+                    {details.degreeName || <span className="text-warning">Degree not set</span>}
+                    {details.age ? ` | Age: ${details.age} Years` : ''}
+                  </p>
 
                   <Row className="g-3 bg-light p-3 rounded-3 mb-3 border text-start">
                     <Col xs={6} md={6}>

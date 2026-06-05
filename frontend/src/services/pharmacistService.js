@@ -103,6 +103,24 @@ export async function deleteMedicine(id) {
   return { success: true };
 }
 
+export async function uploadMedicinePhoto(file) {
+  if (USE_MOCK) {
+    await delay(500);
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve({ imageUrl: reader.result });
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  const formData = new FormData();
+  formData.append('medicinePhoto', file);
+  const { data } = await api.post('/medicines/upload-photo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+}
+
 /* ─────────────────────────── ORDERS ──────────────────────────────────────── */
 
 /** Allowed status transitions (pharmacist-level) */

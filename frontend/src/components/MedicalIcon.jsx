@@ -64,7 +64,55 @@ const COLOR_MAP = {
   'default': '#475569',
 };
 
+import api from '../services/api';
+
+const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'https://medeasy-backend-a5yi.onrender.com';
+
 export default function MedicalIcon({ emoji, category, size = 32, className = '' }) {
+  // Check if emoji is actually a file path (starts with /, http, data: or contains extensions)
+  const isRealImage = emoji && (
+    emoji.startsWith('data:') || 
+    emoji.startsWith('/') || 
+    emoji.startsWith('http') || 
+    emoji.includes('.')
+  );
+
+  if (isRealImage) {
+    let src = emoji;
+    if (!emoji.startsWith('data:') && !emoji.startsWith('http') && !emoji.startsWith('/')) {
+      src = `${serverUrl}/${emoji}`;
+    }
+    
+    // For small sizes (e.g. cart, navbar lists, dashboard tables), render a small clean rounded square badge
+    if (size <= 24) {
+      return (
+        <div
+          className={`real-image-badge-small ${className}`}
+          style={{
+            width: size * 1.8,
+            height: size * 1.8,
+          }}
+        >
+          <img 
+            src={src} 
+            alt={category || "Medicine"} 
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        </div>
+      );
+    }
+
+    // For larger displays (e.g. product cards and details), let the image fill the container container/box beautifully
+    return (
+      <div className={`real-image-badge-large ${className}`}>
+        <img 
+          src={src} 
+          alt={category || "Medicine"} 
+        />
+      </div>
+    );
+  }
+
   // Extract emoji matching key
   let key = 'default';
   if (emoji && ICON_MAP[emoji]) {

@@ -5,9 +5,13 @@ const {
   getMedicineById,
   createMedicine,
   updateMedicine,
-  deleteMedicine
+  deleteMedicine,
+  uploadMedicinePhoto
 } = require('../controllers/medicineController');
 const { protect, authorizeRoles } = require('../middleware/auth');
+const upload = require('../middleware/upload');
+
+router.post('/upload-photo', protect, authorizeRoles('pharmacist', 'admin'), upload.single('medicinePhoto'), uploadMedicinePhoto);
 
 router.route('/')
   .get(getAllMedicines)
