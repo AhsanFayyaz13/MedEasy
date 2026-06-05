@@ -1,4 +1,5 @@
 const Review = require('../models/Review');
+const { getIO } = require('../socket');
 
 // @desc    Add a review
 // @route   POST /api/reviews
@@ -29,6 +30,14 @@ exports.addReview = async (req, res) => {
     });
 
     const createdReview = await review.save();
+
+    try {
+      const io = getIO();
+      io.emit('review:created', createdReview);
+    } catch (e) {
+      console.warn('Could not emit review:created', e.message);
+    }
+
     res.status(201).json(createdReview);
   } catch (error) {
     res.status(500).json({ message: error.message });

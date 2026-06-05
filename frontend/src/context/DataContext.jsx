@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
+import { initSocket, getSocket, disconnectSocket } from '../lib/socket';
 
 /**
  * DataContext
@@ -33,12 +34,14 @@ const safeFmtJoined = (t) => {
 
 // ─── Provider ─────────────────────────────────────────────────
 export function DataProvider({ children }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, token } = useAuth();
 
   const [users,     setUsers]     = useState([]);
   const [medicines, setMedicines] = useState([]);
   const [orders,    setOrders]    = useState([]);
   const [apts,      setApts]      = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState(null);
 
@@ -49,14 +52,18 @@ export function DataProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      const [usersRes, medsRes, aptsRes, ordersRes] = await Promise.all([
+      const [usersRes, medsRes, aptsRes, ordersRes, prescriptionsRes, reviewsRes] = await Promise.all([
         api.get('/admin/users/all'),
         api.get('/medicines?limit=1000'),
         api.get('/appointments'),
         api.get('/orders/all'),
+        api.get('/prescriptions?limit=1000'),
+        api.get('/reviews?limit=1000'),
       ]);
 
       const ordersData = ordersRes.data || [];
+      const prescriptionsList = prescriptionsRes.data?.results ?? prescriptionsRes.data ?? [];
+      const reviewsList = reviewsRes.data?.results ?? reviewsRes.data ?? [];
 
       // Map users — exclude admin accounts
       const mappedUsers = (usersRes.data || [])
@@ -86,10 +93,19 @@ export function DataProvider({ children }) {
         createdAt: o.createdAt || new Date().toISOString(),
       }));
 
+      const mappedPrescriptions = Array.isArray(prescriptionsList)
+        ? prescriptionsList.map(p => ({ ...p, id: p._id || p.id }))
+        : [];
+      const mappedReviews = Array.isArray(reviewsList)
+        ? reviewsList.map(r => ({ ...r, id: r._id || r.id }))
+        : [];
+
       setUsers(mappedUsers);
       setMedicines(mappedMeds);
       setApts(mappedApts);
       setOrders(mappedOrders);
+      setPrescriptions(mappedPrescriptions);
+      setReviews(mappedReviews);
     } catch (err) {
       console.error('DataContext fetch failed:', err);
       setError(err.response?.data?.message || 'Failed to load platform data.');
@@ -102,6 +118,140 @@ export function DataProvider({ children }) {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  // Initialize realtime socket and subscribe to domain events
+  useEffect(() => {
+    let sock;
+    let mounted = true;
+    if (isAuthenticated && user) {
+      sock = initSocket(token);
+
+      // Orders
+      const handleOrderCreated = (order) => {
+        if (!mounted) return;
+        const o = { ...order, id: order._id || order.id, createdAt: order.createdAt || new Date().toISOString() };
+        setOrders(prev => [o, ...prev]);
+      };
+      const handleOrderUpdated = (order) => {
+        if (!mounted) return;
+        const id = order._id || order.id;
+        setOrders(prev => prev.map(o => (o.id === id ? { ...o, ...order, id } : o)));
+      };
+
+      // Prescriptions
+      const handlePrescriptionCreated = (presc) => {
+        if (!mounted) return;
+        const p = { ...presc, id: presc._id || presc.id };
+        setPrescriptions(prev => [p, ...prev]);
+      };
+      const handlePrescriptionUpdated = (presc) => {
+        if (!mounted) return;
+        const id = presc._id || presc.id;
+        setPrescriptions(prev => prev.map(p => (p.id === id ? { ...p, ...presc, id } : p)));
+      };
+      const handlePrescriptionDeleted = ({ id }) => {
+        if (!mounted) return;
+        setPrescriptions(prev => prev.filter(p => p.id !== id));
+      };
+
+      // Medicines
+      const handleMedicineCreated = (m) => {
+        if (!mounted) return;
+        const med = { ...m, id: m._id || m.id };
+        setMedicines(prev => [med, ...prev]);
+      };
+      const handleMedicineUpdated = (m) => {
+        if (!mounted) return;
+        const id = m._id || m.id;
+        setMedicines(prev => prev.map(x => (x.id === id ? { ...x, ...m, id } : x)));
+      };
+      const handleMedicineDeleted = ({ id }) => {
+        if (!mounted) return;
+        setMedicines(prev => prev.filter(x => x.id !== id));
+      };
+
+      // Reviews
+      const handleReviewCreated = (r) => {
+        if (!mounted) return;
+        const rev = { ...r, id: r._id || r.id };
+        setReviews(prev => [rev, ...prev]);
+      };
+
+      // Appointments
+      const handleAppointmentBooked = (a) => {
+        if (!mounted) return;
+        const ap = { ...a, id: a._id || a.id };
+        setApts(prev => [ap, ...prev]);
+      };
+      const handleAppointmentUpdated = (a) => {
+        if (!mounted) return;
+        const id = a._id || a.id;
+        setApts(prev => prev.map(x => (x.id === id ? { ...x, ...a, id } : x)));
+      };
+
+      const handleUserCreated = (u) => {
+        if (!mounted) return;
+        const user = { ...u, id: u._id || u.id };
+        setUsers(prev => [user, ...prev]);
+      };
+      const handleUserUpdated = (u) => {
+        if (!mounted) return;
+        const id = u._id || u.id;
+        setUsers(prev => prev.map(x => (x.id === id ? { ...x, ...u, id } : x)));
+      };
+      const handleUserDeleted = ({ id }) => {
+        if (!mounted) return;
+        setUsers(prev => prev.filter(x => x.id !== id));
+      };
+
+      sock.on('order:created', handleOrderCreated);
+      sock.on('order:updated', handleOrderUpdated);
+
+      sock.on('prescription:created', handlePrescriptionCreated);
+      sock.on('prescription:updated', handlePrescriptionUpdated);
+      sock.on('prescription:deleted', handlePrescriptionDeleted);
+
+      sock.on('medicine:created', handleMedicineCreated);
+      sock.on('medicine:updated', handleMedicineUpdated);
+      sock.on('medicine:deleted', handleMedicineDeleted);
+
+      sock.on('review:created', handleReviewCreated);
+
+      sock.on('appointment:booked', handleAppointmentBooked);
+      sock.on('appointment:updated', handleAppointmentUpdated);
+
+      sock.on('user:created', handleUserCreated);
+      sock.on('user:updated', handleUserUpdated);
+      sock.on('user:deleted', handleUserDeleted);
+
+      // cleanup
+      return () => {
+        mounted = false;
+        try {
+          sock.off('order:created', handleOrderCreated);
+          sock.off('order:updated', handleOrderUpdated);
+
+          sock.off('prescription:created', handlePrescriptionCreated);
+          sock.off('prescription:updated', handlePrescriptionUpdated);
+          sock.off('prescription:deleted', handlePrescriptionDeleted);
+
+          sock.off('medicine:created', handleMedicineCreated);
+          sock.off('medicine:updated', handleMedicineUpdated);
+          sock.off('medicine:deleted', handleMedicineDeleted);
+
+          sock.off('review:created', handleReviewCreated);
+
+          sock.off('appointment:booked', handleAppointmentBooked);
+          sock.off('appointment:updated', handleAppointmentUpdated);
+          sock.off('user:created', handleUserCreated);
+          sock.off('user:updated', handleUserUpdated);
+          sock.off('user:deleted', handleUserDeleted);
+        } catch (e) {}
+        try { disconnectSocket(); } catch (e) {}
+      };
+    }
+    return () => { mounted = false; };
+  }, [isAuthenticated, user, token]);
 
   // ── Pre-computed stats ──────────────────────────────────────
   const currentMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -122,6 +272,8 @@ export function DataProvider({ children }) {
       medicines, setMedicines,
       orders, setOrders,
       apts, setApts,
+      prescriptions, setPrescriptions,
+      reviews, setReviews,
       loading, error,
       refresh: fetchAll,
       stats,

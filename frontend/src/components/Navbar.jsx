@@ -317,6 +317,9 @@ export default function AppNavbar() {
                 )}
               </>
             )}
+            <Nav.Link as={NavLink} to="/contact" className="contact-link d-none d-lg-flex" onClick={closeNav}>
+              Contact
+            </Nav.Link>
           </Nav>
 
           {/* ── Right section ────────────────────────────────────── */}

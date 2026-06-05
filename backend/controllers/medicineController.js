@@ -1,4 +1,5 @@
 const Medicine = require('../models/Medicine');
+const { getIO } = require('../socket');
 
 // @desc    Get all medicines (with pagination, search, filter)
 // @route   GET /api/medicines
@@ -57,6 +58,14 @@ exports.createMedicine = async (req, res) => {
   try {
     const medicine = new Medicine(req.body);
     const createdMedicine = await medicine.save();
+
+    try {
+      const io = getIO();
+      io.emit('medicine:created', createdMedicine);
+    } catch (e) {
+      console.warn('Could not emit medicine:created', e.message);
+    }
+
     res.status(201).json(createdMedicine);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -84,6 +93,14 @@ exports.updateMedicine = async (req, res) => {
       medicine.imageUrl = req.body.imageUrl || medicine.imageUrl;
 
       const updatedMedicine = await medicine.save();
+
+      try {
+        const io = getIO();
+        io.emit('medicine:updated', updatedMedicine);
+      } catch (e) {
+        console.warn('Could not emit medicine:updated', e.message);
+      }
+
       res.json(updatedMedicine);
     } else {
       res.status(404).json({ message: 'Medicine not found' });
@@ -102,6 +119,14 @@ exports.deleteMedicine = async (req, res) => {
 
     if (medicine) {
       await medicine.deleteOne();
+
+      try {
+        const io = getIO();
+        io.emit('medicine:deleted', { id: medicine._id.toString() });
+      } catch (e) {
+        console.warn('Could not emit medicine:deleted', e.message);
+      }
+
       res.json({ message: 'Medicine removed' });
     } else {
       res.status(404).json({ message: 'Medicine not found' });

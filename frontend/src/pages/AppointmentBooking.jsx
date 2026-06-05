@@ -11,7 +11,6 @@ import {
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { fetchDoctors, bookAppointment, fetchMyAppointments, cancelAppointment } from '../services/appointmentService';
-import MOCK_APPOINTMENTS from '../data/mockAppointments';
 import ReviewSection from '../components/ReviewSection';
 import { useLocation } from 'react-router-dom';
 import './AppointmentBooking.css';
@@ -67,8 +66,7 @@ const maxDate = getLocalDateString(new Date(Date.now() + 30 * 24 * 60 * 60 * 100
  * Strategy:
  *   - For role-based accounts (doctor, pharmacist, admin) that log in once: use role.
  *   - For patients (multiple accounts possible): use their _id / id.
- *   - When targeting by appointment data (doctorId is numeric mock ID), we route to 'doctor' role key
- *     since in mock mode only one doctor is ever logged in at a time.
+ *   - When targeting by appointment data, we route to the doctor role key for doctor-side notifications.
  * @param {'doctor'|'pharmacist'|'admin'|'patient'} role
  * @param {string|number} [id] - Optional user _id for patient targeting
  */
@@ -274,7 +272,7 @@ export default function AppointmentBooking() {
   
   const getBookedSlots = () => {
     if (!selectedDoc || !date) return [];
-    const combined = [...myApts, ...MOCK_APPOINTMENTS];
+    const combined = [...myApts];
     const targetDateStr = date.split('T')[0];
     return combined
       .filter(a => {

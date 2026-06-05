@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const Medicine = require('../models/Medicine');
 const User = require('../models/User');
 const Prescription = require('../models/Prescription');
+const { getIO } = require('../socket');
 
 // @desc    Get sales report
 // @route   GET /api/admin/sales
@@ -150,6 +151,14 @@ exports.approveProfessional = async (req, res) => {
     }
 
     await user.save();
+
+    try {
+      const io = getIO();
+      io.emit('user:updated', { ...user.toObject(), id: user._id });
+    } catch (e) {
+      console.warn('Could not emit user:updated', e.message);
+    }
+
     res.json({ message: 'Approved successfully', user });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -175,6 +184,14 @@ exports.declineProfessional = async (req, res) => {
     }
 
     await user.save();
+
+    try {
+      const io = getIO();
+      io.emit('user:updated', { ...user.toObject(), id: user._id });
+    } catch (e) {
+      console.warn('Could not emit user:updated', e.message);
+    }
+
     res.json({ message: 'Declined successfully', user });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -256,6 +273,13 @@ exports.toggleUserStatus = async (req, res) => {
     user.status = user.status === 'suspended' ? 'active' : 'suspended';
     await user.save();
 
+    try {
+      const io = getIO();
+      io.emit('user:updated', { ...user.toObject(), id: user._id });
+    } catch (e) {
+      console.warn('Could not emit user:updated', e.message);
+    }
+
     res.json({ message: `User status changed to ${user.status}`, user: { _id: user._id, status: user.status } });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -278,6 +302,14 @@ exports.deleteUser = async (req, res) => {
     }
 
     await User.findByIdAndDelete(req.params.id);
+
+    try {
+      const io = getIO();
+      io.emit('user:deleted', { id: req.params.id });
+    } catch (e) {
+      console.warn('Could not emit user:deleted', e.message);
+    }
+
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -306,6 +338,13 @@ exports.updateUserRole = async (req, res) => {
 
     user.role = role;
     await user.save();
+
+    try {
+      const io = getIO();
+      io.emit('user:updated', { ...user.toObject(), id: user._id });
+    } catch (e) {
+      console.warn('Could not emit user:updated', e.message);
+    }
 
     res.json({ message: `User role changed to ${role}`, user: { _id: user._id, role: user.role } });
   } catch (error) {

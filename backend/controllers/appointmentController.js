@@ -1,5 +1,6 @@
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
+const { getIO } = require('../socket');
 
 // @desc    Book a new appointment
 // @route   POST /api/appointments/book
@@ -53,6 +54,14 @@ exports.bookAppointment = async (req, res) => {
     });
 
     const createdAppointment = await appointment.save();
+
+    try {
+      const io = getIO();
+      io.emit('appointment:booked', createdAppointment);
+    } catch (e) {
+      console.warn('Could not emit appointment:booked', e.message);
+    }
+
     res.status(201).json(createdAppointment);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -133,6 +142,14 @@ exports.updateAppointment = async (req, res) => {
     }
 
     const updatedAppointment = await appointment.save();
+
+    try {
+      const io = getIO();
+      io.emit('appointment:updated', updatedAppointment);
+    } catch (e) {
+      console.warn('Could not emit appointment:updated', e.message);
+    }
+
     res.json(updatedAppointment);
   } catch (error) {
     res.status(500).json({ message: error.message });

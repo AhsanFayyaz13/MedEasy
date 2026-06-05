@@ -2,6 +2,8 @@ const Order = require('../models/Order');
 const Medicine = require('../models/Medicine');
 const Prescription = require('../models/Prescription');
 
+const { getIO } = require('../socket');
+
 // @desc    Place a new order
 // @route   POST /api/orders
 // @access  Private
@@ -75,6 +77,8 @@ exports.placeOrder = async (req, res) => {
     });
 
     const createdOrder = await order.save();
+    // Emit realtime event
+    try { getIO().emit('order:created', createdOrder); } catch (e) { /* ignore if sockets not initialized */ }
     res.status(201).json(createdOrder);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -145,6 +149,7 @@ exports.updateOrderStatus = async (req, res) => {
 
     order.status = status;
     const updatedOrder = await order.save();
+    try { getIO().emit('order:updated', updatedOrder); } catch (e) { }
     res.json(updatedOrder);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -185,9 +190,10 @@ exports.cancelOrder = async (req, res) => {
     }
 
     order.status = 'cancelled';
-    await order.save();
+    const saved = await order.save();
+    try { getIO().emit('order:updated', saved); } catch (e) { }
 
-    res.json({ message: 'Order cancelled and stock restored', order });
+    res.json({ message: 'Order cancelled and stock restored', order: saved });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

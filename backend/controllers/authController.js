@@ -5,6 +5,7 @@ const https = require('https');
 const { normalizePhone } = require('../utils/phone');
 const { generateVerificationCode, logVerificationCode } = require('../utils/verification');
 const { sendVerificationEmail, sendResetPasswordEmail } = require('../utils/mailer');
+const { getIO } = require('../socket');
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -291,6 +292,16 @@ exports.verifyRegistration = async (req, res) => {
     // Clean up all pending registers for this phone number
     await PendingUser.deleteMany({ phone: normalizedPhone });
 
+    try {
+      const io = getIO();
+      io.emit('user:created', {
+        ...user.toObject(),
+        id: user._id
+      });
+    } catch (e) {
+      console.warn('Could not emit user:created', e.message);
+    }
+
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -571,6 +582,17 @@ exports.updateProfile = async (req, res) => {
 
     // Return updated user profile omitting the password
     const updatedUser = await User.findById(user._id).select('-password');
+
+    try {
+      const io = getIO();
+      io.emit('user:updated', {
+        ...updatedUser.toObject(),
+        id: updatedUser._id
+      });
+    } catch (e) {
+      console.warn('Could not emit user:updated', e.message);
+    }
+
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: error.message });

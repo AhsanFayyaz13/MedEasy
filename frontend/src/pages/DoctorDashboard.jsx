@@ -50,7 +50,7 @@ const safeFmtTime = (t) => {
  * sendNotification — Writes a notification to a user's isolated localStorage bucket.
  * For patients: writes to both the specific patientId key AND 'medeasy_notifications_patient'
  * so the currently logged-in patient can receive it regardless of which ID was stored
- * on the mock appointment record.
+ * on the appointment record.
  * @param {'doctor'|'pharmacist'|'admin'|'patient'} role
  * @param {string|number} [specificId] - The specific user ID if targeting a patient
  * @param {Object} notification - The notification object to push
@@ -695,30 +695,16 @@ export default function DoctorDashboard() {
   /* ── Issue Independent Prescription ── */
   const handleIssueIndependent = async (data) => {
     try {
-      // Find a scheduled appointment for this patient, or create a mock finished appointment record!
+      // Find a scheduled appointment for this patient; the system now uses real appointment state only.
       const scheduledApt = apts.find(a => a.patientEmail === data.patientEmail && a.status === 'scheduled');
-      if (scheduledApt) {
-        const updated = await completeAppointment(scheduledApt.id, { notes: data.notes, prescription: data.prescription });
-        setApts(prev => prev.map(a => a.id === updated.id ? updated : a));
-        toast.success(`Prescription issued. Active appointment completed!`);
-      } else {
-        // Generate mock independent completed appointment
-        const nextId = Math.max(...apts.map(a => a.id), 0) + 1;
-        const newCompleted = {
-          id: nextId,
-          patientName: data.patientName,
-          patientEmail: data.patientEmail,
-          date: new Date().toISOString().slice(0, 10),
-          time: '12:00 PM',
-          reason: 'Direct E-Prescription Pad',
-          status: 'completed',
-          notes: data.notes,
-          prescription: data.prescription,
-        };
-        // Add to our local array state
-        setApts(prev => [newCompleted, ...prev]);
-        toast.success(`Independent E-Prescription issued successfully!`);
+      if (!scheduledApt) {
+        toast.error('No scheduled appointment exists for this patient. Please ask the patient to book an appointment first.');
+        return;
       }
+
+      const updated = await completeAppointment(scheduledApt.id, { notes: data.notes, prescription: data.prescription });
+      setApts(prev => prev.map(a => a.id === updated.id ? updated : a));
+      toast.success(`Prescription issued. Active appointment completed!`);
       setActive('schedule'); // Switch to schedule view to review history
     } catch (e) {
       toast.error(e.message);

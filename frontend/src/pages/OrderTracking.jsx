@@ -11,6 +11,7 @@ import {
   FaReceipt, FaInfoCircle,
 } from 'react-icons/fa';
 import { fetchOrders, cancelOrder } from '../services/orderService';
+import { postReview } from '../services/reviewService';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import MedicalIcon from '../components/MedicalIcon';
@@ -345,30 +346,20 @@ export default function OrderTracking() {
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  const handleReviewSubmit = (e) => {
+  const handleReviewSubmit = async (e) => {
     e.preventDefault();
     if (!reviewOrder || !reviewComment.trim()) return;
 
     setSubmittingReview(true);
     try {
-      const raw = localStorage.getItem('medeasy_pharmacy_reviews') || '[]';
-      const all = JSON.parse(raw);
-
-      const newReview = {
-        id: 'rev-' + Date.now(),
-        orderId: reviewOrder.id,
-        pharmacyName: reviewOrder.pharmacyName || 'MedEasy Pharmacy Partner',
-        patientName: user?.name || 'Patient',
-        patientEmail: user?.email || '',
+      await postReview({
+        targetType: 'order',
+        targetId: reviewOrder.id,
         rating: Number(reviewRating),
         comment: reviewComment,
-        time: Date.now()
-      };
+      });
 
-      all.push(newReview);
-      localStorage.setItem('medeasy_pharmacy_reviews', JSON.stringify(all));
-
-      // Send Alert notification to Admin
+      // Keep admin notification alerts local until a full notification backend is implemented.
       const rawAlerts = localStorage.getItem('medeasy_notifications_admin') || '[]';
       const alerts = JSON.parse(rawAlerts);
       alerts.unshift({
@@ -387,7 +378,7 @@ export default function OrderTracking() {
       setReviewRating(5);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to submit review.');
+      toast.error(err.response?.data?.message || 'Failed to submit review.');
     } finally {
       setSubmittingReview(false);
     }
@@ -650,8 +641,8 @@ export default function OrderTracking() {
                     <Card.Body>
                       <h6 className="stats-title"><FaPhone className="me-2" />Need Help?</h6>
                       <p className="help-text">
-                        Call us at <a href="tel:+923001234567">+92 300 1234567</a><br />
-                        or email <a href="mailto:support@medeasy.pk">support@medeasy.pk</a>
+                        Call us at <a href="tel:+923019476165">+923019476165</a><br />
+                        or email <a href="mailto:support@medeasy.systems">support@medeasy.systems</a>
                       </p>
                     </Card.Body>
                   </Card>

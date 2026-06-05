@@ -1,0 +1,20 @@
+# Environment files (do not commit secrets)
+.env
+.env.*
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+
+# Uploads and runtime files
+uploads/
+uploads/*
+
+# Editor
+.vscode/
+.idea/
+
+# Local MongoDB data (if present locally)
+mongodb-data/

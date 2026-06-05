@@ -66,6 +66,26 @@
   color: #7dd3fc !important;
 }
 
+/* ── Contact link ───────────────────────────────── */
+.nav-link.contact-link {
+  color: rgba(255, 255, 255, 0.78) !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.75rem !important;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-right: 0;
+}
+
+.nav-link.contact-link:hover,
+.nav-link.contact-link.active {
+  color: #fff !important;
+  background: rgba(56, 189, 248, 0.15);
+}
+
 /* ── Cart ──────────────────────────────────────── */
 .cart-link,
 .mobile-cart {

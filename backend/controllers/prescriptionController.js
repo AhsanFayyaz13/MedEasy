@@ -1,4 +1,5 @@
 const Prescription = require('../models/Prescription');
+const { getIO } = require('../socket');
 
 // @desc    Upload prescription
 // @route   POST /api/prescriptions/upload
@@ -31,6 +32,14 @@ exports.uploadPrescription = async (req, res) => {
       fileUrl,
       status: 'pending'
     });
+
+    // Emit realtime event after persisting
+    try {
+      const io = getIO();
+      io.emit('prescription:created', prescription);
+    } catch (e) {
+      console.warn('Could not emit prescription:created', e.message);
+    }
 
     res.status(201).json(prescription);
   } catch (error) {
@@ -74,6 +83,15 @@ exports.verifyPrescription = async (req, res) => {
       }
 
       const updatedPrescription = await prescription.save();
+
+      // Emit realtime update
+      try {
+        const io = getIO();
+        io.emit('prescription:updated', updatedPrescription);
+      } catch (e) {
+        console.warn('Could not emit prescription:updated', e.message);
+      }
+
       res.json(updatedPrescription);
     } else {
       res.status(404).json({ message: 'Prescription not found' });
@@ -105,6 +123,14 @@ exports.deletePrescription = async (req, res) => {
     }
 
     await prescription.deleteOne();
+
+    try {
+      const io = getIO();
+      io.emit('prescription:deleted', { id: prescription._id.toString() });
+    } catch (e) {
+      console.warn('Could not emit prescription:deleted', e.message);
+    }
+
     res.json({ message: 'Prescription removed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

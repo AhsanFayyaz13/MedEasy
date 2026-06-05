@@ -56,7 +56,7 @@ export function CartProvider({ children }) {
 
   /**
    * addToCart – adds a medicine or increments its quantity.
-   * @param {Object} medicine  Full medicine object from mockMedicines / API
+   * @param {Object} medicine  Full medicine object from the live API
    * @param {number} [qty=1]   Number of units to add
    * @returns {'added'|'updated'|'capped'}  Result token for toast messaging
    */

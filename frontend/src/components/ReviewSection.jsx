@@ -7,8 +7,6 @@ import api from '../services/api';
 import { fetchMyAppointments } from '../services/appointmentService';
 import './ReviewSection.css';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false';
-
 // Helper to render stars
 export function StarRating({ rating, interactive = false, onRating = () => {} }) {
   const [hoverRating, setHoverRating] = useState(0);
@@ -78,25 +76,10 @@ export default function ReviewSection({ targetType, targetId, initialReviews = [
     const fetchReviews = async () => {
       setLoading(true);
       try {
-        if (USE_MOCK) {
-          // Simulate network delay
-          await new Promise((r) => setTimeout(r, 500));
-          // Provide some dummy reviews if reviews state is empty
-          setReviews((prevReviews) => {
-            if (prevReviews.length === 0) {
-              return [
-                { id: 1, user_name: 'John Doe', rating: 4, comment: 'Great experience!', date: '2026-05-10' },
-                { id: 2, user_name: 'Aisha K.', rating: 5, comment: 'Highly recommended.', date: '2026-05-12' }
-              ];
-            }
-            return prevReviews;
-          });
-        } else {
-          const { data } = await api.get('/reviews', {
-            params: { targetType, targetId }
-          });
-          setReviews(data);
-        }
+        const { data } = await api.get('/reviews', {
+          params: { targetType, targetId }
+        });
+        setReviews(data);
       } catch (err) {
         console.error('Failed to fetch reviews', err);
       } finally {
@@ -127,25 +110,13 @@ export default function ReviewSection({ targetType, targetId, initialReviews = [
     setError(null);
 
     try {
-      if (USE_MOCK) {
-        await new Promise((r) => setTimeout(r, 600));
-        const newReview = {
-          id: Date.now(),
-          user_name: user.name || 'Anonymous',
-          rating,
-          comment,
-          date: new Date().toISOString().slice(0, 10),
-        };
-        setReviews([newReview, ...reviews]);
-      } else {
-        const { data } = await api.post('/reviews', {
-          targetType,
-          targetId,
-          rating,
-          comment
-        });
-        setReviews([data, ...reviews]);
-      }
+      const { data } = await api.post('/reviews', {
+        targetType,
+        targetId,
+        rating,
+        comment
+      });
+      setReviews([data, ...reviews]);
       toast.success('Review submitted successfully!');
       setRating(0);
       setComment('');

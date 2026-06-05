@@ -54,6 +54,11 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/doctors', require('./routes/doctors'));
 app.use('/api/contacts', require('./routes/contacts'));
 
+// API root
+app.get('/api', (req, res) => {
+  res.json({ status: 'ok', message: 'MedEasy API root' });
+});
+
 // Basic route
 app.get('/api/test', (req, res) => {
   res.json({ message: "API is working" });
@@ -66,8 +71,15 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: Date.no
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const http = require('http');
+const { init } = require('./socket');
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 5000;
+const server = http.createServer(app);
+
+// Initialize socket.io
+init(server);
+
+server.listen(PORT, () => {
+  console.log(`Server (HTTP + Socket.IO) running on port ${PORT}`);
 });

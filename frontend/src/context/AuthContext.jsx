@@ -20,9 +20,6 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
-const USE_MOCK = false;
-
-
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 const STORAGE_KEYS = {
   ACCESS:  'medeasy_access_token',
@@ -104,7 +101,7 @@ export function AuthProvider({ children }) {
       setUser(userData);
       return { user: userData, token: access, role: userData.role };
     } catch (err) {
-      if (err.message && !err.response) throw err; // re-throw mock errors
+      if (err.message && !err.response) throw err; // re-throw network or offline errors
       const msg = parseApiError(err, 'Invalid email/phone or password. Please try again.');
       setAuthError(msg);
       throw new Error(msg);
