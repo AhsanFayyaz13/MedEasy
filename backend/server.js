@@ -55,20 +55,6 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/doctors', require('./routes/doctors'));
 app.use('/api/contacts', require('./routes/contacts'));
 
-// Safe masked env variables diagnostic route
-app.get('/api/test-env', (req, res) => {
-  const mask = (val) => {
-    if (!val) return 'MISSING / UNDEFINED';
-    if (val.length <= 4) return '*** (short)';
-    return `${val.substring(0, 2)}...${val.substring(val.length - 2)} (${val.length} chars)`;
-  };
-  res.json({
-    CLOUDINARY_CLOUD_NAME: mask(process.env.CLOUDINARY_CLOUD_NAME),
-    CLOUDINARY_API_KEY: mask(process.env.CLOUDINARY_API_KEY),
-    CLOUDINARY_API_SECRET: mask(process.env.CLOUDINARY_API_SECRET),
-    CLOUDINARY_FOLDER: mask(process.env.CLOUDINARY_FOLDER),
-  });
-});
 
 // Basic route
 app.get('/api/test', (req, res) => {
