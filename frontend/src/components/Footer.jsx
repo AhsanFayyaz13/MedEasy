@@ -110,11 +110,6 @@ export default function AppFooter() {
           <Col md={4}>
             <h6 className="footer-heading">Contact Us</h6>
             <ul className="footer-contact">
-              <li className="mb-3">
-                <Link to="/team" className="team-pill-link">
-                  <FaUsers className="pill-icon me-2" /> Our Team
-                </Link>
-              </li>
               <li>
                 <FaMapMarkerAlt className="contact-icon" />
                 Sector H-10, Islamabad Capital Territory, Pakistan
@@ -126,6 +121,11 @@ export default function AppFooter() {
               <li>
                 <FaEnvelope className="contact-icon" />
                 <a href="mailto:support@medeasy.systems">support@medeasy.systems</a>
+              </li>
+              <li className="mt-3">
+                <Link to="/team" className="team-pill-link">
+                  <FaUsers className="pill-icon me-2" /> Our Team
+                </Link>
               </li>
             </ul>
           </Col>
