@@ -40,8 +40,9 @@ app.use(cors({
 }));
 app.use(morgan('dev'));
 
-// Static folder for uploads
+// Static folder for uploads and fallback static seed images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'static')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
