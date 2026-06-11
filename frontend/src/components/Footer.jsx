@@ -110,9 +110,10 @@ export default function AppFooter() {
           <Col md={4}>
             <h6 className="footer-heading">Contact Us</h6>
             <ul className="footer-contact">
-              <li className="team-link-item mb-3 pb-2">
-                <FaUsers className="contact-icon" />
-                <Link to="/team" className="team-anchor-link">Our Team</Link>
+              <li className="mb-3">
+                <Link to="/team" className="team-pill-link">
+                  <FaUsers className="pill-icon me-2" /> Our Team
+                </Link>
               </li>
               <li>
                 <FaMapMarkerAlt className="contact-icon" />

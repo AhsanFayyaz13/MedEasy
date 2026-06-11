@@ -116,13 +116,36 @@
   color: #38bdf8;
 }
 
-/* Team Link Item & Anchor */
-.team-link-item {
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
-}
-.team-anchor-link {
-  font-weight: 600;
+/* Team Link Button */
+.team-pill-link {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(56, 189, 248, 0.05);
+  border: 1px solid rgba(56, 189, 248, 0.15);
   color: #38bdf8 !important;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 0.45rem 1rem;
+  border-radius: 50px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  margin-bottom: 0.25rem;
+}
+.team-pill-link:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #fff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.18);
+}
+.team-pill-link .pill-icon {
+  font-size: 0.85rem;
+  transition: transform 0.25s ease;
+}
+.team-pill-link:hover .pill-icon {
+  transform: scale(1.15);
 }
 
 /* Divider & copyright */
