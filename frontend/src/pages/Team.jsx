@@ -55,8 +55,7 @@ export default function Team() {
             <Col key={member.id} lg={4} md={6} sm={12} className="d-flex">
               <Card className="team-page-card border-0 shadow-sm w-100 p-4 d-flex flex-column align-items-center text-center">
                 <div className="team-page-avatar-wrapper mb-3">
-                  <Card.Img
-                    variant="top"
+                  <img
                     src={member.image}
                     alt={member.name}
                     className="team-page-avatar"
@@ -67,7 +66,7 @@ export default function Team() {
                     <h4 className="team-page-name mb-1">{member.name}</h4>
                     <p className="team-page-role text-primary small mb-3">{member.role}</p>
                     <hr className="team-card-divider my-2" />
-                    <p className="team-page-contribution text-muted small mb-4">{member.contribution}</p>
+                    <p className="team-page-contribution small mb-4">{member.contribution}</p>
                   </div>
                   <div className="team-page-socials d-flex justify-content-center gap-3 mt-auto">
                     {member.github !== '#' ? (
