@@ -317,6 +317,11 @@ export default function AppNavbar() {
                 )}
               </>
             )}
+            {userRole !== 'admin' && (
+              <Nav.Link as={NavLink} to="/contact" onClick={closeNav}>
+                Contact Us
+              </Nav.Link>
+            )}
           </Nav>
 
           {/* ── Right section ────────────────────────────────────── */}

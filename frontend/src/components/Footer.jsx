@@ -55,9 +55,6 @@ export default function AppFooter() {
               <li><Link to="/medicines">Medicines</Link></li>
               <li><Link to="/appointments">Appointments</Link></li>
               <li><Link to="/cart">Cart</Link></li>
-              {isAuthenticated && userRole !== 'admin' && (
-                <li><Link to="/contact">Contact Us</Link></li>
-              )}
               <li><Link to="/orders">Order Tracking</Link></li>
             </ul>
           </Col>
