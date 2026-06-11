@@ -21,6 +21,7 @@ MedEasy is built on a **decoupled client-server architecture**:
 1.  **Frontend Web Client**: A Single Page Application (SPA) built using React (Vite), styled with dynamic custom Vanilla CSS, utilizing React Bootstrap components, React Icons, and Chart.js dashboards.
 2.  **Backend REST API**: A stateless Node.js Express server handling business logic, authentication middleware, uploads validation, and transaction pipelines.
 3.  **Database Layer**: MongoDB Document Store, managed through Mongoose Object-Document Mapping (ODM) schemas.
+4.  **Media Storage Gateway (Cloudinary CDN)**: Integrates the Cloudinary Node SDK to process signed uploads of user profile images, pharmacist documentation, medicine packaging art, and patient prescription files, bypassing local virtual disk volumes.
 
 ```mermaid
 graph TD
@@ -28,7 +29,8 @@ graph TD
     Express -->|Auth & Router Middlewares| Controllers[Request Controllers]
     Controllers -->|Mongoose Queries| Mongo[(MongoDB Instance)]
     Controllers -->|Port 443 HTTP API| Resend[Resend Email Service]
-    Express -->|Upload Pipeline| FS[Local Uploads Dir]
+    Controllers -->|Signed Uploads / SDK| Cloudinary[Cloudinary CDN Media Service]
+    Express -->|Staging Directory| FS[Local Uploads Dir]
 ```
 
 ---
@@ -47,7 +49,7 @@ Stores profile credentials and meta-data for all actors: Patients, Doctors, Phar
 | `phone` | `String` | Unique, Required | Primary identifier (Normalized Pakistani format) |
 | `password` | `String` | Required | Hashed credentials (bcrypt, salt rounds = 10) |
 | `role` | `String` | Enum: `patient`, `pharmacist`, `doctor`, `admin`, `pharmacy` | Default: `patient`. Defines RBAC rights |
-| `profileImage` | `String` | Optional | Absolute URL to user's uploaded avatar image |
+| `profileImage` | `String` | Optional | Remote Cloudinary CDN URL (`https://res.cloudinary.com/...`) |
 | `address` | `String` | Optional | General mailing address |
 | `isVerifiedProfile`| `Boolean`| Default: `false` | Admin-verified flag for doctor/pharmacist profiles |
 | `pharmacyName` | `String` | Optional (Pharmacy/Pharmacist only) | Commercial pharmacy organization name |
@@ -87,7 +89,7 @@ Defines catalog inventory records.
 | `price` | `Number` | Required | Selling price in PKR |
 | `stock` | `Number` | Required, Default: `0` | Available stock count |
 | `requiresPrescription`| `Boolean`| Default: `false` | If true, checkout requires uploading a prescription |
-| `imageUrl` | `String` | Optional | Image URL of medicine packaging |
+| `imageUrl` | `String` | Optional | Cloudinary CDN URL or local static fallback path |
 
 ### D. Appointment Schema (`Appointment` Collection)
 Enables booking transactions between Patients and Doctors.
@@ -121,7 +123,7 @@ Defines user-submitted files validating prescription-only medicine orders.
 | :--- | :--- | :--- | :--- |
 | `userId` | `ObjectId` | Required, Ref: `User` | Owner of the prescription |
 | `doctorId` | `ObjectId` | Optional, Ref: `User` | The prescribing physician |
-| `fileUrl` | `String` | Required | File path to stored image or PDF document |
+| `fileUrl` | `String` | Required | Remote Cloudinary CDN URL (`https://res.cloudinary.com/...`) |
 | `status` | `String` | Enum: `pending`, `verified`, `rejected` | Default: `pending`. Audited by Pharmacists |
 
 ---
@@ -182,6 +184,23 @@ Contact numbers in Pakistan are standardized using `backend/utils/phone.js` to p
     }, [isAuthenticated]);
     ```
 
+### D. Cloudinary CDN Media Upload Pipeline
+To optimize delivery and ensure persistent image hosting across container restarts (e.g. on Render):
+1.  **Staging Handler**: Incoming files are uploaded by `multer` and written temporarily to a local disk staging folder (`backend/uploads/`).
+2.  **CDN Routing**: The backend dispatches the staging files to Cloudinary using the secure signed uploads API (`cloudinary.v2.uploader.upload()`).
+3.  **Staging Clean-up**: Upon resolve (either a successful upload or a failed error payload), the backend immediately runs an asynchronous `fs.unlink()` cleanup routine to purge the temporary file from the disk.
+4.  **Database Storage**: Only the secure HTTPS CDN URL returned by Cloudinary is stored in database properties like `user.profileImage`, `medicine.imageUrl`, or `prescription.fileUrl`.
+
+### E. Static Media Resolution (Render Fallback Seeding)
+On container hosts with ephemeral file systems like Render, mock seed directories are wiped on re-deployment. To ensure default medicine catalog packaging images load successfully:
+1.  A tracked fallback folder `backend/static/` is populated with all mock seed images.
+2.  The Express server mounts this folder alongside `backend/uploads/` on the virtual static path `/uploads`:
+    ```javascript
+    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+    app.use('/uploads', express.static(path.join(__dirname, 'static')));
+    ```
+3.  This dual-mounting resolves default images statically, preventing 404 image errors on fresh deployment.
+
 ---
 
 ## 👥 5. Role-Based Access Control (RBAC) & Interactive Portals
@@ -199,7 +218,9 @@ Access controls are enforced on both the client (router checks) and backend (mid
     *   **Admin Dashboard Overview**: Highlighted only if path is `/admin` and tab is empty or `overview`.
     *   **User Management**: Highlighted only if path is `/admin` and tab parameter is `users`.
     *   **Verification Approvals**: Highlighted only if path is `/admin` and tab parameter is `verifications`.
+    *   **Contact Us**: Reallocated from the footer Quick Links to the main navbar (visible to all users except `admin`).
 5.  **Brand Clean Reload**: Clicking the top-left `MedEasy` logo resets state by executing `window.location.href = '/'` or dashboard roots.
+6.  **Standalone Creators Section**: A dedicated `/team` route renders glassmorphic profile cards showing project roles, contributions, and social endpoints. Access is open to all public users, with linking routed from an interactive pill button placed directly below the footer "Contact Us" header.
 
 ---
 
@@ -279,10 +300,12 @@ To avoid Port 25/587 outbound firewall blockages common on container hosts like 
 ### B. CORS Configuration
 The backend explicitly lists authorized domains under `FRONTEND_ORIGIN` (separated by commas). Requests from non-registered domains are blocked by CORS policies.
 
-### C. File Upload Specifications
-*   Middleware: `multer` disk storage (`backend/uploads/`).
-*   File Filters: Accepts images (jpeg, png, gif) and documents (pdf).
-*   Maximum File Size: Configured via `MAX_UPLOAD_BYTES` (default: 5MB).
+### C. Media Storage & Upload Specifications
+*   **Staging Handler**: `multer` disk staging (`backend/uploads/`).
+*   **CDN Gateway**: Cloudinary API (`cloudinary.v2` signed upload endpoints).
+*   **File Validation Filters**: Accepts standard images (JPEG, PNG, WEBP, GIF) and documents (PDF).
+*   **Maximum File Size**: Configured via `MAX_UPLOAD_BYTES` (default: 5MB).
+*   **Persistent Variables**: Requires `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
 
 ---
 

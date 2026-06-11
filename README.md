@@ -16,6 +16,7 @@
 MedEasy uses a modern decoupled architecture:
 *   **Frontend**: React client scaffolded with Vite, featuring dynamic custom Vanilla CSS, React Bootstrap, React Icons, and interactive Chart.js dashboards.
 *   **Backend**: Node.js + Express.js API engine interfacing with MongoDB through Mongoose schemas.
+*   **Media Hosting (Cloudinary)**: Integrated Cloudinary API for secure signed uploads of prescriptions, avatars, and medicine graphics, eliminating local storage dependencies and DB blob size issues.
 *   **Authentication**: JSON Web Token (JWT) session authorization, secure bcrypt hashing, and tab-isolated sessionStorage persistence (enabling multiple active sessions in different tabs).
 
 ```mermaid
@@ -23,6 +24,7 @@ graph TD
     Client[React Frontend] -->|HTTP API Requests| Express[Express.js Backend Server]
     Express -->|Queries & Indexes| Mongo[(MongoDB Database)]
     Express -->|Session & Verification TTL| PendingCol[(PendingUsers TTL Collection)]
+    Express -->|Signed Media Uploads| Cloudinary[Cloudinary Cloud Media Service]
 ```
 
 ---
@@ -71,6 +73,13 @@ sequenceDiagram
 *   **Pakistani Date Engine**: Localized appointment dates use tailored utility functions matching the local region.
 *   **Brand Reload Workspace**: Clicking the logo triggers a full memory reload (`window.location.href`) resetting dashboards fresh.
 
+### 🖼️ Cloudinary CDN Integration
+*   **Zero-Local-Staging Media Pipeline**: Image and file uploads are dispatched directly to Cloudinary using signed upload signatures.
+*   **Automatic Disk Cleaning**: Backend temporary files are automatically unlinked upon upload resolution to keep Render/Railway ephemeral container storage clean.
+
+### 📁 Render Ephemeral Media Fallback
+*   **Double Static Resolutions**: Static mock/seed medicine packaging images are mounted using secondary fallback lookups in `backend/static/` under the `/uploads` virtual path, keeping catalog images alive on ephemeral host platforms.
+
 ---
 
 ## 📁 Repository Directory Structure
@@ -81,13 +90,14 @@ MedEasy/
 │   ├── controllers/           # Auth, User, and Business Controllers
 │   ├── models/                # Mongoose Schemas (User, PendingUser, Medicine...)
 │   ├── routes/                # Express Route Handlers
-│   ├── utils/                 # Utilities (mailer.js, phone.js, verification.js)
+│   ├── static/                # Pre-seeded medicine images (Render fallback)
+│   ├── utils/                 # Utilities (mailer.js, phone.js, cloudinary.js)
 │   └── uploads/               # Local prescription and profile photo uploads
 ├── frontend/                  # React client build (Vite framework)
 │   ├── src/
 │   │   ├── components/        # Modals, Navbar, and Reusable Components
 │   │   ├── context/           # Global State Providers (Auth, Cart, Modals...)
-│   │   ├── pages/             # Doctor, Pharmacist, Admin, and User Views
+│   │   ├── pages/             # Doctor, Pharmacist, Admin, Team, and User Views
 │   │   └── main.jsx           # Entrypoint and routes
 │   └── package.json           # Client dependency configurations
 ├── package.json               # root configurations & concurrently startup scripts
@@ -122,6 +132,11 @@ MAX_UPLOAD_BYTES=5242880
 # Resend Transactional Email Setup (HTTP API)
 RESEND_API_KEY=your_resend_api_key_here
 SENDER_EMAIL=medeasy@medeasy.systems
+
+# Cloudinary CDN Configuration
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 #### Frontend Configuration (Optional)
