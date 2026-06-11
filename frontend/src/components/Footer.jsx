@@ -110,6 +110,10 @@ export default function AppFooter() {
           <Col md={4}>
             <h6 className="footer-heading">Contact Us</h6>
             <ul className="footer-contact">
+              <li className="team-link-item mb-3 pb-2">
+                <FaUsers className="contact-icon" />
+                <Link to="/team" className="team-anchor-link">Our Team</Link>
+              </li>
               <li>
                 <FaMapMarkerAlt className="contact-icon" />
                 Sector H-10, Islamabad Capital Territory, Pakistan
@@ -122,51 +126,9 @@ export default function AppFooter() {
                 <FaEnvelope className="contact-icon" />
                 <a href="mailto:support@medeasy.systems">support@medeasy.systems</a>
               </li>
-              <li className="team-link-item mt-3 pt-2">
-                <FaUsers className="contact-icon" />
-                <a href="#our-team" className="team-anchor-link">Our Team</a>
-              </li>
             </ul>
           </Col>
         </Row>
-
-        <div id="our-team" className="footer-team-section mt-5 pt-4">
-          <h5 className="footer-team-heading text-center mb-4">Meet Our Team</h5>
-          <Row className="gy-4">
-            {teamMembers.map((member) => (
-              <Col key={member.id} md={4} sm={12}>
-                <div className="team-card h-100 text-center p-4">
-                  <div className="team-avatar-wrapper mb-3">
-                    <img src={member.image} alt={member.name} className="team-avatar" />
-                  </div>
-                  <h6 className="team-name mb-1">{member.name}</h6>
-                  <p className="team-role mb-2">{member.role}</p>
-                  <p className="team-contribution small mb-4">{member.contribution}</p>
-                  <div className="team-socials d-flex justify-content-center gap-3">
-                    {member.github !== '#' ? (
-                      <a href={member.github} target="_blank" rel="noopener noreferrer" className="team-social-icon github" aria-label={`${member.name} GitHub`}>
-                        <FaGithub />
-                      </a>
-                    ) : (
-                      <span className="team-social-icon github disabled" title="No GitHub Profile" aria-hidden="true">
-                        <FaGithub />
-                      </span>
-                    )}
-                    {member.linkedin !== '#' ? (
-                      <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="team-social-icon linkedin" aria-label={`${member.name} LinkedIn`}>
-                        <FaLinkedinIn />
-                      </a>
-                    ) : (
-                      <span className="team-social-icon linkedin disabled" title="No LinkedIn Profile" aria-hidden="true">
-                        <FaLinkedinIn />
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Col>
-            ))}
-          </Row>
-        </div>
 
         <hr className="footer-divider" />
 

@@ -24,6 +24,7 @@ import DoctorDashboard from './pages/DoctorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import ContactUs from './pages/ContactUs';
+import Team from './pages/Team';
 
 // ── Contexts ──────────────────────────────────────────────────────────────────
 import { AuthProvider } from './context/AuthContext';
@@ -56,6 +57,7 @@ function AppContent() {
               <Route path="/medicines" element={<MedicineList />} />
               <Route path="/medicines/:id" element={<MedicineDetail />} />
               <Route path="/reviews" element={<Reviews />} />
+              <Route path="/team" element={<Team />} />
 
               {/* Auth pages – redirect away if already logged in (handled inside each page) */}
               <Route path="/login" element={<Login />} />
