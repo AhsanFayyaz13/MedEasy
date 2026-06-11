@@ -687,7 +687,7 @@ export default function Register() {
                         {fields.pharmacyOutsidePicture && (
                           <div className="mt-2 text-success small d-flex align-items-center gap-1">
                             <span>✓ Image uploaded successfully!</span>
-                            <a href={fields.pharmacyOutsidePicture.startsWith('data:') ? fields.pharmacyOutsidePicture : `${serverUrl}${fields.pharmacyOutsidePicture}`} target="_blank" rel="noreferrer" className="text-decoration-underline text-primary">View Photo</a>
+                            <a href={fields.pharmacyOutsidePicture.startsWith('data:') || fields.pharmacyOutsidePicture.startsWith('http') ? fields.pharmacyOutsidePicture : `${serverUrl}${fields.pharmacyOutsidePicture}`} target="_blank" rel="noreferrer" className="text-decoration-underline text-primary">View Photo</a>
                           </div>
                         )}
                         <Form.Control.Feedback type="invalid">{errors.pharmacyOutsidePicture}</Form.Control.Feedback>

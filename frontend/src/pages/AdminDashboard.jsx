@@ -642,7 +642,7 @@ function VerificationsTab({ users, setUsers }) {
                           {selectedUser.pharmacistDetails?.photo && (
                             <div className="mb-3">
                               <span className="text-muted extra-small d-block mb-2">PHARMACIST PHOTO</span>
-                              <img src={`${serverUrl}${selectedUser.pharmacistDetails.photo}`} alt="Pharmacist representative" className="rounded border object-fit-cover shadow-sm" style={{ width: 70, height: 70, objectFit: 'cover' }} />
+                              <img src={selectedUser.pharmacistDetails.photo.startsWith('data:') || selectedUser.pharmacistDetails.photo.startsWith('http') ? selectedUser.pharmacistDetails.photo : `${serverUrl}${selectedUser.pharmacistDetails.photo}`} alt="Pharmacist representative" className="rounded border object-fit-cover shadow-sm" style={{ width: 70, height: 70, objectFit: 'cover' }} />
                             </div>
                           )}
                           <div className="mb-2">
@@ -719,7 +719,7 @@ function VerificationsTab({ users, setUsers }) {
                           <span className="text-muted extra-small d-block mb-2 fw-semibold">PHARMACY OUTSIDE SHOP PICTURE</span>
                           <div className="position-relative overflow-hidden rounded border bg-white p-2" style={{ maxWidth: '100%', maxHeight: '300px', display: 'inline-block' }}>
                             <img 
-                              src={`${serverUrl}${selectedUser.pharmacyOutsidePicture}`} 
+                              src={selectedUser.pharmacyOutsidePicture.startsWith('data:') || selectedUser.pharmacyOutsidePicture.startsWith('http') ? selectedUser.pharmacyOutsidePicture : `${serverUrl}${selectedUser.pharmacyOutsidePicture}`} 
                               alt="Pharmacy Outside View" 
                               className="img-fluid rounded"
                               style={{ maxHeight: '280px', objectFit: 'contain', transition: 'transform 0.3s' }}

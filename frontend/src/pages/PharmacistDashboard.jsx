@@ -846,7 +846,7 @@ function OrdersPage({ mode = 'active' }) {
                         <Button
                           size="sm"
                           variant="outline-primary"
-                          href={detail.prescriptionId.fileUrl.startsWith('data:') ? detail.prescriptionId.fileUrl : `${serverUrl}${detail.prescriptionId.fileUrl}`}
+                          href={detail.prescriptionId.fileUrl.startsWith('data:') || detail.prescriptionId.fileUrl.startsWith('http') ? detail.prescriptionId.fileUrl : `${serverUrl}${detail.prescriptionId.fileUrl}`}
                           target="_blank"
                           rel="noreferrer"
                           className="py-0.5 px-2 bg-white"
@@ -956,7 +956,7 @@ function PrescriptionsPage() {
                 onClick={() => setEnlarged(rx)}
                 title="Click to enlarge">
                 {rx.fileUrl && rx.fileType !== 'application/pdf' ? (
-                  <img src={rx.fileUrl.startsWith('data:') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} alt="prescription" className="rx-thumbnail-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                  <img src={rx.fileUrl.startsWith('data:') || rx.fileUrl.startsWith('http') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} alt="prescription" className="rx-thumbnail-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
                 ) : (
                   <span className="rx-preview-icon">{RX_ICON[rx.fileType] || '📎'}</span>
                 )}
@@ -1032,7 +1032,7 @@ function PrescriptionsPage() {
                 <p className="text-muted small">PDF Document ({fmtBytes(enlarged.fileSize)})</p>
                 <Button 
                   variant="primary" 
-                  href={enlarged.fileUrl.startsWith('data:') ? enlarged.fileUrl : `${serverUrl}${enlarged.fileUrl}`} 
+                  href={enlarged.fileUrl.startsWith('data:') || enlarged.fileUrl.startsWith('http') ? enlarged.fileUrl : `${serverUrl}${enlarged.fileUrl}`} 
                   target="_blank" 
                   rel="noreferrer"
                   className="mt-2"
@@ -1043,7 +1043,7 @@ function PrescriptionsPage() {
             ) : (
               <div className="rx-image-container">
                 <img 
-                  src={enlarged.fileUrl.startsWith('data:') ? enlarged.fileUrl : `${serverUrl}${enlarged.fileUrl}`} 
+                  src={enlarged.fileUrl.startsWith('data:') || enlarged.fileUrl.startsWith('http') ? enlarged.fileUrl : `${serverUrl}${enlarged.fileUrl}`} 
                   alt={enlarged.fileName} 
                   className="img-fluid rounded shadow-sm"
                   style={{ maxHeight: '70vh', objectFit: 'contain' }}
@@ -1369,7 +1369,7 @@ function PharmacistRepPage() {
                 <div className="d-flex align-items-center gap-4 p-3 border rounded-3 bg-white">
                   <div className="position-relative" style={{ width: 80, height: 80 }}>
                     {photo ? (
-                      <img src={photo.startsWith('data:') ? photo : `${serverUrl}${photo}`} alt="Pharmacist representative avatar" className="rounded-circle border w-100 h-100 object-fit-cover shadow-sm" />
+                      <img src={photo.startsWith('data:') || photo.startsWith('http') ? photo : `${serverUrl}${photo}`} alt="Pharmacist representative avatar" className="rounded-circle border w-100 h-100 object-fit-cover shadow-sm" />
                     ) : (
                       <div className="rounded-circle border w-100 h-100 bg-light d-flex align-items-center justify-content-center text-muted fw-bold" style={{ fontSize: '1.5rem' }}>
                         ?
@@ -1528,7 +1528,7 @@ function PharmacistRepPage() {
                 <div className="position-relative" style={{ width: 120, height: 120 }}>
                   {details.photo ? (
                     <img
-                      src={details.photo.startsWith('data:') ? details.photo : `${serverUrl}${details.photo}`}
+                      src={details.photo.startsWith('data:') || details.photo.startsWith('http') ? details.photo : `${serverUrl}${details.photo}`}
                       alt={details.name}
                       className="rounded-circle border w-100 h-100 object-fit-cover shadow"
                       onError={e => {

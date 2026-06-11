@@ -5,6 +5,7 @@ const https = require('https');
 const { normalizePhone } = require('../utils/phone');
 const { generateVerificationCode, logVerificationCode } = require('../utils/verification');
 const { sendVerificationEmail, sendResetPasswordEmail } = require('../utils/mailer');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -590,19 +591,12 @@ exports.uploadProfilePhoto = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const fs = require('fs');
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const mimeType = req.file.mimetype;
-    const base64Data = fileBuffer.toString('base64');
-    user.profileImage = `data:${mimeType};base64,${base64Data}`;
+    // Upload to Cloudinary
+    const secureUrl = await uploadToCloudinary(req.file.path, {
+      folder: `${process.env.CLOUDINARY_FOLDER || 'Medeasy Uploads'}/profile_photos`
+    });
 
-    // Clean up local temp file
-    try {
-      fs.unlinkSync(req.file.path);
-    } catch (err) {
-      console.error('Error deleting temp file:', err);
-    }
-
+    user.profileImage = secureUrl;
     await user.save();
 
     const updatedUser = await User.findById(user._id).select('-password');
@@ -716,20 +710,13 @@ exports.uploadPharmacistPhoto = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No photo file uploaded or invalid format.' });
     }
-    const fs = require('fs');
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const mimeType = req.file.mimetype;
-    const base64Data = fileBuffer.toString('base64');
-    const base64Url = `data:${mimeType};base64,${base64Data}`;
 
-    // Clean up local temp file
-    try {
-      fs.unlinkSync(req.file.path);
-    } catch (err) {
-      console.error('Error deleting temp file:', err);
-    }
+    // Upload to Cloudinary
+    const secureUrl = await uploadToCloudinary(req.file.path, {
+      folder: `${process.env.CLOUDINARY_FOLDER || 'Medeasy Uploads'}/pharmacist_photos`
+    });
 
-    res.status(200).json({ filePath: base64Url });
+    res.status(200).json({ filePath: secureUrl });
   } catch (error) {
     if (req.file && req.file.path) {
       const fs = require('fs');

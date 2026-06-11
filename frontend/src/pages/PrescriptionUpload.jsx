@@ -106,13 +106,13 @@ function PrescriptionCard({ rx, onDelete }) {
     <div className={`rx-history-card status-${rx.status}`} style={{borderLeftColor:cfg.border}}>
       {isImage && rx.fileUrl ? (
         <a 
-          href={rx.fileUrl.startsWith('data:') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} 
+          href={rx.fileUrl.startsWith('data:') || rx.fileUrl.startsWith('http') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} 
           target="_blank" 
           rel="noreferrer" 
           className="rx-card-image-preview-link"
         >
           <img 
-            src={rx.fileUrl.startsWith('data:') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} 
+            src={rx.fileUrl.startsWith('data:') || rx.fileUrl.startsWith('http') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} 
             alt="Prescription preview" 
           />
           <div className="rx-image-hover-overlay">
@@ -161,7 +161,7 @@ function PrescriptionCard({ rx, onDelete }) {
         )}
         <div className="rx-card-actions">
           {rx.fileUrl && (
-            <Button variant="outline-primary" size="sm" className="me-2 rx-view-btn" href={rx.fileUrl.startsWith('data:') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} target="_blank" rel="noreferrer">
+            <Button variant="outline-primary" size="sm" className="me-2 rx-view-btn" href={rx.fileUrl.startsWith('data:') || rx.fileUrl.startsWith('http') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} target="_blank" rel="noreferrer">
               <FaEye className="me-1"/>View File
             </Button>
           )}

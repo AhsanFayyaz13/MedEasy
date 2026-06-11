@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { uploadToCloudinary } = require('../utils/cloudinary');
 const { 
   register, 
   login, 
@@ -30,25 +31,18 @@ router.post('/profile/photo', protect, upload.single('profilePhoto'), uploadProf
 router.put('/profile/pharmacist', protect, updatePharmacistDetails);
 router.delete('/profile/pharmacist', protect, removePharmacistDetails);
 router.post('/upload-pharmacist-photo', protect, upload.single('pharmacistPhoto'), uploadPharmacistPhoto);
-router.post('/upload-pharmacy-image', upload.single('pharmacyImage'), (req, res) => {
+router.post('/upload-pharmacy-image', upload.single('pharmacyImage'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded or invalid format. Images/PDFs only.' });
     }
-    const fs = require('fs');
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const mimeType = req.file.mimetype;
-    const base64Data = fileBuffer.toString('base64');
-    const base64Url = `data:${mimeType};base64,${base64Data}`;
 
-    // Clean up local temp file
-    try {
-      fs.unlinkSync(req.file.path);
-    } catch (err) {
-      console.error('Error deleting temp file:', err);
-    }
+    // Upload to Cloudinary
+    const secureUrl = await uploadToCloudinary(req.file.path, {
+      folder: `${process.env.CLOUDINARY_FOLDER || 'Medeasy Uploads'}/pharmacy_images`
+    });
 
-    res.status(200).json({ filePath: base64Url });
+    res.status(200).json({ filePath: secureUrl });
   } catch (error) {
     if (req.file && req.file.path) {
       const fs = require('fs');

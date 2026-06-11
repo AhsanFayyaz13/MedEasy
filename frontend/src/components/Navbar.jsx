@@ -339,7 +339,7 @@ export default function AppNavbar() {
                     <div className="user-avatar position-relative">
                       {user?.profileImage ? (
                         <img
-                          src={`${serverUrl}${user.profileImage}`}
+                          src={user.profileImage.startsWith('data:') || user.profileImage.startsWith('http') ? user.profileImage : `${serverUrl}${user.profileImage}`}
                           alt="Avatar"
                           className="user-avatar-img"
                         />

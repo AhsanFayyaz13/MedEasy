@@ -1,4 +1,5 @@
 const Medicine = require('../models/Medicine');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 // @desc    Get all medicines (with pagination, search, filter)
 // @route   GET /api/medicines
@@ -120,20 +121,12 @@ exports.uploadMedicinePhoto = async (req, res) => {
       return res.status(400).json({ message: 'No image file uploaded or invalid file format.' });
     }
 
-    const fs = require('fs');
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const mimeType = req.file.mimetype;
-    const base64Data = fileBuffer.toString('base64');
-    const base64Url = `data:${mimeType};base64,${base64Data}`;
+    // Upload to Cloudinary
+    const secureUrl = await uploadToCloudinary(req.file.path, {
+      folder: `${process.env.CLOUDINARY_FOLDER || 'Medeasy Uploads'}/medicine_photos`
+    });
 
-    // Clean up local temp file
-    try {
-      fs.unlinkSync(req.file.path);
-    } catch (err) {
-      console.error('Error deleting temp file:', err);
-    }
-
-    res.status(200).json({ imageUrl: base64Url });
+    res.status(200).json({ imageUrl: secureUrl });
   } catch (error) {
     if (req.file && req.file.path) {
       const fs = require('fs');

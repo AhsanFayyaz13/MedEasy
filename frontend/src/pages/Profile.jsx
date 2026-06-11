@@ -226,7 +226,7 @@ export default function Profile() {
                     <div className="profile-avatar-circle mx-auto position-relative">
                       {user?.profileImage ? (
                         <img 
-                          src={user.profileImage.startsWith('data:') ? user.profileImage : `${serverUrl}${user.profileImage}`} 
+                          src={user.profileImage.startsWith('data:') || user.profileImage.startsWith('http') ? user.profileImage : `${serverUrl}${user.profileImage}`} 
                           alt="Profile" 
                           className="profile-avatar-img" 
                         />

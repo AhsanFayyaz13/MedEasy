@@ -1,4 +1,5 @@
 const Prescription = require('../models/Prescription');
+const { uploadToCloudinary } = require('../utils/cloudinary');
 
 // @desc    Upload prescription
 // @route   POST /api/prescriptions/upload
@@ -10,18 +11,10 @@ exports.uploadPrescription = async (req, res) => {
     if (req.body.fileUrl) {
       fileUrl = req.body.fileUrl;
     } else if (req.file) {
-      const fs = require('fs');
-      const fileBuffer = fs.readFileSync(req.file.path);
-      const mimeType = req.file.mimetype;
-      const base64Data = fileBuffer.toString('base64');
-      fileUrl = `data:${mimeType};base64,${base64Data}`;
-
-      // Clean up local temp file
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (err) {
-        console.error('Error deleting temp file:', err);
-      }
+      // Upload to Cloudinary
+      fileUrl = await uploadToCloudinary(req.file.path, {
+        folder: `${process.env.CLOUDINARY_FOLDER || 'Medeasy Uploads'}/prescriptions`
+      });
     } else {
       return res.status(400).json({ message: 'No file uploaded or URL provided' });
     }
