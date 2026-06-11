@@ -7,28 +7,28 @@ const teamMembers = [
     id: 1,
     name: "Ahsan Fayyaz",
     role: "Lead Full-Stack Developer & Architect",
-    contribution: "Designed system architecture, configured MongoDB schemas, built Express REST APIs, and developed 100% of the React frontend codebase.",
+    contribution: "Designed system architecture, configured MongoDB schemas, built Express REST APIs, and developed the React frontend codebase.",
     github: "https://github.com/AhsanFayyaz13",
     linkedin: "https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a",
-    image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80"
+    image: "https://res.cloudinary.com/dh1lddfrx/image/upload/v1781182850/Upscaled_Nano_Bana_Image_pgxw5p.png"
   },
   {
     id: 2,
     name: "Owaimer Khalid",
     role: "UI/UX & Quality Assurance Lead",
     contribution: "Assisted with initial UI layout ideation, prepared presentation mockups, and handled client-side QA user testing.",
-    github: "#",
-    linkedin: "https://www.linkedin.com",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80"
+    github: "https://github.com/owaimerkhalid",
+    linkedin: "https://www.linkedin.com/in/owaimer-khalid-5a2545331",
+    image: "https://res.cloudinary.com/dh1lddfrx/image/upload/v1781182957/Owaimer_ywwjr1.jpg"
   },
   {
     id: 3,
     name: "Murad Ali Khan",
     role: "Product Manager & Technical Writer",
     contribution: "Managed project delivery timelines, coordinated team assets, and compiled external project documentation.",
-    github: "#",
-    linkedin: "https://www.linkedin.com",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80"
+    github: "https://github.com/muradalikhan013-netizen",
+    linkedin: "https://www.linkedin.com/in/murad-ali-khan-902b9b3b1/",
+    image: "https://res.cloudinary.com/dh1lddfrx/image/upload/v1781211275/Murad_yqa4nq.jpg"
   }
 ];
 
