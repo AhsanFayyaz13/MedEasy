@@ -10,10 +10,41 @@ import {
   FaEnvelope,
   FaMapMarkerAlt,
   FaHeart,
+  FaUsers,
 } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { useAuth } from '../context/AuthContext';
 import './Footer.css';
+
+const teamMembers = [
+  {
+    id: 1,
+    name: "Ahsan Fayyaz",
+    role: "Lead Full-Stack Developer & Architect",
+    contribution: "Designed system architecture, configured MongoDB schemas, built Express REST APIs, and developed 100% of the React frontend codebase.",
+    github: "https://github.com/AhsanFayyaz13",
+    linkedin: "https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a",
+    image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80"
+  },
+  {
+    id: 2,
+    name: "Owaimer Khalid",
+    role: "UI/UX & Quality Assurance Lead",
+    contribution: "Assisted with initial UI layout ideation, prepared presentation mockups, and handled client-side QA user testing.",
+    github: "#",
+    linkedin: "https://www.linkedin.com",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80"
+  },
+  {
+    id: 3,
+    name: "Murad Ali Khan",
+    role: "Product Manager & Technical Writer",
+    contribution: "Managed project delivery timelines, coordinated team assets, and compiled external project documentation.",
+    github: "#",
+    linkedin: "https://www.linkedin.com",
+    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80"
+  }
+];
 
 /**
  * AppFooter – multi-column footer with links, social icons, and contact info.
@@ -91,9 +122,51 @@ export default function AppFooter() {
                 <FaEnvelope className="contact-icon" />
                 <a href="mailto:support@medeasy.systems">support@medeasy.systems</a>
               </li>
+              <li className="team-link-item mt-3 pt-2">
+                <FaUsers className="contact-icon" />
+                <a href="#our-team" className="team-anchor-link">Our Team</a>
+              </li>
             </ul>
           </Col>
         </Row>
+
+        <div id="our-team" className="footer-team-section mt-5 pt-4">
+          <h5 className="footer-team-heading text-center mb-4">Meet Our Team</h5>
+          <Row className="gy-4">
+            {teamMembers.map((member) => (
+              <Col key={member.id} md={4} sm={12}>
+                <div className="team-card h-100 text-center p-4">
+                  <div className="team-avatar-wrapper mb-3">
+                    <img src={member.image} alt={member.name} className="team-avatar" />
+                  </div>
+                  <h6 className="team-name mb-1">{member.name}</h6>
+                  <p className="team-role mb-2">{member.role}</p>
+                  <p className="team-contribution small mb-4">{member.contribution}</p>
+                  <div className="team-socials d-flex justify-content-center gap-3">
+                    {member.github !== '#' ? (
+                      <a href={member.github} target="_blank" rel="noopener noreferrer" className="team-social-icon github" aria-label={`${member.name} GitHub`}>
+                        <FaGithub />
+                      </a>
+                    ) : (
+                      <span className="team-social-icon github disabled" title="No GitHub Profile" aria-hidden="true">
+                        <FaGithub />
+                      </span>
+                    )}
+                    {member.linkedin !== '#' ? (
+                      <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="team-social-icon linkedin" aria-label={`${member.name} LinkedIn`}>
+                        <FaLinkedinIn />
+                      </a>
+                    ) : (
+                      <span className="team-social-icon linkedin disabled" title="No LinkedIn Profile" aria-hidden="true">
+                        <FaLinkedinIn />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Col>
+            ))}
+          </Row>
+        </div>
 
         <hr className="footer-divider" />
 

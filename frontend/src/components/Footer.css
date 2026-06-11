@@ -116,10 +116,132 @@
   color: #38bdf8;
 }
 
+/* Team Link Item & Anchor */
+.team-link-item {
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+}
+.team-anchor-link {
+  font-weight: 600;
+  color: #38bdf8 !important;
+}
+
+/* Our Team Section */
+.footer-team-section {
+  scroll-margin-top: 100px;
+}
+.footer-team-heading {
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 1.5px;
+  position: relative;
+  display: inline-block;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.footer-team-heading::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 2px;
+  background: #38bdf8;
+  margin: 8px auto 0;
+  border-radius: 2px;
+}
+
+/* Team Card styling (Glassmorphism) */
+.team-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+.team-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 10px 30px rgba(56, 189, 248, 0.06);
+}
+
+.team-avatar-wrapper {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+  position: relative;
+}
+.team-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid rgba(56, 189, 248, 0.2);
+  transition: border-color 0.3s ease;
+}
+.team-card:hover .team-avatar {
+  border-color: #38bdf8;
+}
+
+.team-name {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+}
+.team-role {
+  color: #38bdf8;
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+.team-contribution {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+/* Team Social Icons */
+.team-socials a,
+.team-socials span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+.team-social-icon.github {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.75);
+}
+.team-social-icon.github:not(.disabled):hover {
+  background: #24292e;
+  color: #fff;
+  transform: translateY(-2px);
+}
+.team-social-icon.linkedin {
+  background: rgba(56, 189, 248, 0.08);
+  color: #38bdf8;
+}
+.team-social-icon.linkedin:not(.disabled):hover {
+  background: #0077b5;
+  color: #fff;
+  transform: translateY(-2px);
+}
+.team-social-icon.disabled {
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: rgba(255, 255, 255, 0.2) !important;
+  cursor: not-allowed;
+}
+
 /* Divider & copyright */
 .footer-divider {
   border-color: rgba(255, 255, 255, 0.1);
-  margin: 2rem 0 1rem;
+  margin: 2.5rem 0 1rem;
 }
 .footer-copy {
   text-align: center;
