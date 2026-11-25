@@ -40,7 +40,7 @@ describe('health & errors', () => {
 });
 
 describe('registration security', () => {
-  const base = { name: 'Eve Attacker', phone: '03001112222', password: 'Password123!', verificationChannel: 'phone' };
+  const base = { name: 'Eve Attacker', phone: '03001112222', password: 'Password123!', verificationChannel: 'phone', acceptTerms: true };
 
   it('refuses self-registration as admin', async () => {
     const res = await request(app).post('/api/auth/register').send({ ...base, role: 'admin' });
@@ -53,6 +53,13 @@ describe('registration security', () => {
     assert.equal(res.status, 400);
   });
 
+  it('requires acceptance of the terms', async () => {
+    const { acceptTerms, ...noTerms } = base; // eslint-disable-line no-unused-vars
+    const res = await request(app).post('/api/auth/register').send(noTerms);
+    assert.equal(res.status, 400);
+    assert.match(res.body.message, /terms/i);
+  });
+
   it('stores only hashed password and OTP for pending users', async () => {
     const res = await request(app).post('/api/auth/register').send(base);
     assert.equal(res.status, 200);
@@ -60,6 +67,7 @@ describe('registration security', () => {
     const pending = await PendingUser.findOne({});
     assert.match(pending.password, /^\$2[aby]\$/);
     assert.match(pending.verificationCode, /^[a-f0-9]{64}$/);
+    assert.ok(pending.termsAcceptedAt instanceof Date);
   });
 
   it('locks a pending registration after 5 wrong codes', async () => {

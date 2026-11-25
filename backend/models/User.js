@@ -58,6 +58,7 @@ const userSchema = new mongoose.Schema({
   clinicAddress: { type: String }, // Physical clinic address
   availableDays: { type: [String], default: [] }, // e.g. ['Monday', 'Wednesday']
   consultationFee: { type: Number }, // Consultation fee in PKR
+  termsAcceptedAt: { type: Date }, // when the user accepted the Terms of Service and Privacy Policy
   
   // Password recovery fields
   resetPasswordCode: { type: String }, // SHA-256 hash of the OTP

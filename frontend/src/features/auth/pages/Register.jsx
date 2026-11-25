@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiMail, FiPhone, FiUser, FiUserPlus } from 'react-icons/fi';
 import { useAuth, ROLE_DASHBOARD } from '../../../context/AuthContext';
-import { Alert, Button, Input } from '../../../components/ui';
+import { Alert, Button, Checkbox, Input } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import AuthShell from '../components/AuthShell';
 import RoleSelect from '../components/RoleSelect';
@@ -192,6 +192,24 @@ export default function Register() {
           {fields.role === 'doctor' && (
             <Alert tone="info">Doctor accounts are reviewed by our team before you can sign in. We’ll verify your PMC registration.</Alert>
           )}
+
+          <Checkbox
+            name="acceptTerms"
+            required
+            checked={fields.acceptTerms}
+            onChange={(e) => {
+              setField('acceptTerms', e.target.checked);
+              setTouched((t) => ({ ...t, acceptTerms: true }));
+            }}
+            error={shown('acceptTerms')}
+            label={
+              <>
+                I agree to the{' '}
+                <Link to="/terms" target="_blank" rel="noopener">Terms of Service</Link> and{' '}
+                <Link to="/privacy" target="_blank" rel="noopener">Privacy Policy</Link>.
+              </>
+            }
+          />
 
           <Button type="submit" block size="lg" loading={loading} id="register-submit-btn">
             Create account

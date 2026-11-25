@@ -122,16 +122,32 @@ export const Select = forwardRef(function Select(
   );
 });
 
-export const Checkbox = forwardRef(function Checkbox({ id, label, hint, className, ...rest }, ref) {
+export const Checkbox = forwardRef(function Checkbox({ id, label, hint, error, className, ...rest }, ref) {
   const autoId = useId();
   const fieldId = id || autoId;
+  const errorId = error ? `${fieldId}-error` : undefined;
   return (
-    <div className={cx('ui-check', className)}>
-      <input ref={ref} id={fieldId} type="checkbox" className="ui-check__input" {...rest} />
-      <label htmlFor={fieldId} className="ui-check__label">
-        {label}
-        {hint && <span className="ui-field__hint d-block">{hint}</span>}
-      </label>
+    <div className={cx('ui-check', error && 'has-error', className)}>
+      <input
+        ref={ref}
+        id={fieldId}
+        type="checkbox"
+        className="ui-check__input"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={errorId}
+        {...rest}
+      />
+      <div>
+        <label htmlFor={fieldId} className="ui-check__label">
+          {label}
+          {hint && <span className="ui-field__hint d-block">{hint}</span>}
+        </label>
+        {error && (
+          <p id={errorId} className="ui-field__error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
     </div>
   );
 });

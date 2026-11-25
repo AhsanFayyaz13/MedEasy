@@ -1,4 +1,5 @@
 import { FiCheckCircle, FiCreditCard, FiDollarSign, FiFileText, FiLock, FiMapPin, FiShoppingBag, FiSmartphone } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, FileDropzone, Input, Select, Textarea } from '../../../components/ui';
 import { formatPrice } from '../../../lib/format';
 import MedicalIcon from '../../medicines/components/MedicalIcon';
@@ -95,6 +96,10 @@ export function OrderSummary({ items, count, subtotal, delivery, total, needsRx,
       <Button type="submit" form="checkout-form" block size="lg" loading={submitting} leftIcon={<FiLock aria-hidden="true" />} id="place-order-btn">
         Place order · {formatPrice(total)}
       </Button>
+      <p className="chk-legal">
+        By placing your order you agree to our <Link to="/terms" target="_blank" rel="noopener">Terms</Link> and{' '}
+        <Link to="/refund-policy" target="_blank" rel="noopener">Refund Policy</Link>.
+      </p>
       <p className="chk-trust">Secure checkout · Cash on delivery · Easy returns</p>
     </Card>
   );

@@ -11,4 +11,10 @@
   <url><loc>https://medeasy.systems/team</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://medeasy.systems/register</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://medeasy.systems/login</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://medeasy.systems/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://medeasy.systems/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://medeasy.systems/cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://medeasy.systems/refund-policy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://medeasy.systems/medical-disclaimer</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://medeasy.systems/legal</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

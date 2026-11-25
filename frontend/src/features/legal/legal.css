@@ -1,0 +1,213 @@
+/* ═══════════════════════════════════════════════════════════════
+   Legal documents (privacy, terms, cookies, refunds…)
+   ═══════════════════════════════════════════════════════════════ */
+
+.legal {
+  padding: var(--space-8) 0 var(--space-16);
+}
+
+.legal__layout {
+  display: grid;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.legal__doc {
+  min-width: 0;
+  max-width: 72ch;
+  color: var(--text);
+  line-height: var(--leading-relaxed);
+}
+
+.legal__header {
+  position: relative;
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.legal__eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--fg-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.legal__header h1 {
+  margin: 0;
+  font-size: var(--text-5xl);
+}
+
+.legal__updated {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.legal__print {
+  margin-top: var(--space-4);
+}
+
+.legal__intro {
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border-left: 4px solid var(--color-primary-500);
+  border-radius: var(--radius-md);
+  background: var(--tint-primary-50);
+}
+
+.legal__intro p:last-child {
+  margin-bottom: 0;
+}
+
+.legal__doc section {
+  scroll-margin-top: calc(var(--nav-height) + var(--space-4));
+  margin-bottom: var(--space-8);
+}
+
+.legal__doc h2 {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-xl);
+}
+
+.legal__num {
+  color: var(--fg-primary);
+}
+
+.legal__doc h3 {
+  margin: var(--space-4) 0 var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+}
+
+.legal__doc ul,
+.legal__doc ol {
+  padding-left: var(--space-6);
+}
+
+.legal__doc li {
+  margin-bottom: var(--space-1);
+}
+
+.legal__doc table {
+  width: 100%;
+  margin: var(--space-3) 0 var(--space-4);
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.legal__doc th,
+.legal__doc td {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal__doc th {
+  background: var(--surface-sunken);
+  color: var(--text-strong);
+}
+
+.legal__doc code {
+  color: var(--fg-primary);
+  font-size: 0.9em;
+}
+
+.legal__callout {
+  padding: var(--space-4);
+  border: 1px solid var(--tint-error-200);
+  border-radius: var(--radius-md);
+  background: var(--tint-error-50);
+  color: var(--text);
+}
+
+/* Aside: document switcher + table of contents */
+.legal__aside {
+  display: grid;
+  gap: var(--space-6);
+  font-size: var(--text-sm);
+}
+
+.legal__aside-title {
+  margin: 0 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.legal__aside ul,
+.legal__aside ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legal__aside a {
+  display: block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.legal__aside a:hover {
+  background: var(--surface-sunken);
+  color: var(--text-strong);
+}
+
+.legal__aside a[aria-current='page'] {
+  background: var(--tint-primary-50);
+  color: var(--fg-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.legal__toc {
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .legal {
+    padding-top: var(--space-12);
+  }
+
+  .legal__layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: var(--space-12);
+  }
+
+  .legal__aside {
+    position: sticky;
+    top: calc(var(--nav-height) + var(--space-6));
+    max-height: calc(100vh - var(--nav-height) - var(--space-12));
+    overflow-y: auto;
+  }
+
+  .legal__toc {
+    display: block;
+  }
+}
+
+@media print {
+  .site-nav,
+  .site-footer,
+  .legal__aside,
+  .legal__print,
+  .skip-link {
+    display: none !important;
+  }
+
+  .legal__layout {
+    display: block;
+  }
+
+  .legal__doc {
+    max-width: none;
+  }
+}

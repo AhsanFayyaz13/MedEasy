@@ -27,6 +27,7 @@ const pendingUserSchema = new mongoose.Schema({
   clinicAddress: { type: String },
   availableDays: { type: [String], default: [] },
   consultationFee: { type: Number },
+  termsAcceptedAt: { type: Date }, // when the user accepted the Terms of Service and Privacy Policy
   verificationCode: { type: String, required: true }, // SHA-256 hash of the OTP, never the OTP itself
   verificationAttempts: { type: Number, default: 0 },
   verificationCodeExpires: { type: Date, required: true },

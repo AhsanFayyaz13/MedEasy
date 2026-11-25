@@ -37,6 +37,7 @@ const register = z
     role: emptyToUndefined(z.enum(SELF_REGISTER_ROLES, { message: 'Invalid account type' }).default('patient')),
     address: optionalText(300),
     verificationChannel: z.enum(['email', 'phone']),
+    acceptTerms: z.literal(true, { message: 'You must accept the Terms of Service and Privacy Policy' }),
     // pharmacy
     pharmacyName: optionalText(150),
     pharmacyLocation: optionalText(300),

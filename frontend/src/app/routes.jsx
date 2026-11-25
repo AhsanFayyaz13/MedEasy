@@ -20,6 +20,20 @@ const DoctorDashboard = lazy(() => import('../features/doctor/pages/DoctorDashbo
 const AdminDashboard = lazy(() => import('../features/admin/pages/AdminDashboard'));
 const ContactUs = lazy(() => import('../features/contact/pages/ContactUs'));
 const Team = lazy(() => import('../features/team/pages/Team'));
+// Each legal document is its own chunk (LegalPage itself is shared between them).
+const legal = (load) =>
+  lazy(() =>
+    Promise.all([import('../features/legal/components/LegalPage'), load()]).then(([page, doc]) => {
+      const LegalPage = page.default;
+      return { default: () => <LegalPage doc={doc.default} /> };
+    })
+  );
+const Privacy = legal(() => import('../features/legal/content/privacy'));
+const Terms = legal(() => import('../features/legal/content/terms'));
+const Cookies = legal(() => import('../features/legal/content/cookies'));
+const RefundPolicy = legal(() => import('../features/legal/content/refunds'));
+const MedicalDisclaimer = legal(() => import('../features/legal/content/medical'));
+const LegalNotice = legal(() => import('../features/legal/content/notice'));
 const NotFound = lazy(() => import('../features/system/pages/NotFound'));
 
 const ROLES = {
@@ -43,6 +57,14 @@ export default function AppRoutes() {
       <Route path="/team" element={<Team />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+
+      {/* Legal */}
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/cookies" element={<Cookies />} />
+      <Route path="/refund-policy" element={<RefundPolicy />} />
+      <Route path="/medical-disclaimer" element={<MedicalDisclaimer />} />
+      <Route path="/legal" element={<LegalNotice />} />
 
       {/* Authenticated */}
       <Route path="/cart" element={guard(<Cart />, ROLES.patient)} />

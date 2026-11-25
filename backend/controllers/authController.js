@@ -151,7 +151,8 @@ exports.register = async (req, res) => {
     experience,
     clinicAddress,
     availableDays,
-    consultationFee
+    consultationFee,
+    termsAcceptedAt: new Date() // the validator only lets acceptTerms: true through
   });
 
   // Log the verification code for temporary local testing in terminal
@@ -294,7 +295,8 @@ exports.verifyRegistration = async (req, res) => {
     experience: pending.experience,
     clinicAddress: pending.clinicAddress,
     availableDays: pending.availableDays,
-    consultationFee: pending.consultationFee
+    consultationFee: pending.consultationFee,
+    termsAcceptedAt: pending.termsAcceptedAt
   };
   if (pending.email) {
     userFields.email = pending.email;

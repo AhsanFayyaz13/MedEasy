@@ -3,6 +3,7 @@ import { FaFacebookF, FaGithub, FaInstagram, FaLinkedinIn } from 'react-icons/fa
 import { FaXTwitter } from 'react-icons/fa6';
 import { FiMail, FiMapPin, FiPhone, FiUsers } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
+import { BUSINESS, LEGAL_LINKS } from '../../../lib/business';
 import './Footer.css';
 
 /**
@@ -38,7 +39,7 @@ export default function AppFooter() {
             <ul className="site-footer__socials">
               {SOCIAL_LINKS.filter((s) => s.href).map(({ label, icon: Icon, href }) => (
                 <li key={label}>
-                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`MedEasy on ${label}`}>
+                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${BUSINESS.brand} on ${label}`}>
                     <Icon aria-hidden="true" />
                   </a>
                 </li>
@@ -77,15 +78,15 @@ export default function AppFooter() {
             <address className="site-footer__contact">
               <p>
                 <FiMapPin aria-hidden="true" />
-                <span>Sector H-10, Islamabad Capital Territory, Pakistan</span>
+                <span>{BUSINESS.address}</span>
               </p>
               <p>
                 <FiPhone aria-hidden="true" />
-                <a href="tel:+923019476165">+92 301 9476165</a>
+                <a href={`tel:${BUSINESS.phoneHref}`}>{BUSINESS.phone}</a>
               </p>
               <p>
                 <FiMail aria-hidden="true" />
-                <a href="mailto:support@medeasy.systems">support@medeasy.systems</a>
+                <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>
               </p>
             </address>
             <Link to="/team" className="site-footer__team">
@@ -94,9 +95,19 @@ export default function AppFooter() {
           </div>
         </div>
 
+        <p className="site-footer__note">
+          Medicines are dispensed by licensed pharmacists. Always follow your doctor’s advice.
+        </p>
+
         <div className="site-footer__bottom">
-          <p>© {year} MedEasy. All rights reserved.</p>
-          <p className="site-footer__note">Medicines dispensed by licensed pharmacists. Always follow your doctor’s advice.</p>
+          <p>Copyright © {year} {BUSINESS.brand}. All rights reserved.</p>
+          <nav aria-label="Legal">
+            <ul className="site-footer__legal">
+              {LEGAL_LINKS.map((l) => (
+                <li key={l.to}><Link to={l.to}>{l.label}</Link></li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </div>
     </footer>
