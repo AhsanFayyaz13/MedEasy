@@ -140,28 +140,6 @@
   padding-top: var(--space-4);
 }
 
-/* Star rating (shared) */
-.star-rating {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-top: var(--space-1);
-}
-
-.star-rating__on {
-  color: var(--color-warning-400);
-}
-
-.star-rating__off {
-  color: var(--color-neutral-300);
-}
-
-.star-rating__count {
-  margin-left: var(--space-1);
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
-
 /* Compact cards on phones (2-up grid) */
 @media (max-width: 575.98px) {
   .med-card__media { padding: var(--space-3); }

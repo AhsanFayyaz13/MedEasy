@@ -117,21 +117,6 @@
   color: var(--color-primary-400);
 }
 
-.site-footer__team {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-5);
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--footer-line);
-  border-radius: var(--radius-full);
-  font-weight: var(--weight-semibold);
-}
-
-.site-footer .site-footer__team:hover {
-  border-color: var(--color-primary-400);
-}
-
 .site-footer__note {
   margin: var(--space-12) 0 0;
   font-size: var(--text-xs);
@@ -151,6 +136,10 @@
 
 .site-footer__bottom p {
   margin: 0;
+}
+
+.site-footer__credit {
+  opacity: 0.7;
 }
 
 .site-footer__legal {

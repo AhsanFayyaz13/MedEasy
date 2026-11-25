@@ -19,6 +19,7 @@ const prescriptionSchema = new mongoose.Schema({
     enum: ['pending', 'verified', 'rejected'],
     default: 'pending'
   },
+  notes: { type: String, trim: true, maxlength: 500 }, // patient's note for the pharmacist
   uploadedAt: {
     type: Date,
     default: Date.now

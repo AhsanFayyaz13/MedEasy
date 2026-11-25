@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Review = require('../models/Review');
+const Appointment = require('../models/Appointment');
 
 // @desc    Add a review
 // @route   POST /api/reviews
@@ -8,6 +9,14 @@ exports.addReview = async (req, res) => {
   const { targetType, targetId, rating, comment } = req.body;
   const normalizedTargetType = targetType || 'pharmacy';
   const normalizedTargetId = targetId || '000000000000000000000000';
+
+  // Doctor reviews are limited to patients who completed a consultation with that doctor.
+  if (normalizedTargetType === 'doctor') {
+    const consulted = await Appointment.exists({ patientId: req.user._id, doctorId: normalizedTargetId, status: 'completed' });
+    if (!consulted) {
+      return res.status(403).json({ message: 'You can review a doctor after a completed consultation with them' });
+    }
+  }
 
   // Check if user already reviewed this target
   const alreadyReviewed = await Review.findOne({

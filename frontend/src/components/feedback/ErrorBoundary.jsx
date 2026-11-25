@@ -1,90 +1,51 @@
-import React from 'react';
-import { Container, Button } from 'react-bootstrap';
-import { FaExclamationTriangle } from 'react-icons/fa';
+import { Component } from 'react';
 import { useLocation } from 'react-router-dom';
+import { FiAlertTriangle, FiHome, FiRefreshCw } from 'react-icons/fi';
+import { Button } from '../ui';
 
-class ErrorBoundaryClass extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null, showDetails: false };
-  }
+/** Catches render errors in the page below it and recovers on the next navigation. */
+class ErrorBoundaryClass extends Component {
+  state = { error: null };
 
   static getDerivedStateFromError(error) {
-    return { hasError: true, error };
+    return { error };
   }
 
-  componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary caught an error', error, errorInfo);
+  componentDidCatch(error, info) {
+    console.error('ErrorBoundary caught an error', error, info);
   }
 
   componentDidUpdate(prevProps) {
-    // Automatically clear the error state when the user navigates/clicks a navbar link (location changes)
-    if (this.state.hasError && this.props.location?.pathname !== prevProps.location?.pathname) {
-      this.setState({ hasError: false, error: null, showDetails: false });
-    }
+    if (this.state.error && this.props.pathname !== prevProps.pathname) this.setState({ error: null });
   }
 
   render() {
-    if (this.state.hasError) {
-      return (
-        <Container className="d-flex flex-column align-items-center justify-content-center text-center py-5 mt-5">
-          <FaExclamationTriangle size={64} className="text-danger mb-4" />
-          <h1 className="fw-bold mb-3">Oops! Something went wrong.</h1>
-          <p className="text-muted mb-4 max-w-md mx-auto">
-            We encountered an unexpected error while loading this page. 
-            Our technical team has been notified.
-          </p>
-          <div className="d-flex gap-3 mb-4">
-            <Button variant="primary" onClick={() => window.location.reload()}>
-              Refresh Page
-            </Button>
-            <Button variant="outline-secondary" onClick={() => window.location.href = '/'}>
-              Go to Homepage
-            </Button>
-          </div>
-          {this.state.error && (
-            <div className="text-start w-100 mt-4" style={{ maxWidth: '600px', margin: '0 auto' }}>
-              <button 
-                onClick={() => this.setState(prev => ({ showDetails: !prev.showDetails }))}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--color-neutral-500)',
-                  fontSize: '0.75rem',
-                  textDecoration: 'underline',
-                  padding: 0,
-                  cursor: 'pointer'
-                }}
-              >
-                {this.state.showDetails ? 'Hide Developer Logs' : 'Show Developer Logs'}
-              </button>
-              {this.state.showDetails && (
-                <div className="mt-3 p-3 bg-light border rounded overflow-auto text-start" style={{ maxHeight: '200px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--fg-rose)' }}>
-                  <strong>Technical Stack Trace:</strong>
-                  <pre className="mt-2 mb-0" style={{ whiteSpace: 'pre-wrap', fontSize: '0.72rem', color: 'var(--fg-rose)' }}>
-                    {this.state.error.stack || this.state.error.toString()}
-                  </pre>
-                </div>
-              )}
-            </div>
-          )}
-        </Container>
-      );
-    }
+    const { error } = this.state;
+    if (!error) return this.props.children;
 
-    return this.props.children;
+    return (
+      <div className="container">
+        <div className="ui-state ui-state--error" role="alert" style={{ minHeight: '60vh', alignContent: 'center' }}>
+          <div className="ui-state__icon" aria-hidden="true"><FiAlertTriangle /></div>
+          <h1 className="ui-state__title">Something went wrong</h1>
+          <p className="ui-state__text">This page hit an unexpected problem. Reloading usually fixes it.</p>
+          <div className="ui-state__action" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', justifyContent: 'center' }}>
+            <Button leftIcon={<FiRefreshCw aria-hidden="true" />} onClick={() => window.location.reload()}>Reload page</Button>
+            <Button variant="secondary" leftIcon={<FiHome aria-hidden="true" />} href="/">Go to home</Button>
+          </div>
+          {import.meta.env.DEV && (
+            <details style={{ maxWidth: 640, marginTop: 'var(--space-6)', textAlign: 'left' }}>
+              <summary>Error details (development only)</summary>
+              <pre style={{ whiteSpace: 'pre-wrap', fontSize: 'var(--text-xs)' }}>{error.stack || String(error)}</pre>
+            </details>
+          )}
+        </div>
+      </div>
+    );
   }
 }
 
-/**
- * Functional wrapper component that injects location prop from React Router
- * into the class ErrorBoundaryClass, allowing it to auto-recover on route navigation.
- */
 export default function ErrorBoundary({ children }) {
-  const location = useLocation();
-  return (
-    <ErrorBoundaryClass location={location}>
-      {children}
-    </ErrorBoundaryClass>
-  );
+  const { pathname } = useLocation();
+  return <ErrorBoundaryClass pathname={pathname}>{children}</ErrorBoundaryClass>;
 }

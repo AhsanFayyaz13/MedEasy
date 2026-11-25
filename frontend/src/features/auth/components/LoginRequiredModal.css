@@ -1,94 +1,37 @@
-.login-required-modal .modal-header {
-  background: linear-gradient(135deg, var(--color-secondary-900) 0%, var(--color-secondary-700) 100%);
-  border-bottom: 2px solid var(--color-neutral-200);
+.login-req {
+  display: grid;
+  gap: var(--space-4);
 }
 
-.login-required-modal .modal-title {
-  color: white;
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-xl);
+.login-req__option {
+  display: grid;
+  justify-items: center;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
 }
 
-.login-required-modal .modal-body {
-  background-color: var(--color-neutral-50);
-}
-
-.auth-option {
-  background: white;
-  transition: all 0.3s ease;
-  border-color: var(--color-neutral-200) !important;
-}
-
-.auth-option:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-black) 10%, transparent);
-  border-color: var(--color-neutral-300) !important;
-}
-
-.auth-icon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.login-option h6 {
+.login-req__option > svg {
+  margin-bottom: var(--space-3);
   color: var(--fg-primary);
-  font-weight: var(--weight-semibold);
+  font-size: 1.75rem;
 }
 
-.register-option h6 {
-  color: var(--fg-accent);
-  font-weight: var(--weight-semibold);
+.login-req__option h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
 }
 
-.login-required-modal .btn {
-  font-weight: var(--weight-semibold);
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
+.login-req__option p {
+  margin: var(--space-1) 0 var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 
-.login-required-modal .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-black) 15%, transparent);
-}
-
-.login-required-modal .btn-primary {
-  background-color: var(--color-primary-600);
-  border-color: var(--color-primary-600);
-}
-
-.login-required-modal .btn-primary:hover {
-  background-color: var(--color-primary-700);
-  border-color: var(--color-primary-700);
-}
-
-.login-required-modal .btn-success {
-  background-color: var(--color-accent-600);
-  border-color: var(--color-accent-600);
-}
-
-.login-required-modal .btn-success:hover {
-  background-color: var(--color-accent-700);
-  border-color: var(--color-accent-700);
-}
-
-/* Close button styling */
-.login-required-modal .btn-close {
-  filter: invert(1);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .login-required-modal .modal-body {
-    padding: var(--space-6);
-  }
-
-  .auth-option {
-    padding: var(--space-6) !important;
-  }
-
-  .login-required-modal .modal-title {
-    font-size: var(--text-lg);
+@media (min-width: 576px) {
+  .login-req {
+    grid-template-columns: 1fr 1fr;
   }
 }

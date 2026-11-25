@@ -1,4 +1,5 @@
 import { FaStar, FaRegStar } from 'react-icons/fa';
+import './StarRating.css';
 
 /** Read-only 5-star rating with an accessible text label. */
 export default function StarRating({ value = 0, count, size = 14 }) {

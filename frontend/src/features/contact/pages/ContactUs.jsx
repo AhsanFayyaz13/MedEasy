@@ -1,182 +1,169 @@
 import { useState } from 'react';
-import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
-import { FaUser, FaEnvelope, FaPhoneAlt, FaTag, FaComment, FaPaperPlane } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FiCheckCircle, FiMail, FiMapPin, FiPhone, FiSend } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { submitContactMessage } from '../../../services/api/contactService';
-import './ContactUs.css';
+import { Avatar, Button, Card, Input, PageHeader, Select, Textarea } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
+import { BUSINESS } from '../../../lib/business';
+import './ContactUs.css';
 
+const SUBJECTS = [
+  'Order & delivery',
+  'Prescription',
+  'Appointment',
+  'Payment & refund',
+  'Feedback & suggestions',
+  'Partnership',
+  'Something else',
+];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validate({ email, subject, message }) {
+  const e = {};
+  if (!email.trim()) e.email = 'We need an email address to reply to you.';
+  else if (!EMAIL_RE.test(email.trim())) e.email = 'Please enter a valid email address.';
+  if (!subject) e.subject = 'Please choose a topic.';
+  if (message.trim().length < 5) e.message = 'Please tell us a little more (at least 5 characters).';
+  return e;
+}
+
+/** Support form for signed-in users (name/phone come from the account). */
 export default function ContactUs() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const accountEmail = user?.email || '';
 
-  // Pre-populate fields from logged-in user credentials
-  const [name] = useState(user?.name || '');
-  const [email] = useState(user?.email || '');
-  const [phone] = useState(user?.phone || '');
+  const [fields, setFields] = useState({ email: accountEmail, subject: '', message: '' });
+  const [touched, setTouched] = useState({});
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  // Editable fields
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const errors = validate(fields);
+  const shown = (k) => (touched[k] ? errors[k] : undefined);
+  const set = (k) => (e) => setFields((f) => ({ ...f, [k]: e.target.value }));
+  const blur = (k) => () => setTouched((t) => ({ ...t, [k]: true }));
 
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-
-    if (!subject) {
-      toast.error('Please select a subject.');
+    setTouched({ email: true, subject: true, message: true });
+    if (Object.keys(errors).length) {
+      document.querySelector('.contact-form [aria-invalid="true"]')?.focus();
       return;
     }
-    if (!message.trim()) {
-      toast.error('Please enter your message.');
-      return;
-    }
-
-    setLoading(true);
+    setSending(true);
     try {
-      const response = await submitContactMessage({
-        name,
-        email,
-        phone,
-        subject,
-        message,
+      await submitContactMessage({
+        name: user?.name || 'MedEasy user',
+        email: fields.email.trim(),
+        phone: user?.phone || undefined,
+        subject: fields.subject,
+        message: fields.message.trim(),
       });
-
-      toast.success(response.message || 'Your message has been sent successfully!');
-      // Reset editable fields
-      setSubject('');
-      setMessage('');
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.message || 'Something went wrong. Please try again.';
-      toast.error(errorMsg);
+      setSent(true);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Your message couldn’t be sent. Please try again.');
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
+  const reset = () => {
+    setFields({ email: accountEmail, subject: '', message: '' });
+    setTouched({});
+    setSent(false);
+  };
+
   return (
-    <div className="contact-page-wrapper py-5">
+    <div className="contact-page">
       <PageMeta title="Contact us" noindex />
-      <Container>
-        {/* Header Section */}
-        <div className="contact-header text-center mb-5">
-          <span className="contact-subheading">
-            <FaPaperPlane className="sub-icon me-2" /> GET IN TOUCH
-          </span>
-          <h1 className="contact-title mt-2">
-            Contact <span className="text-highlight">Us</span>
-          </h1>
-          <p className="contact-subtitle mx-auto">
-            Have a question or want to partner with us? We'd love to hear from you.
-          </p>
-        </div>
+      <div className="container">
+        <PageHeader eyebrow="Support" title="Contact us" subtitle="Questions about an order, a prescription or an appointment? We usually reply within one working day." />
 
-        {/* Form Container */}
-        <Row className="justify-content-center">
-          <Col lg={8} md={10}>
-            <Card className="contact-card border-0 shadow-sm">
-              <Card.Body className="p-4 p-md-5">
-                <Form onSubmit={handleSubmit}>
-                  <Row className="mb-4">
-                    {/* Read-Only: Full Name */}
-                    <Form.Group as={Col} sm={6} className="mb-3 mb-sm-0">
-                      <Form.Label className="form-label-with-icon">
-                        <FaUser className="label-icon me-2" /> Full Name
-                      </Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={name}
-                        disabled
-                        readOnly
-                        placeholder="Your full name"
-                        className="contact-input-readonly"
-                      />
-                    </Form.Group>
+        <div className="contact-layout">
+          <Card>
+            {sent ? (
+              <div className="contact-sent" role="status">
+                <FiCheckCircle aria-hidden="true" />
+                <h2>Message sent</h2>
+                <p>Thanks, {user?.name?.split(' ')[0] || 'there'} — we’ll reply to <strong>{fields.email}</strong>.</p>
+                <Button variant="secondary" onClick={reset}>Send another message</Button>
+              </div>
+            ) : (
+              <form className="contact-form" onSubmit={submit} noValidate>
+                <div className="contact-from">
+                  <Avatar name={user?.name || ''} size={40} />
+                  <div>
+                    <span>Sending as</span>
+                    <strong>{user?.name}</strong>
+                    {user?.phone && <span>{user.phone}</span>}
+                  </div>
+                </div>
 
-                    {/* Read-Only: Email */}
-                    <Form.Group as={Col} sm={6}>
-                      <Form.Label className="form-label-with-icon">
-                        <FaEnvelope className="label-icon me-2" /> Email
-                      </Form.Label>
-                      <Form.Control
-                        type="email"
-                        value={email}
-                        disabled
-                        readOnly
-                        placeholder="your@email.com"
-                        className="contact-input-readonly"
-                      />
-                    </Form.Group>
-                  </Row>
+                <Input
+                  name="email"
+                  type="email"
+                  label="Reply-to email"
+                  required
+                  value={fields.email}
+                  onChange={set('email')}
+                  onBlur={blur('email')}
+                  readOnly={Boolean(accountEmail)}
+                  hint={accountEmail ? 'From your account.' : 'Your account has no email, so add one for our reply.'}
+                  error={shown('email')}
+                  autoComplete="email"
+                />
+                <Select
+                  name="subject"
+                  label="Topic"
+                  required
+                  placeholder="Choose a topic"
+                  options={SUBJECTS}
+                  value={fields.subject}
+                  onChange={set('subject')}
+                  onBlur={blur('subject')}
+                  error={shown('subject')}
+                />
+                <Textarea
+                  name="message"
+                  label="Message"
+                  required
+                  rows={6}
+                  maxLength={5000}
+                  placeholder="Include your order or prescription number if you have one."
+                  value={fields.message}
+                  onChange={set('message')}
+                  onBlur={blur('message')}
+                  error={shown('message')}
+                />
+                <Button type="submit" size="lg" loading={sending} leftIcon={<FiSend aria-hidden="true" />}>
+                  Send message
+                </Button>
+              </form>
+            )}
+          </Card>
 
-                  {/* Read-Only: Phone Number */}
-                  <Form.Group className="mb-4">
-                    <Form.Label className="form-label-with-icon">
-                      <FaPhoneAlt className="label-icon me-2" /> Phone Number
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={phone || 'Not provided'}
-                      disabled
-                      readOnly
-                      placeholder="+92 300 0000000"
-                      className="contact-input-readonly"
-                    />
-                  </Form.Group>
-
-                  {/* Editable: Subject */}
-                  <Form.Group className="mb-4">
-                    <Form.Label className="form-label-with-icon">
-                      <FaTag className="label-icon me-2" /> Subject
-                    </Form.Label>
-                    <Form.Select
-                      required
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      className="contact-select"
-                    >
-                      <option value="" disabled>Select a subject</option>
-                      <option value="General Inquiry">General Inquiry</option>
-                      <option value="Appointment Support">Appointment Support</option>
-                      <option value="Order & Delivery Inquiry">Order & Delivery Inquiry</option>
-                      <option value="Prescription Issues">Prescription Issues</option>
-                      <option value="Feedback & Suggestions">Feedback & Suggestions</option>
-                      <option value="Other">Other</option>
-                    </Form.Select>
-                  </Form.Group>
-
-                  {/* Editable: Message */}
-                  <Form.Group className="mb-4">
-                    <Form.Label className="form-label-with-icon">
-                      <FaComment className="label-icon me-2" /> Message
-                    </Form.Label>
-                    <Form.Control
-                      required
-                      as="textarea"
-                      rows={5}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Write your message here..."
-                      className="contact-textarea"
-                    />
-                  </Form.Group>
-
-                  {/* Submit Button */}
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    disabled={loading}
-                    className="contact-btn-submit w-100 py-3 d-flex align-items-center justify-content-center gap-2"
-                  >
-                    <FaPaperPlane /> {loading ? 'Sending...' : 'Send Message'}
-                  </Button>
-                </Form>
-              </Card.Body>
+          <aside className="contact-aside">
+            <Card>
+              <h2>Other ways to reach us</h2>
+              <ul className="contact-aside__list">
+                <li><FiPhone aria-hidden="true" /><div><span>Phone</span><a href={`tel:${BUSINESS.phoneHref}`}>{BUSINESS.phone}</a></div></li>
+                <li><FiMail aria-hidden="true" /><div><span>Email</span><a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a></div></li>
+                <li><FiMapPin aria-hidden="true" /><div><span>Address</span>{BUSINESS.address}</div></li>
+              </ul>
             </Card>
-          </Col>
-        </Row>
-      </Container>
+            <Card>
+              <h2>Quick answers</h2>
+              <ul className="contact-aside__links">
+                <li><Link to="/orders">Track or cancel an order</Link></li>
+                <li><Link to="/prescriptions/upload">Check a prescription’s status</Link></li>
+                <li><Link to="/refund-policy">Refunds and returns</Link></li>
+              </ul>
+            </Card>
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }

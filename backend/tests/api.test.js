@@ -256,7 +256,30 @@ describe('prescription orders', () => {
   });
 });
 
+describe('prescriptions', () => {
+  it('keeps the patient note for the pharmacist', async () => {
+    const patient = await createUser();
+    const res = await request(app)
+      .post('/api/prescriptions/upload')
+      .set('Authorization', `Bearer ${tokenFor(patient)}`)
+      .send({ fileUrl: 'https://example.com/rx.jpg', notes: 'For Augmentin 625' });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.notes, 'For Augmentin 625');
+  });
+});
+
 describe('reviews', () => {
+  it('only lets patients review doctors they have consulted', async () => {
+    const patient = await createUser();
+    const doctor = await createUser({ role: 'doctor' });
+    const auth = { Authorization: `Bearer ${tokenFor(patient)}` };
+    const body = { targetType: 'doctor', targetId: doctor._id.toString(), rating: 5, comment: 'Great' };
+    assert.equal((await request(app).post('/api/reviews').set(auth).send(body)).status, 403);
+    const Appointment = require('../models/Appointment');
+    await Appointment.create({ patientId: patient._id, doctorId: doctor._id, date: new Date(), time: '10:00', status: 'completed' });
+    assert.equal((await request(app).post('/api/reviews').set(auth).send(body)).status, 201);
+  });
+
   it('allows one review per user per target and computes the average', async () => {
     const user = await createUser();
     const med = await createMedicine();

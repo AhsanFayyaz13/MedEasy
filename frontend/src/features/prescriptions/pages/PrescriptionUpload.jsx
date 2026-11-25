@@ -1,395 +1,232 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert, Badge, Spinner } from 'react-bootstrap';
-import {
-  FaUpload, FaFileMedical, FaFilePdf, FaFileImage, FaTimes,
-  FaCheckCircle, FaTimesCircle, FaClock, FaTrash, FaInfoCircle,
-  FaRedo, FaShieldAlt, FaExclamationTriangle, FaLink, FaEye,
-} from 'react-icons/fa';
-import { Link, useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { FiCheckCircle, FiClock, FiExternalLink, FiFileText, FiShield, FiTrash2, FiUpload, FiXCircle } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
 import { uploadPrescription, fetchPrescriptions, deletePrescription } from '../../../services/api/prescriptionService';
-import './PrescriptionUpload.css';
-import { API_ORIGIN } from '../../../lib/env';
+import { Alert, Badge, Button, Card, EmptyState, ErrorState, FileDropzone, Modal, PageHeader, SkeletonCard, Textarea } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
+import { formatDate } from '../../../lib/format';
+import { assetUrl } from '../../../lib/media';
+import { notifySelf, sendNotification } from '../../../lib/notifications';
+import { MAX_FILE_MB, validateFile } from '../../cart/components/checkoutShared';
+import './PrescriptionUpload.css';
 
-const serverUrl = API_ORIGIN;
-
-const MAX_FILE_MB = 10;
-const ALLOWED_TYPES = ['image/jpeg','image/jpg','image/png','image/webp','application/pdf'];
-
-function fmtBytes(b) {
-  if (b < 1024) return `${b} B`;
-  if (b < 1024*1024) return `${(b/1024).toFixed(1)} KB`;
-  return `${(b/(1024*1024)).toFixed(2)} MB`;
-}
-function fmtDate(iso) {
-  if (!iso) return '—';
-  try {
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('en-PK', {
-      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-  } catch {
-    return String(iso);
-  }
-}
-function validateFile(f) {
-  if (!f) return 'Please select a file.';
-  if (!ALLOWED_TYPES.includes(f.type)) return 'Accepted: JPG, PNG, WebP, PDF.';
-  if (f.size > MAX_FILE_MB*1024*1024) return `Max file size is ${MAX_FILE_MB} MB.`;
-  return null;
-}
-
-const STATUS_CFG = {
-  pending:  { label:'Pending Review', color:'warning', textDark:true,  icon:<FaClock />,       bg:'var(--tint-warning-100)', border:'var(--tint-warning-200)' },
-  verified: { label:'Verified',       color:'success', textDark:false, icon:<FaCheckCircle />, bg:'var(--tint-accent-100)', border:'var(--color-accent-300)' },
-  rejected: { label:'Rejected',       color:'danger',  textDark:false, icon:<FaTimesCircle />, bg:'var(--color-neutral-200)', border:'var(--tint-error-200)' },
+const STATUS = {
+  pending: { label: 'Awaiting review', tone: 'warning', icon: <FiClock /> },
+  verified: { label: 'Verified', tone: 'success', icon: <FiCheckCircle /> },
+  rejected: { label: 'Rejected', tone: 'error', icon: <FiXCircle /> },
 };
 
-function FileTypeIcon({ type, size='1.4rem' }) {
-  return type === 'application/pdf'
-    ? <FaFilePdf  style={{fontSize:size,color:'var(--color-error-500)'}} />
-    : <FaFileImage style={{fontSize:size,color:'var(--fg-primary)'}} />;
-}
+const GUIDELINES = [
+  'Issued within the last 30 days',
+  'Shows the doctor’s stamp and signature',
+  'Patient name matches your profile',
+  'Clear, well-lit and readable',
+];
 
-function DropZone({ file, onFile, error }) {
-  const ref = useRef(null);
-  const [drag, setDrag] = useState(false);
-  const preview = file && file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+const shortRxId = (id) => String(id || '').slice(-6).toUpperCase();
+const when = (iso) => formatDate(iso, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  return (
-    <div
-      className={`rx-drop-zone${drag?' dragging':''}${error?' has-error':''}${file?' has-file':''}`}
-      onDragOver={e=>{e.preventDefault();setDrag(true);}}
-      onDragLeave={()=>setDrag(false)}
-      onDrop={e=>{e.preventDefault();setDrag(false);const f=e.dataTransfer.files[0];if(f)onFile(f);}}
-      onClick={()=>!file&&ref.current?.click()}
-      role="button" tabIndex={0}
-      onKeyDown={e=>!file&&e.key==='Enter'&&ref.current?.click()}
-    >
-      {file ? (
-        <div className="dz-file-preview">
-          {preview
-            ? <img src={preview} alt="preview" className="dz-img-preview"/>
-            : <div className="dz-pdf-preview"><FileTypeIcon type={file.type} size="3rem"/></div>}
-          <div className="dz-file-meta">
-            <span className="dz-file-name">{file.name}</span>
-            <span className="dz-file-size">{fmtBytes(file.size)}</span>
-          </div>
-          <button className="dz-remove-btn" type="button"
-            onClick={e=>{e.stopPropagation();onFile(null);}} aria-label="Remove">
-            <FaTimes/>
-          </button>
-        </div>
-      ) : (
-        <div className="dz-empty">
-          <div className="dz-upload-icon"><FaFileMedical/></div>
-          <p className="dz-primary-text">Drag & drop your prescription</p>
-          <p className="dz-secondary-text">or <span className="dz-browse-link">click to browse</span></p>
-          <p className="dz-types">JPG · PNG · WebP · PDF · Max {MAX_FILE_MB} MB</p>
-        </div>
-      )}
-      <Form.Control ref={ref} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf"
-        className="d-none" id="prescription-file-input"
-        onChange={e=>onFile(e.target.files[0]||null)} />
-    </div>
-  );
-}
-
-function PrescriptionCard({ rx, onDelete }) {
-  const cfg = STATUS_CFG[rx.status] || STATUS_CFG.pending;
-  const [deleting, setDeleting] = useState(false);
-  const handleDelete = async () => { setDeleting(true); await onDelete(rx.id); setDeleting(false); };
-
-  const isImage = rx.fileType && rx.fileType !== 'application/pdf';
+function PrescriptionItem({ rx, onDelete }) {
+  const cfg = STATUS[rx.status] || STATUS.pending;
+  const href = rx.fileUrl ? assetUrl(rx.fileUrl) : null;
+  const isImage = href && rx.fileType !== 'application/pdf';
 
   return (
-    <div className={`rx-history-card status-${rx.status}`} style={{borderLeftColor:cfg.border}}>
-      {isImage && rx.fileUrl ? (
-        <a 
-          href={rx.fileUrl.startsWith('data:') || rx.fileUrl.startsWith('http') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} 
-          target="_blank" 
-          rel="noreferrer" 
-          className="rx-card-image-preview-link"
-        >
-          <img 
-            src={rx.fileUrl.startsWith('data:') || rx.fileUrl.startsWith('http') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} 
-            alt="Prescription preview" 
-          />
-          <div className="rx-image-hover-overlay">
-            <FaEye size={18} />
+    <li className="rxu-item">
+      <div className="rxu-item__thumb">
+        {isImage ? <img src={href} alt="" loading="lazy" /> : <FiFileText aria-hidden="true" />}
+      </div>
+      <div className="rxu-item__body">
+        <div className="rxu-item__top">
+          <div>
+            <h3>Prescription #{shortRxId(rx.id)}</h3>
+            <p className="rxu-item__meta">Uploaded {when(rx.uploadedAt)}</p>
           </div>
-        </a>
-      ) : (
-        <div className="rx-card-icon-wrap" style={{background:cfg.bg}}>
-          <FileTypeIcon type={rx.fileType} size="1.5rem"/>
+          <Badge tone={cfg.tone} icon={cfg.icon}>{cfg.label}</Badge>
         </div>
-      )}
-      <div className="rx-card-body">
-        <div className="rx-card-top">
-          <div className="rx-name-wrap">
-            <span className="rx-file-name">{rx.fileName}</span>
-            <span className="rx-file-meta">{fmtBytes(rx.fileSize)} · {fmtDate(rx.uploadedAt)}</span>
-            <span className="rx-id-label">ID: <code>{rx.id}</code></span>
-          </div>
-          <Badge bg={cfg.color} text={cfg.textDark?'dark':undefined} className="rx-status-badge">
-            {cfg.icon}<span className="ms-1">{cfg.label}</span>
-          </Badge>
-        </div>
-
-        {rx.notes && (
-          <p className="rx-notes"><FaInfoCircle className="me-1"/>{rx.notes}</p>
+        {rx.notes && <p className="rxu-item__note">“{rx.notes}”</p>}
+        {rx.status === 'rejected' && (
+          <p className="rxu-item__hint">The pharmacist couldn’t accept this one. Please upload a clearer or newer prescription.</p>
         )}
-        {rx.reviewedBy && (
-          <p className="rx-reviewer">
-            <FaShieldAlt className="me-1"/>
-            Reviewed by <strong>{rx.reviewedBy}</strong> on {fmtDate(rx.reviewedAt)}
-          </p>
-        )}
-        {rx.status === 'rejected' && rx.rejectionReason && (
-          <Alert variant="danger" className="rx-reject-alert py-2">
-            <FaExclamationTriangle className="me-2"/>
-            <strong>Rejection reason:</strong> {rx.rejectionReason}
-          </Alert>
-        )}
-        {rx.linkedOrderIds?.length > 0 && (
-          <div className="rx-linked-orders">
-            <FaLink className="me-1"/>Linked orders:&nbsp;
-            {rx.linkedOrderIds.map(oid=>(
-              <Link key={oid} to={`/orders/${oid}`} className="rx-order-link">{oid}</Link>
-            ))}
-          </div>
-        )}
-        <div className="rx-card-actions">
-          {rx.fileUrl && (
-            <Button variant="outline-primary" size="sm" className="me-2 rx-view-btn" href={rx.fileUrl.startsWith('data:') || rx.fileUrl.startsWith('http') ? rx.fileUrl : `${serverUrl}${rx.fileUrl}`} target="_blank" rel="noreferrer">
-              <FaEye className="me-1"/>View File
+        {rx.status === 'verified' && <p className="rxu-item__hint is-ok">You can now order the medicines on this prescription.</p>}
+        <div className="rxu-item__actions">
+          {href && (
+            <Button size="sm" variant="secondary" href={href} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>
+              View file
             </Button>
           )}
-          {rx.status==='rejected' && (
-            <span className="rx-reupload-hint"><FaRedo className="me-1"/>Please re-upload a valid prescription.</span>
-          )}
-          {rx.status==='pending' && (
-            <Button variant="outline-danger" size="sm" className="rx-del-btn" onClick={handleDelete} disabled={deleting}>
-              {deleting ? <Spinner animation="border" size="sm"/> : <><FaTrash className="me-1"/>Delete</>}
+          {rx.status === 'pending' && (
+            <Button size="sm" variant="ghost" className="rxu-item__delete" leftIcon={<FiTrash2 aria-hidden="true" />} onClick={() => onDelete(rx)}>
+              Delete
             </Button>
           )}
         </div>
       </div>
-    </div>
+    </li>
   );
 }
 
 export default function PrescriptionUpload() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const location = useLocation();
-  const requiredForMedicine = location.state?.requiredForMedicine;
+  const requiredFor = useLocation().state?.requiredForMedicine;
 
-  const [file, setFile]               = useState(null);
-  const [notes, setNotes]             = useState('');
-  const [fileError, setFileError]     = useState(null);
-  const [uploading, setUploading]     = useState(false);
-  const [uploadAlert, setUploadAlert] = useState(null);
-  const [prescriptions, setPrescriptions] = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [historyError, setHistoryError] = useState(null);
+  const [file, setFile] = useState(null);
+  const [notes, setNotes] = useState(requiredFor ? `Prescription for: ${requiredFor}` : '');
+  const [fileError, setFileError] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
-  const loadHistory = useCallback(async () => {
-    setLoading(true); setHistoryError(null);
-    try { setPrescriptions(await fetchPrescriptions()); }
-    catch(e) { setHistoryError(e.message||'Failed to load history.'); }
-    finally { setLoading(false); }
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [busyDelete, setBusyDelete] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setItems(await fetchPrescriptions());
+    } catch (e) {
+      setError(e.response?.data?.message || 'We couldn’t load your prescriptions.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadHistory(); }, [loadHistory]);
-
   useEffect(() => {
-    if (requiredForMedicine) {
-      setNotes(`Prescription for: ${requiredForMedicine}`);
-    }
-  }, [requiredForMedicine]);
+    load();
+  }, [load]);
 
-  const handleFile = (f) => { setFile(f); setFileError(null); setUploadAlert(null); };
+  const pick = (f) => {
+    setFile(f);
+    setFileError(f ? validateFile(f, true) : null);
+  };
 
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    setUploadAlert(null);
-    const err = validateFile(file);
-    if (err) { setFileError(err); return; }
+    const err = validateFile(file, true);
+    if (err) return setFileError(err === 'A prescription is required for Rx items.' ? 'Choose a photo or PDF of your prescription.' : err);
     setUploading(true);
     try {
-      const result = await uploadPrescription(file, notes);
-      setUploadAlert({ variant:'success', msg:`Uploaded! ID: ${result.id}. A pharmacist will review it within 30 minutes.` });
-      toast.success(`Prescription ${result.id} submitted`);
-
-      // Create notification
-      try {
-        // 1. Patient Confirmation Alert
-        const pKey = 'medeasy_notifications_' + (user?._id || user?.id || 'patient');
-        const pRaw = localStorage.getItem(pKey) || '[]';
-        const pAlerts = JSON.parse(pRaw);
-        pAlerts.unshift({
-          id: 'alert-' + Date.now(),
-          text: `Prescription Submitted: Your prescription (#RX-${result.id}) has been uploaded and sent for review!`,
-          time: Date.now(),
-          emoji: 'prescription',
-          unread: true,
-          link: '/prescriptions/upload'
-        });
-        localStorage.setItem(pKey, JSON.stringify(pAlerts));
-
-        // 2. Pharmacist/Admin Audit Notification Alert
-        const phKey = 'medeasy_notifications_pharmacist';
-        const phRaw = localStorage.getItem(phKey) || '[]';
-        const phAlerts = JSON.parse(phRaw);
-        phAlerts.unshift({
-          id: 'alert-' + Date.now() + '-admin',
-          text: `New Prescription Uploaded: Patient ${user?.name || 'Patient'} uploaded a new medical prescription #RX-${result.id} for review.`,
-          time: Date.now(),
-          emoji: 'prescription',
-          unread: true,
-          link: '/pharmacist'
-        });
-        localStorage.setItem(phKey, JSON.stringify(phAlerts));
-      } catch (err) {
-        console.error(err);
-      }
-
-      setFile(null); setNotes(''); setFileError(null);
-      await loadHistory();
-    } catch(e) {
-      const msg = e?.response?.data?.detail || e?.message || 'Upload failed. Please try again.';
-      setUploadAlert({ variant:'danger', msg });
-      toast.error(msg);
-    } finally { setUploading(false); }
+      const rx = await uploadPrescription(file, notes.trim());
+      const ref = shortRxId(rx.id);
+      toast.success('Prescription uploaded. A pharmacist will review it shortly.');
+      notifySelf(user, { text: `Prescription #${ref} uploaded and sent for review.`, emoji: 'prescription', link: '/prescriptions/upload' });
+      sendNotification('pharmacist', null, { text: `New prescription #${ref} from ${user?.name || 'a patient'} is waiting for review.`, emoji: 'prescription', link: '/pharmacist' });
+      setFile(null);
+      setNotes('');
+      load();
+    } catch (e2) {
+      toast.error(e2.response?.data?.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const handleDelete = async (id) => {
+  const confirmDelete = async () => {
+    setBusyDelete(true);
     try {
-      await deletePrescription(id);
-      setPrescriptions(prev=>prev.filter(p=>p.id!==id));
-      toast.success(`Prescription ${id} deleted.`);
-    } catch(e) { toast.error(e.message||'Could not delete.'); }
+      await deletePrescription(deleting.id);
+      setItems((prev) => prev.filter((p) => p.id !== deleting.id));
+      toast.success('Prescription deleted.');
+      setDeleting(null);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Could not delete the prescription.');
+    } finally {
+      setBusyDelete(false);
+    }
   };
 
-  const counts = prescriptions.reduce((a,p)=>({...a,[p.status]:(a[p.status]||0)+1}),{});
+  const counts = items.reduce((acc, p) => ({ ...acc, [p.status]: (acc[p.status] || 0) + 1 }), {});
+
+  let history;
+  if (loading) history = <div className="rxu-list">{[0, 1].map((i) => <SkeletonCard key={i} media={false} />)}</div>;
+  else if (error) history = <ErrorState title="Couldn’t load your prescriptions" message={error} onRetry={load} />;
+  else if (!items.length) history = <EmptyState icon={<FiFileText />} title="No prescriptions yet" description="Prescriptions you upload will appear here with their review status." />;
+  else {
+    history = (
+      <ul className="rxu-list">
+        {items.map((rx) => <PrescriptionItem key={rx.id} rx={rx} onDelete={setDeleting} />)}
+      </ul>
+    );
+  }
 
   return (
-    <div className="prescription-page">
+    <div className="rxu-page">
       <PageMeta title="Upload prescription" noindex />
-      <Container className="py-4 py-md-5">
-        <div className="rx-page-header">
-          <div>
-            <h1 className="rx-page-title">Upload Prescription</h1>
-            <p className="rx-page-subtitle">
-              Submit a valid prescription. Our licensed pharmacists verify it within 30 minutes.
-            </p>
-          </div>
-          <div className="rx-info-pills d-none d-md-flex">
-            <span className="rx-info-pill"><FaClock className="me-1"/>~30 min review</span>
-            <span className="rx-info-pill"><FaShieldAlt className="me-1"/>Secure &amp; private</span>
-          </div>
-        </div>
+      <div className="container">
+        <PageHeader
+          eyebrow="Prescriptions"
+          title="Upload a prescription"
+          subtitle="A licensed pharmacist checks every prescription before prescription-only medicines are dispensed."
+        />
 
-        <Row className="gx-4 gy-4">
-          {/* ═══ Upload form ═══════════════════════════════════ */}
-          <Col lg={5} xl={4}>
-            <Card className="rx-upload-card">
-              <Card.Body className="p-4">
-                <h5 className="rx-section-title"><FaUpload className="me-2"/>New Prescription</h5>
-                {requiredForMedicine && (
-                  <Alert variant="warning" className="small-warning-alert py-2 mb-3 animate-fade-in" style={{ background: 'var(--color-neutral-0)', border: '1px solid var(--tint-warning-200)', color: 'var(--fg-warning)', fontSize: '0.8rem', textAlign: 'left' }}>
-                    <FaInfoCircle className="me-2 fs-5" />
-                    A prescription is required for <strong>{requiredForMedicine}</strong>. Upload it below.
-                  </Alert>
-                )}
-                <Form noValidate onSubmit={handleSubmit}>
-                  <DropZone file={file} onFile={handleFile} error={fileError}/>
-                  {fileError && (
-                    <div className="rx-field-error mt-2">
-                      <FaExclamationTriangle className="me-1"/>{fileError}
-                    </div>
-                  )}
-                  <Form.Group className="mt-3" controlId="rxNotes">
-                    <Form.Label className="rx-label">
-                      Notes for pharmacist <span className="rx-optional">(optional)</span>
-                    </Form.Label>
-                    <Form.Control as="textarea" rows={3} className="rx-textarea"
-                      placeholder="Medicine name, dosage, special instructions…"
-                      value={notes} onChange={e=>setNotes(e.target.value)}/>
-                  </Form.Group>
-
-                  {uploadAlert && (
-                    <Alert variant={uploadAlert.variant} className="rx-upload-alert mt-3"
-                      dismissible onClose={()=>setUploadAlert(null)}>
-                      {uploadAlert.variant==='success'
-                        ? <FaCheckCircle className="me-2"/>
-                        : <FaExclamationTriangle className="me-2"/>}
-                      {uploadAlert.msg}
-                    </Alert>
-                  )}
-
-                  <Button type="submit" className="btn-rx-upload w-100 mt-3"
-                    disabled={uploading||!file} id="upload-prescription-btn">
-                    {uploading
-                      ? <><Spinner animation="border" size="sm" className="me-2"/>Uploading…</>
-                      : <><FaUpload className="me-2"/>Submit Prescription</>}
-                  </Button>
-                </Form>
-
-                <div className="rx-guidelines mt-4">
-                  <p className="rx-guidelines-title d-flex align-items-center"><FaInfoCircle className="text-primary me-2" /> Prescription Guidelines</p>
-                  <ul className="rx-guidelines-list">
-                    <li>Must be issued within the last 30 days</li>
-                    <li>Doctor's stamp &amp; signature required</li>
-                    <li>Patient name must match your profile</li>
-                    <li>Image must be clear and legible</li>
-                  </ul>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          {/* ═══ History ════════════════════════════════════════ */}
-          <Col lg={7} xl={8}>
-            {!loading && prescriptions.length > 0 && (
-              <div className="rx-summary-row mb-3">
-                <span className="rx-summary-label">Prescription History</span>
-                <div className="rx-count-badges">
-                  {counts.verified && <Badge bg="success" className="rx-count-badge"><FaCheckCircle className="me-1"/>{counts.verified} Verified</Badge>}
-                  {counts.pending  && <Badge bg="warning" text="dark" className="rx-count-badge"><FaClock className="me-1"/>{counts.pending} Pending</Badge>}
-                  {counts.rejected && <Badge bg="danger" className="rx-count-badge"><FaTimesCircle className="me-1"/>{counts.rejected} Rejected</Badge>}
-                </div>
-              </div>
-            )}
-
-            {loading && (
-              <div className="rx-loading">
-                <Spinner animation="border" variant="primary"/>
-                <span>Loading history…</span>
-              </div>
-            )}
-            {historyError && !loading && (
-              <Alert variant="danger" className="rounded-3">
-                <FaExclamationTriangle className="me-2"/>{historyError}
-                <Button variant="link" size="sm" className="p-0 ms-2 align-baseline" onClick={loadHistory}>Retry</Button>
+        <div className="rxu-layout">
+          <Card as="section" aria-labelledby="rxu-new">
+            <h2 id="rxu-new" className="rxu-title"><FiUpload aria-hidden="true" /> New prescription</h2>
+            {requiredFor && (
+              <Alert tone="warning">
+                <strong>{requiredFor}</strong> needs a prescription. Upload it here, then add the medicine to your cart once it’s verified.
               </Alert>
             )}
-            {!loading && !historyError && prescriptions.length === 0 && (
-              <div className="rx-history-empty">
-                <div className="rx-empty-icon"><FaFileMedical/></div>
-                <h5>No prescriptions yet</h5>
-                <p>Upload your first prescription using the form on the left.</p>
+            <form onSubmit={submit} noValidate className="rxu-form">
+              <FileDropzone
+                file={file}
+                onFile={pick}
+                error={fileError}
+                label="Drag & drop your prescription"
+                hint={`JPG, PNG, WebP or PDF · max ${MAX_FILE_MB} MB`}
+              />
+              <Textarea
+                label="Note for the pharmacist (optional)"
+                rows={3}
+                maxLength={500}
+                placeholder="Medicine names, dosage or anything we should know"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <Button type="submit" block size="lg" loading={uploading} leftIcon={<FiUpload aria-hidden="true" />} id="upload-prescription-btn">
+                Submit prescription
+              </Button>
+            </form>
+
+            <div className="rxu-guide">
+              <p><FiShield aria-hidden="true" /> A valid prescription is:</p>
+              <ul>
+                {GUIDELINES.map((g) => <li key={g}><FiCheckCircle aria-hidden="true" /> {g}</li>)}
+              </ul>
+            </div>
+          </Card>
+
+          <section aria-labelledby="rxu-history">
+            <div className="rxu-history-head">
+              <h2 id="rxu-history" className="rxu-title">Your prescriptions</h2>
+              <div className="rxu-counts">
+                {Object.entries(STATUS).map(([key, cfg]) =>
+                  counts[key] ? <Badge key={key} tone={cfg.tone}>{counts[key]} {cfg.label.toLowerCase()}</Badge> : null
+                )}
               </div>
-            )}
-            {!loading && prescriptions.map(rx=>(
-              <PrescriptionCard key={rx.id} rx={rx} onDelete={handleDelete}/>
-            ))}
-          </Col>
-        </Row>
-      </Container>
+            </div>
+            {history}
+          </section>
+        </div>
+      </div>
+
+      <Modal
+        show={!!deleting}
+        onClose={() => setDeleting(null)}
+        title="Delete this prescription?"
+        description="It hasn’t been reviewed yet. You can upload it again later."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDeleting(null)}>Keep it</Button>
+            <Button variant="danger" loading={busyDelete} onClick={confirmDelete}>Delete</Button>
+          </>
+        }
+      />
     </div>
   );
 }

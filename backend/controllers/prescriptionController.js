@@ -25,6 +25,7 @@ exports.uploadPrescription = async (req, res) => {
     const prescription = await Prescription.create({
       userId: req.user._id,
       fileUrl,
+      notes: req.body.notes || undefined,
       status: 'pending'
     });
 

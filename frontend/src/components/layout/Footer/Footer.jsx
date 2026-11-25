@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FaFacebookF, FaGithub, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
-import { FiMail, FiMapPin, FiPhone, FiUsers } from 'react-icons/fi';
+import { FiMail, FiMapPin, FiPhone } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import { BUSINESS, LEGAL_LINKS } from '../../../lib/business';
 import './Footer.css';
@@ -89,9 +89,6 @@ export default function AppFooter() {
                 <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>
               </p>
             </address>
-            <Link to="/team" className="site-footer__team">
-              <FiUsers aria-hidden="true" /> Meet our team
-            </Link>
           </div>
         </div>
 
@@ -100,7 +97,13 @@ export default function AppFooter() {
         </p>
 
         <div className="site-footer__bottom">
-          <p>Copyright © {year} {BUSINESS.brand}. All rights reserved.</p>
+          <p>
+            Copyright © {year} {BUSINESS.brand}. All rights reserved.
+            <span className="site-footer__credit">
+              {' '}· Site by{' '}
+              <a href="https://github.com/AhsanFayyaz13" target="_blank" rel="noopener noreferrer">Ahsan Fayyaz</a>
+            </span>
+          </p>
           <nav aria-label="Legal">
             <ul className="site-footer__legal">
               {LEGAL_LINKS.map((l) => (

@@ -19,7 +19,6 @@ const PharmacistDashboard = lazy(() => import('../features/pharmacist/pages/Phar
 const DoctorDashboard = lazy(() => import('../features/doctor/pages/DoctorDashboard'));
 const AdminDashboard = lazy(() => import('../features/admin/pages/AdminDashboard'));
 const ContactUs = lazy(() => import('../features/contact/pages/ContactUs'));
-const Team = lazy(() => import('../features/team/pages/Team'));
 // Each legal document is its own chunk (LegalPage itself is shared between them).
 const legal = (load) =>
   lazy(() =>
@@ -54,7 +53,6 @@ export default function AppRoutes() {
       <Route path="/medicines" element={<MedicineList />} />
       <Route path="/medicines/:id" element={<MedicineDetail />} />
       <Route path="/reviews" element={<Reviews />} />
-      <Route path="/team" element={<Team />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
@@ -86,6 +84,7 @@ export default function AppRoutes() {
       <Route path="/appointments" element={<Navigate to="/appointments/book" replace />} />
       <Route path="/dashboard/pharmacist" element={<Navigate to="/pharmacist" replace />} />
       <Route path="/dashboard/doctor" element={<Navigate to="/doctor" replace />} />
+      <Route path="/team" element={<Navigate to="/" replace />} />
       <Route path="/dashboard/admin" element={<Navigate to="/admin" replace />} />
 
       <Route path="*" element={<NotFound />} />

@@ -1,408 +1,211 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import {
-  Container, Row, Col, Button, Badge,
-  Spinner, Alert, Breadcrumb,
-} from 'react-bootstrap';
-import {
-  FaShoppingCart, FaStar, FaRegStar, FaStarHalfAlt,
-  FaMinus, FaPlus, FaArrowLeft, FaCheckCircle,
-  FaExclamationTriangle, FaInfoCircle, FaUpload,
-} from 'react-icons/fa';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { FiAlertTriangle, FiArrowLeft, FiCheck, FiFileText, FiMinus, FiPlus, FiShoppingCart } from 'react-icons/fi';
 import { useCart } from '../../../context/CartContext';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth, ROLE_DASHBOARD } from '../../../context/AuthContext';
 import { useAuthModal } from '../../../context/AuthModalContext';
 import api from '../../../services/api/client';
-import MedicalIcon from '../components/MedicalIcon';
-import './MedicineDetail.css';
+import { Alert, Badge, Button, Card, EmptyState, ErrorState, Skeleton } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
+import { formatDate, formatPrice } from '../../../lib/format';
+import MedicalIcon from '../components/MedicalIcon';
+import normalizeMedicine from '../lib/normalizeMedicine';
+import './MedicineDetail.css';
+
+const LOW_STOCK = 20;
 
 function useMedicine(id) {
-  const [data,    setData]    = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const [state, setState] = useState({ med: null, loading: true, error: null, notFound: false });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
-    setError(null);
-    const fetchMed = async () => {
-      try {
-        const { data: med } = await api.get(`/medicines/${id}`);
-        if (isMounted) {
-          setData({
-            ...med,
-            id: med._id,
-            requires_prescription: med.requiresPrescription,
-            image: med.imageUrl || '💊',
-            discount_pct: 0,
-            original_price: med.price,
-            rating: 5,
-            reviews_count: 1,
-            country_of_origin: 'N/A',
-            usage: 'Take as directed by your physician.',
-            side_effects: 'Consult your doctor for details.',
-            storage: 'Store in a cool, dry place.',
-            tags: [med.category]
-          });
-        }
-      } catch {
-        if (isMounted) setError('Medicine not found.');
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+    let alive = true;
+    setState((s) => ({ ...s, loading: true, error: null }));
+    api
+      .get(`/medicines/${id}`)
+      .then(({ data }) => alive && setState({ med: normalizeMedicine(data), loading: false, error: null, notFound: false }))
+      .catch((e) => {
+        if (!alive) return;
+        const status = e.response?.status ?? e.status;
+        setState({ med: null, loading: false, notFound: status === 404 || status === 400, error: e.response?.data?.message || 'Could not load this medicine.' });
+      });
+    return () => {
+      alive = false;
     };
-    fetchMed();
-    return () => { isMounted = false; };
-  }, [id]);
+  }, [id, attempt]);
 
-  return { data, loading, error };
+  return { ...state, retry: () => setAttempt((n) => n + 1) };
 }
 
-// ─── Half-star row ────────────────────────────────────────────────────────────
-function StarRow({ rating, count }) {
-  const stars = Array.from({ length: 5 }, (_, i) => {
-    if (i < Math.floor(rating)) return <FaStar        key={i} className="star filled" />;
-    if (i < rating)             return <FaStarHalfAlt key={i} className="star filled" />;
-    return                             <FaRegStar      key={i} className="star"        />;
-  });
+function DetailSkeleton() {
   return (
-    <div className="detail-stars">
-      {stars}
-      <span className="detail-rating-num">{rating.toFixed(1)}</span>
-      <span className="detail-reviews">({count.toLocaleString()} reviews)</span>
+    <div className="mdd-layout" aria-busy="true" aria-label="Loading medicine">
+      <Skeleton variant="rect" height={320} />
+      <div>
+        <Skeleton width="30%" />
+        <Skeleton width="70%" height={36} />
+        <Skeleton lines={4} />
+      </div>
     </div>
   );
 }
 
-// ─── Info row ─────────────────────────────────────────────────────────────────
-function InfoRow({ label, value }) {
-  return (
-    <div className="info-row">
-      <span className="info-label">{label}</span>
-      <span className="info-value">{value}</span>
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function MedicineDetail() {
-  const { id }            = useParams();
-  const navigate          = useNavigate();
-  const { addToCart, cartItems } = useCart();
-  const { data: med, loading, error } = useMedicine(id);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart, isInCart } = useCart();
+  const { toast } = useToast();
   const { isAuthenticated, userRole } = useAuth();
   const { openLoginModal } = useAuthModal();
+  const { med, loading, error, notFound, retry } = useMedicine(id);
+  const [qty, setQty] = useState(1);
 
+  // Shopping is for patients; staff go back to their dashboards.
   useEffect(() => {
-    if (isAuthenticated && userRole && userRole !== 'patient') {
-      if (userRole === 'admin') navigate('/admin', { replace: true });
-      else if (userRole === 'doctor') navigate('/doctor', { replace: true });
-      else if (userRole === 'pharmacist') navigate('/pharmacist', { replace: true });
+    if (isAuthenticated && userRole && userRole !== 'patient' && ROLE_DASHBOARD[userRole]) {
+      navigate(ROLE_DASHBOARD[userRole], { replace: true });
     }
   }, [isAuthenticated, userRole, navigate]);
 
-  const [qty, setQty]     = useState(1);
-  const [added, setAdded] = useState(false);
-  const { toast } = useToast();
-
-  const inCart    = cartItems.some((i) => i.id === med?.id);
-  const inStock   = med?.stock > 0;
-  const lowStock  = inStock && med?.stock <= 20;
-  const canAdd    = inStock && !med?.requires_prescription;
-
-  const changeQty = (delta) => {
-    setQty((q) => Math.max(1, Math.min(med?.stock ?? 1, q + delta)));
+  const goUpload = () => {
+    if (!isAuthenticated) return openLoginModal();
+    navigate('/prescriptions/upload', { state: { requiredForMedicine: med.name } });
   };
 
-  const handleAddToCart = () => {
-    // Check if user is authenticated
-    if (!isAuthenticated) {
-      openLoginModal();
-      return;
-    }
-
-    if (!canAdd) return;
+  const add = () => {
+    if (!isAuthenticated) return openLoginModal();
     const result = addToCart(med, qty);
-    if (result === 'capped') {
-      toast.warning(`Max stock (${med.stock}) reached for ${med.name}`);
-    } else {
-      toast.cart(`${qty > 1 ? qty + '× ' : ''}${med.name} added to cart`, { duration: 2500 });
-    }
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2500);
+    if (result === 'capped') toast.warning(`You already have the maximum (${med.stock}) of ${med.name} in your cart.`);
+    else toast.cart(`${qty > 1 ? `${qty} × ` : ''}${med.name} added to cart`, { duration: 2500 });
   };
 
-  // ── Loading ────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="detail-loading">
-        <Spinner animation="border" variant="primary" />
-        <p className="mt-3 text-muted">Loading medicine details…</p>
-      </div>
+  let content;
+  if (loading) content = <DetailSkeleton />;
+  else if (notFound) {
+    content = (
+      <EmptyState
+        title="Medicine not found"
+        description="It may have been removed or the link is wrong."
+        action={<Button to="/medicines" leftIcon={<FiArrowLeft aria-hidden="true" />}>Browse medicines</Button>}
+      />
     );
-  }
+  } else if (error || !med) content = <ErrorState title="Couldn’t load this medicine" message={error} onRetry={retry} />;
+  else {
+    const title = med.brand || med.name;
+    const inStock = med.stock > 0;
+    const lowStock = inStock && med.stock <= LOW_STOCK;
+    const rx = med.requires_prescription;
+    const inCart = isInCart(med.id);
 
-  // ── Error / not found ──────────────────────────────────────────
-  if (error || !med) {
-    return (
-      <div className="detail-error">
-        <div className="error-emoji text-primary mb-3"><FaInfoCircle size={48} /></div>
-        <h4>{error || 'Medicine not found'}</h4>
-        <Button variant="primary" className="mt-3" onClick={() => navigate('/medicines')}>
-          <FaArrowLeft className="me-2" /> Back to Medicines
-        </Button>
-      </div>
-    );
-  }
+    content = (
+      <>
+        <PageMeta
+          title={`${title}${med.brand ? ` — ${med.name}` : ''}`}
+          description={`Buy ${med.name}${med.brand ? ` (${med.brand})` : ''} online at MedEasy. ${med.description || ''}`.trim().slice(0, 160)}
+        />
 
-  // ── Stock badge ────────────────────────────────────────────────
-  const stockBadge = !inStock
-    ? <Badge bg="danger" className="stock-badge-lg">Out of Stock</Badge>
-    : lowStock
-      ? <Badge bg="warning" text="dark" className="stock-badge-lg">Only {med.stock} left — order soon!</Badge>
-      : <Badge bg="success" className="stock-badge-lg"><FaCheckCircle className="me-1" />{med.stock} units in stock</Badge>;
+        <nav aria-label="Breadcrumb" className="mdd-crumbs">
+          <ol>
+            <li><Link to="/">Home</Link></li>
+            <li><Link to="/medicines">Medicines</Link></li>
+            <li><Link to={`/medicines?category=${encodeURIComponent(med.category)}`}>{med.category}</Link></li>
+            <li aria-current="page">{title}</li>
+          </ol>
+        </nav>
 
-  return (
-    <div className="medicine-detail-page">
-      <PageMeta title={`${med.brand || med.name} — ${med.name}`} description={`Buy ${med.name}${med.brand ? ` (${med.brand})` : ''} online at MedEasy. ${med.description || ''}`.trim()} />
-      <Container className="py-4 py-md-5">
-
-        {/* ── Breadcrumb ────────────────────────────────────── */}
-        <Breadcrumb className="detail-breadcrumb mb-4">
-          <Breadcrumb.Item linkAs={Link} linkProps={{ to: '/' }}>Home</Breadcrumb.Item>
-          <Breadcrumb.Item linkAs={Link} linkProps={{ to: '/medicines' }}>Medicines</Breadcrumb.Item>
-          <Breadcrumb.Item linkAs={Link} linkProps={{ to: `/medicines?category=${med.category}` }}>{med.category}</Breadcrumb.Item>
-          <Breadcrumb.Item active>{med.name}</Breadcrumb.Item>
-        </Breadcrumb>
-
-        <Row className="gy-4 gx-5">
-
-          {/* ── Left: Image panel ─────────────────────────── */}
-          <Col md={5} lg={4}>
-            <div className="detail-img-panel">
-              {/* Discount ribbon */}
-              {med.discount_pct > 0 && inStock && (
-                <div className="detail-ribbon">-{med.discount_pct}%</div>
-              )}
-
-              {/* Emoji "image" replaced with MedicalIcon */}
-              {(() => {
-                const isRealImage = med.image && (
-                  med.image.startsWith('data:') || 
-                  med.image.startsWith('/') || 
-                  med.image.startsWith('http') || 
-                  med.image.includes('.')
-                );
-                return (
-                  <div 
-                    className="detail-emoji-box" 
-                    style={{ 
-                      display: 'flex', 
-                      justifyContent: 'center', 
-                      padding: isRealImage ? '0' : '2.5rem 0', 
-                      background: 'linear-gradient(135deg, var(--color-neutral-100), var(--color-neutral-100))', 
-                      borderRadius: '16px',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <MedicalIcon emoji={med.image} category={med.category} size={64} />
-                  </div>
-                );
-              })()}
-
-              {/* Rx alert */}
-              {med.requires_prescription && (
-                <Alert variant="warning" className="rx-alert mt-3 mb-0 py-2">
-                  <FaExclamationTriangle className="me-2" />
-                  <strong>Prescription Required.</strong>{' '}
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        openLoginModal();
-                      } else {
-                        navigate('/prescriptions/upload', { state: { requiredForMedicine: med.name } });
-                      }
-                    }}
-                    className="btn btn-link p-0 align-baseline text-decoration-underline"
-                    style={{ fontWeight: 600, color: 'var(--fg-warning)' }}
-                  >
-                    Upload yours →
-                  </button>
-                </Alert>
-              )}
+        <div className="mdd-layout">
+          <div className="mdd-media">
+            <MedicalIcon emoji={med.image || '💊'} category={med.category} size={72} alt={title} />
+            <div className="mdd-media__flags">
+              {rx ? <Badge tone="warning" icon={<FiFileText />}>Prescription</Badge> : <Badge tone="success">Over the counter</Badge>}
+              {med.discount_pct > 0 && inStock && <Badge tone="error" solid>-{med.discount_pct}%</Badge>}
             </div>
-          </Col>
-
-          {/* ── Right: Details panel ──────────────────────── */}
-          <Col md={7} lg={8}>
-
-            {/* Category + brand */}
-            <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <Badge bg="primary" className="category-pill">{med.category}</Badge>
-              {med.subcategory && (
-                <Badge bg="light" text="dark" className="category-pill">{med.subcategory}</Badge>
-              )}
-            </div>
-
-            <h1 className="detail-name">{med.brand || med.name}</h1>
-            <p className="detail-brand">{med.brand ? `${med.name} · ` : ''}by <strong>{med.manufacturer}</strong></p>
-
-            {/* Stars */}
-            <StarRow rating={med.rating} count={med.reviews_count} />
-
-            {/* Price */}
-            <div className="detail-price-row my-3">
-              <span className="detail-price">Rs. {med.price.toLocaleString()}</span>
-              {med.original_price > med.price && (
-                <span className="detail-original-price ms-2">
-                  Rs. {med.original_price.toLocaleString()}
-                </span>
-              )}
-              {med.discount_pct > 0 && (
-                <Badge bg="danger" className="ms-2 save-badge">
-                  Save {med.discount_pct}%
-                </Badge>
-              )}
-            </div>
-
-            {/* Stock badge */}
-            <div className="mb-3">{stockBadge}</div>
-
-            {/* Description */}
-            <p className="detail-description">{med.description}</p>
-
-            {/* ── Add to cart block ─────────────────────────── */}
-            {canAdd && (
-              <div className="cart-block">
-                {/* Quantity selector */}
-                <div className="qty-selector">
-                  <span className="qty-label">Qty:</span>
-                  <div className="qty-controls">
-                    <button
-                      className="qty-btn"
-                      onClick={() => changeQty(-1)}
-                      disabled={qty <= 1}
-                      aria-label="Decrease quantity"
-                    >
-                      <FaMinus />
-                    </button>
-                    <span className="qty-value">{qty}</span>
-                    <button
-                      className="qty-btn"
-                      onClick={() => changeQty(1)}
-                      disabled={qty >= med.stock}
-                      aria-label="Increase quantity"
-                    >
-                      <FaPlus />
-                    </button>
-                  </div>
-                  <span className="qty-max">max {med.stock}</span>
-                </div>
-
-                {/* Add + cart buttons */}
-                <div className="cart-actions">
-                  <Button
-                    className={`btn-add-cart ${added ? 'added' : ''}`}
-                    onClick={handleAddToCart}
-                    disabled={added}
-                    size="lg"
-                  >
-                    {added
-                      ? <><FaCheckCircle className="me-2" />Added!</>
-                      : <><FaShoppingCart className="me-2" />Add to Cart</>
-                    }
-                  </Button>
-                  {inCart && (
-                    <Button
-                      as={Link}
-                      to="/cart"
-                      variant="outline-primary"
-                      size="lg"
-                      className="btn-view-cart"
-                    >
-                      View Cart
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Prescription CTA */}
-            {med.requires_prescription && (
-              <div className="rx-cta d-flex flex-column align-items-start gap-3 p-4 rounded-3 mt-3 shadow-sm" style={{ background: 'var(--color-neutral-0)', border: '1px solid var(--tint-warning-200)' }}>
-                <div className="d-flex align-items-center gap-2" style={{ color: 'var(--fg-warning)' }}>
-                  <FaExclamationTriangle className="fs-5" />
-                  <strong className="fs-6">Prescription Required</strong>
-                </div>
-                <p className="mb-0 text-muted small leading-relaxed" style={{ textAlign: 'left' }}>
-                  This medicine requires a valid prescription verified by a licensed clinical pharmacist. 
-                  Please upload your doctor's prescription file. Once verified, this medicine will be enabled for checkout.
-                </p>
-                <Button 
-                  className="px-4 py-2 mt-1"
-                  onClick={() => {
-                    if (!isAuthenticated) {
-                      openLoginModal();
-                    } else {
-                      navigate('/prescriptions/upload', { state: { requiredForMedicine: med.name } });
-                    }
-                  }}
-                  style={{ background: 'linear-gradient(135deg, var(--color-warning-600), var(--color-warning-700))', border: 'none', fontWeight: 700 }}
-                >
-                  <FaUpload className="me-2" /> Upload Doctor Prescription
-                </Button>
-              </div>
-            )}
-
-            {/* Medicine info table */}
-            <div className="info-table mt-4">
-              <InfoRow label="Category"      value={med.subcategory ? `${med.category} › ${med.subcategory}` : med.category} />
-              <InfoRow label="Manufacturer"  value={med.manufacturer} />
-              {med.country_of_origin && med.country_of_origin !== 'N/A' && <InfoRow label="Country" value={med.country_of_origin} />}
-              <InfoRow label="Prescription"  value={med.requires_prescription ? 'Required' : 'Not required'} />
-              <InfoRow label="Stock"         value={inStock ? `${med.stock} units` : 'Out of stock'} />
-            </div>
-          </Col>
-        </Row>
-
-        <Row className="mt-5">
-          {[
-            { title: 'Usage & Dosage',    icon: <FaInfoCircle className="text-primary me-2" />,          content: med.usage        },
-            { title: 'Side Effects',       icon: <FaExclamationTriangle className="text-warning me-2" />,  content: med.side_effects },
-            { title: 'Storage',            icon: <FaCheckCircle className="text-success me-2" />,          content: med.storage      },
-          ].map((tab) => (
-            <Col md={4} key={tab.title} className="mb-3">
-              <div className="info-card">
-                <h2 className="info-card-title d-flex align-items-center">
-                  {tab.icon}
-                  <span>{tab.title}</span>
-                </h2>
-                <p className="info-card-body">{tab.content}</p>
-              </div>
-            </Col>
-          ))}
-        </Row>
-
-        {/* ── Tags ─────────────────────────────────────────── */}
-        {med.tags?.length > 0 && (
-          <div className="tags-row mt-3">
-            {med.tags.map((tag) => (
-              <Badge key={tag} bg="light" text="dark" className="tag-pill">#{tag}</Badge>
-            ))}
           </div>
-        )}
 
-        {/* ── Back link ─────────────────────────────────────── */}
-        <div className="mt-5">
-          <Button variant="outline-secondary" onClick={() => navigate(-1)}>
-            <FaArrowLeft className="me-1" /> Back
-          </Button>
+          <div className="mdd-info">
+            <p className="mdd-category">{med.category}</p>
+            <h1 className="mdd-title">{title}</h1>
+            <p className="mdd-sub">
+              {med.brand && <>{med.name} · </>}
+              {med.manufacturer ? <>by <strong>{med.manufacturer}</strong></> : null}
+            </p>
+
+            <div className="mdd-price">
+              <span className="mdd-price__now">{formatPrice(med.price)}</span>
+              {med.original_price && <s className="mdd-price__was">{formatPrice(med.original_price)}</s>}
+            </div>
+
+            <p className="mdd-stock">
+              {!inStock && <Badge tone="error">Out of stock</Badge>}
+              {lowStock && <Badge tone="warning">Only {med.stock} left</Badge>}
+              {inStock && !lowStock && <Badge tone="success" icon={<FiCheck />}>In stock</Badge>}
+            </p>
+
+            {med.description && <p className="mdd-desc">{med.description}</p>}
+
+            {rx ? (
+              <Alert tone="warning" title="Prescription required">
+                <p>A licensed pharmacist must verify your doctor’s prescription before this medicine can be ordered.</p>
+                <Button size="sm" leftIcon={<FiFileText aria-hidden="true" />} onClick={goUpload} className="mdd-rx-btn">
+                  Upload prescription
+                </Button>
+              </Alert>
+            ) : inStock ? (
+              <div className="mdd-buy">
+                <div className="mdd-qty" role="group" aria-label="Quantity">
+                  <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} aria-label="Decrease quantity">
+                    <FiMinus aria-hidden="true" />
+                  </button>
+                  <output aria-live="polite">{qty}</output>
+                  <button type="button" onClick={() => setQty((q) => Math.min(med.stock, q + 1))} disabled={qty >= med.stock} aria-label="Increase quantity">
+                    <FiPlus aria-hidden="true" />
+                  </button>
+                </div>
+                <Button size="lg" leftIcon={<FiShoppingCart aria-hidden="true" />} onClick={add}>
+                  Add to cart · {formatPrice(med.price * qty)}
+                </Button>
+                {inCart && (
+                  <Button size="lg" variant="secondary" to="/cart">
+                    View cart
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Button size="lg" variant="secondary" disabled>
+                Out of stock
+              </Button>
+            )}
+
+            <dl className="mdd-facts">
+              <div><dt>Category</dt><dd>{med.category}</dd></div>
+              {med.manufacturer && <div><dt>Manufacturer</dt><dd>{med.manufacturer}</dd></div>}
+              <div><dt>Prescription</dt><dd>{rx ? 'Required' : 'Not required'}</dd></div>
+              {med.expiryDate && <div><dt>Expires</dt><dd>{formatDate(med.expiryDate, { month: 'long', year: 'numeric' })}</dd></div>}
+            </dl>
+          </div>
         </div>
 
-      </Container>
+        <Card className="mdd-safety">
+          <FiAlertTriangle aria-hidden="true" />
+          <p>
+            Read the patient leaflet and follow the dose your doctor or pharmacist gives you. Information on this page is not
+            medical advice — see our <Link to="/medical-disclaimer">medical disclaimer</Link>.
+          </p>
+        </Card>
+      </>
+    );
+  }
+
+  return (
+    <div className="mdd-page">
+      {!med && <PageMeta title="Medicine" />}
+      <div className="container">
+        <Button variant="ghost" size="sm" leftIcon={<FiArrowLeft aria-hidden="true" />} onClick={() => navigate(-1)} className="mdd-back">
+          Back
+        </Button>
+        {content}
+      </div>
     </div>
   );
 }

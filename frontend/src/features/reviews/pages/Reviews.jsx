@@ -1,156 +1,103 @@
-import { useEffect, useState } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
-import { FaStar, FaRegStar } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
-import './Reviews.css';
-import { fetchReviews, postReview } from '../../../services/api/reviewService';
+import { useCallback, useEffect, useState } from 'react';
+import { FiMessageSquare } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
+import { useAuthModal } from '../../../context/AuthModalContext';
 import { useToast } from '../../../context/ToastContext';
+import { fetchReviews, postReview, SITE_REVIEW_TARGET } from '../../../services/api/reviewService';
+import { Alert, Button, Card, EmptyState, ErrorState, PageHeader, SkeletonCard } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
+import { RatingSummary, ReviewCard, ReviewForm } from '../components/ReviewParts';
+import '../reviews.css';
 
-function StarDisplay({ rating }) {
-  return (
-    <div className="star-display">
-      {Array.from({ length: 5 }, (_, i) =>
-        i < rating ? <FaStar key={i} className="filled" /> : <FaRegStar key={i} />
-      )}
-    </div>
-  );
-}
-
+/** Public reviews of the MedEasy service, with a form for signed-in patients. */
 export default function Reviews() {
-  const navigate = useNavigate();
   const { user, isAuthenticated, userRole } = useAuth();
-
-  useEffect(() => {
-    if (isAuthenticated && userRole && userRole !== 'patient') {
-      if (userRole === 'admin') navigate('/admin', { replace: true });
-      else if (userRole === 'doctor') navigate('/doctor', { replace: true });
-      else if (userRole === 'pharmacist') navigate('/pharmacist', { replace: true });
-    }
-  }, [isAuthenticated, userRole, navigate]);
-
+  const { openLoginModal } = useAuthModal();
   const { toast } = useToast();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const list = await fetchReviews({ limit: 50 });
-        if (mounted) setReviews(list);
-      } catch {
-        toast.error('Failed to load reviews');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [toast]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const load = useCallback(async () => {
+    setLoading(true);
     setError(null);
-
-    if (!user) {
-      setError('Please log in to submit a review.');
-      return;
-    }
-
-    if (!comment.trim()) {
-      setError('Please add a comment before submitting.');
-      return;
-    }
-
     try {
-      await postReview({ rating, comment });
-      toast.success('Review submitted');
-      setComment('');
-      setRating(5);
-      const list = await fetchReviews({ limit: 50 });
-      setReviews(list);
-    } catch (err) {
-      setError(err?.response?.data?.message || err.message || 'Failed to submit review');
+      setReviews(await fetchReviews({ ...SITE_REVIEW_TARGET, limit: 60 }));
+    } catch {
+      setError('We couldn’t load reviews right now.');
+    } finally {
+      setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const myId = String(user?._id || user?.id || '');
+  const alreadyReviewed = reviews.some((r) => String(r.userId?._id || r.userId) === myId);
+
+  const submit = async (values) => {
+    const created = await postReview({ ...SITE_REVIEW_TARGET, ...values });
+    setReviews((prev) => [{ ...created, userId: { _id: myId, name: user?.name } }, ...prev]);
+    toast.success('Thanks for sharing your experience!');
   };
 
+  let form;
+  if (!isAuthenticated) {
+    form = (
+      <>
+        <p className="text-muted">Ordered from us or booked a doctor? Sign in to share how it went.</p>
+        <Button block onClick={openLoginModal}>Sign in to write a review</Button>
+      </>
+    );
+  } else if (userRole !== 'patient') {
+    form = <Alert tone="info">Reviews are written by patients.</Alert>;
+  } else if (alreadyReviewed) {
+    form = <Alert tone="success">You’ve already reviewed MedEasy — thank you!</Alert>;
+  } else {
+    form = <ReviewForm onSubmit={submit} placeholder="Delivery speed, ordering, the doctors…" />;
+  }
+
+  let list;
+  if (loading) {
+    list = (
+      <div className="rv-page__grid" aria-busy="true">
+        {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} media={false} />)}
+      </div>
+    );
+  } else if (error) list = <ErrorState message={error} onRetry={load} />;
+  else if (!reviews.length) list = <EmptyState icon={<FiMessageSquare />} title="No reviews yet" description="Be the first to share your experience." />;
+  else {
+    list = (
+      <ul className="rv-page__grid">
+        {reviews.map((r) => (
+          <li key={r._id}><ReviewCard review={r} /></li>
+        ))}
+      </ul>
+    );
+  }
+
   return (
-    <div className="reviews-page">
-      <PageMeta title="Patient reviews" />
-      <Container className="py-5">
-        <h1 className="page-title">Customer Reviews</h1>
-
-        <Row className="gy-4 mb-5">
-          {loading && <p className="text-muted">Loading reviews…</p>}
-          {!loading && reviews.length === 0 && (
-            <Col>
-              <p className="text-muted">No reviews yet. Be the first to share your experience.</p>
-            </Col>
-          )}
-          {!loading && reviews.map((r) => (
-            <Col md={4} key={r._id}>
-              <Card className="review-card h-100">
-                <Card.Body>
-                  <StarDisplay rating={r.rating} />
-                  <p className="review-text mt-2">"{r.comment || r.text}"</p>
-                  <div className="review-author d-flex justify-content-between align-items-center">
-                    <div className="review-user-info d-flex align-items-center gap-2">
-                      <div className="review-avatar">
-                        {r.user?.name ? r.user.name[0].toUpperCase() : 'A'}
-                      </div>
-                      <strong className="review-author-name">{r.user?.name || 'Anonymous'}</strong>
-                    </div>
-                    <span className="review-date text-muted">{r.createdAt?.slice(0, 10)}</span>
-                  </div>
-                </Card.Body>
+    <div className="rv-page">
+      <PageMeta title="Patient reviews" description="What patients say about ordering medicines and booking doctors with MedEasy." />
+      <div className="container">
+        <PageHeader eyebrow="Reviews" title="What our patients say" subtitle="Honest feedback from people who order medicines and book doctors with MedEasy." />
+        <div className="rv-page__layout">
+          <section aria-label="Reviews">{list}</section>
+          <aside className="rv-page__aside">
+            {!loading && !error && (
+              <Card>
+                <RatingSummary reviews={reviews} />
               </Card>
-            </Col>
-          ))}
-        </Row>
-
-        <Card className="review-form-card mx-auto">
-          <Card.Body className="p-4">
-            <h5 className="section-heading">Leave a Review</h5>
-            {error && <Alert variant="danger">{error}</Alert>}
-            <Form onSubmit={handleSubmit}>
-              <Form.Group className="mb-3" controlId="reviewRating">
-                <Form.Label className="d-block mb-2">Rating</Form.Label>
-                <div className="interactive-stars-wrap d-flex gap-2">
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <button
-                      type="button"
-                      key={num}
-                      className={`star-select-btn ${num <= rating ? 'active' : ''}`}
-                      onClick={() => setRating(num)}
-                      aria-label={`${num} Star`}
-                    >
-                      {num <= rating ? <FaStar className="star-icon filled" /> : <FaRegStar className="star-icon" />}
-                    </button>
-                  ))}
-                  <span className="ms-2 rating-value-label text-muted align-self-center">
-                    {rating} Star{rating > 1 ? 's' : ''}
-                  </span>
-                </div>
-              </Form.Group>
-              <Form.Group className="mb-3" controlId="reviewComment">
-                <Form.Label>Your Review</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={4}
-                  placeholder="Share your experience with MedEasy…"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                />
-              </Form.Group>
-              <Button type="submit" className="btn-primary-custom w-100">Submit Review</Button>
-            </Form>
-          </Card.Body>
-        </Card>
-      </Container>
+            )}
+            <Card>
+              <h2>Write a review</h2>
+              {form}
+            </Card>
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }
