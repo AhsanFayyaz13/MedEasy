@@ -1,3 +1,4 @@
+const { sendVerificationDecisionEmail } = require('../utils/mailer');
 const { normalizePhone } = require('../utils/phone');
 const Order = require('../models/Order');
 const Medicine = require('../models/Medicine');
@@ -132,6 +133,12 @@ exports.approveProfessional = async (req, res) => {
   user.verificationDeclinedAt = undefined;
 
   await user.save();
+  // Email the outcome (declined doctors can't sign in to see it). Never block the response.
+  if (user.email) {
+    const who = user.role === 'pharmacy' ? `your pharmacist ${user.pharmacistDetails?.name || ''}`.trim() : 'your doctor profile';
+    sendVerificationDecisionEmail(user.email, { name: user.name, approved: true, reason: user.verificationDeclineReason, who })
+      .catch((err) => console.error('Verification email failed:', err.message));
+  }
   res.json({ message: 'Approved successfully', user });
 };
 
@@ -155,6 +162,12 @@ exports.declineProfessional = async (req, res) => {
   user.verificationDeclinedAt = new Date();
 
   await user.save();
+  // Email the outcome (declined doctors can't sign in to see it). Never block the response.
+  if (user.email) {
+    const who = user.role === 'pharmacy' ? `your pharmacist ${user.pharmacistDetails?.name || ''}`.trim() : 'your doctor profile';
+    sendVerificationDecisionEmail(user.email, { name: user.name, approved: false, reason: user.verificationDeclineReason, who })
+      .catch((err) => console.error('Verification email failed:', err.message));
+  }
   res.json({ message: 'Declined successfully', user });
 };
 

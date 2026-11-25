@@ -202,3 +202,50 @@ Message: ${message}`);
   return response.json();
 };
 
+
+/** Escape text before putting it into an email's HTML. */
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+exports.escapeHtml = esc;
+
+/** Shared layout for simple transactional emails. `bodyHtml` must already be escaped. */
+const layout = (title, bodyHtml) => `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+    <h2 style="color: #0369a1; margin: 0 0 4px; font-size: 26px;">MedEasy</h2>
+    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+    <h3 style="color: #0f172a; font-size: 19px; margin: 0 0 12px;">${esc(title)}</h3>
+    <div style="color: #334155; font-size: 15px; line-height: 1.6;">${bodyHtml}</div>
+    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 25px 0 12px;" />
+    <p style="font-size: 12px; color: #94a3b8; margin: 0;">Questions? Reply via ${esc(process.env.FRONTEND_ORIGIN || 'https://medeasy.systems')}/contact</p>
+  </div>`;
+
+/** Send one email through Resend. Without an API key it only logs in development. */
+const sendEmail = async ({ to, subject, title, bodyHtml }) => {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const senderEmail = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+  if (!resendApiKey) {
+    if (process.env.NODE_ENV === 'development') console.log(`[Diagnostic Fallback] Resend API Key not set. Email to ${to}: ${subject}`);
+    return null;
+  }
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: `MedEasy <${senderEmail}>`, to: [to], subject, html: layout(title, bodyHtml) }),
+  });
+  if (!response.ok) throw new Error(`Resend API returned status ${response.status}: ${await response.text()}`);
+  return response.json();
+};
+exports.sendEmail = sendEmail;
+
+/**
+ * Tell a doctor or pharmacy owner the outcome of their verification.
+ * Declined doctors can't sign in, so email is the only way they learn the reason.
+ */
+exports.sendVerificationDecisionEmail = (to, { name, approved, reason, who = 'your doctor profile' }) =>
+  sendEmail({
+    to,
+    subject: approved ? 'MedEasy: you’re verified' : 'MedEasy: verification needs attention',
+    title: approved ? 'Verification approved' : 'We couldn’t verify your details',
+    bodyHtml: approved
+      ? `<p>Hi ${esc(name)},</p><p>Good news: ${esc(who)} has been verified. You can now sign in and start using MedEasy.</p>`
+      : `<p>Hi ${esc(name)},</p><p>We couldn’t verify ${esc(who)} yet.</p><p><strong>Reason:</strong> ${esc(reason)}</p><p>Please reply through our contact page with the corrected details or documents and we’ll review them again.</p>`,
+  });

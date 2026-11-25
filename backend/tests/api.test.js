@@ -397,6 +397,13 @@ describe('contact form', () => {
   });
 });
 
+describe('emails', () => {
+  it('escapes user-provided text before it goes into email HTML', () => {
+    const { escapeHtml } = require('../utils/mailer');
+    assert.equal(escapeHtml('<img src=x onerror=alert(1)> & "q"'), '&lt;img src=x onerror=alert(1)&gt; &amp; &quot;q&quot;');
+  });
+});
+
 describe('CORS', () => {
   it('rejects unknown origins', async () => {
     const res = await request(app).get('/api/health').set('Origin', 'https://evil.example');
