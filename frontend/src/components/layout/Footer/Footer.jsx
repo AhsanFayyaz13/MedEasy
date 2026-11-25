@@ -106,7 +106,7 @@ export default function AppFooter() {
                 Med<span className="site-footer__accent">Easy</span>
               </span>
             </Link>
-            <p className="site-footer__tagline">Your online pharmacy and doctor bookings, in one place.</p>
+            <p className="site-footer__tagline">Genuine medicines, pharmacist-checked prescriptions and verified doctors, delivered to your door.</p>
             <ul className="site-footer__promises">
               {PROMISES.map((p) => (
                 <li key={p}><FiCheck aria-hidden="true" /> {p}</li>
