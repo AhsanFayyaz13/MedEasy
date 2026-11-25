@@ -155,20 +155,21 @@ export default function AppFooter() {
           </nav>
         </div>
 
-        <p className="site-footer__note">
-          <FiAlertCircle aria-hidden="true" />
-          <span>
-            Always follow your doctor’s advice. In an emergency, call{' '}
-            <a href="tel:1122">1122</a>.
-          </span>
-        </p>
-
-        <div className="site-footer__bottom">
-          <Copyright />
-          <LegalRow />
+        <div className="site-footer__meta">
+          <p className="site-footer__note">
+            <FiAlertCircle aria-hidden="true" />
+            <span>
+              Always follow your doctor’s advice. In an emergency, call <a href="tel:1122">1122</a>.
+            </span>
+          </p>
           <button type="button" className="site-footer__top" onClick={scrollTop}>
             <FiArrowUp aria-hidden="true" /> Back to top
           </button>
+        </div>
+
+        <div className="site-footer__bottom">
+          <LegalRow />
+          <Copyright />
         </div>
       </div>
     </footer>
