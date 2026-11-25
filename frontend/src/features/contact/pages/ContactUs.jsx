@@ -5,6 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { submitContactMessage } from '../../../services/api/contactService';
 import './ContactUs.css';
+import PageMeta from '../../../components/seo/PageMeta';
 
 export default function ContactUs() {
   const { user } = useAuth();
@@ -56,6 +57,7 @@ export default function ContactUs() {
 
   return (
     <div className="contact-page-wrapper py-5">
+      <PageMeta title="Contact us" noindex />
       <Container>
         {/* Header Section */}
         <div className="contact-header text-center mb-5">

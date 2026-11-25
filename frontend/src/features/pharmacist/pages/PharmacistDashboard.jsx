@@ -7,6 +7,7 @@ import OrdersPage from '../components/OrdersPage';
 import PrescriptionsPage from '../components/PrescriptionsPage';
 import OverviewPage from '../components/OverviewPage';
 import PharmacistRepPage from '../components/PharmacistRepPage';
+import PageMeta from '../../../components/seo/PageMeta';
 
 
 /* ═══════════════════ HELPERS ═══════════════════════════════════ */
@@ -41,6 +42,7 @@ export default function PharmacistDashboard() {
 
   return (
     <div className="ph-page">
+      <PageMeta title="Pharmacy dashboard" noindex />
       {/* Mobile sidebar toggle */}
       <button className="ph-mobile-toggle d-lg-none" onClick={() => setMobileOpen(o => !o)}>
         ☰ Dashboard Menu

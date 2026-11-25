@@ -16,6 +16,7 @@ import { useAuthModal } from '../../../context/AuthModalContext';
 import api from '../../../services/api/client';
 import MedicalIcon from '../components/MedicalIcon';
 import './MedicineDetail.css';
+import PageMeta from '../../../components/seo/PageMeta';
 
 function useMedicine(id) {
   const [data,    setData]    = useState(null);
@@ -165,6 +166,7 @@ export default function MedicineDetail() {
 
   return (
     <div className="medicine-detail-page">
+      <PageMeta title={`${med.brand || med.name} — ${med.name}`} description={`Buy ${med.name}${med.brand ? ` (${med.brand})` : ''} online at MedEasy. ${med.description || ''}`.trim()} />
       <Container className="py-4 py-md-5">
 
         {/* ── Breadcrumb ────────────────────────────────────── */}
@@ -357,9 +359,9 @@ export default function MedicineDetail() {
 
             {/* Medicine info table */}
             <div className="info-table mt-4">
-              <InfoRow label="Category"      value={`${med.category} › ${med.subcategory}`} />
+              <InfoRow label="Category"      value={med.subcategory ? `${med.category} › ${med.subcategory}` : med.category} />
               <InfoRow label="Manufacturer"  value={med.manufacturer} />
-              <InfoRow label="Country"       value={med.country_of_origin} />
+              {med.country_of_origin && med.country_of_origin !== 'N/A' && <InfoRow label="Country" value={med.country_of_origin} />}
               <InfoRow label="Prescription"  value={med.requires_prescription ? 'Required' : 'Not required'} />
               <InfoRow label="Stock"         value={inStock ? `${med.stock} units` : 'Out of stock'} />
             </div>

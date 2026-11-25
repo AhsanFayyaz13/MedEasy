@@ -1,105 +1,102 @@
 import { Link } from 'react-router-dom';
-import {
-  FaFacebookF,
-  FaInstagram,
-  FaLinkedinIn,
-  FaGithub,
-  FaPhoneAlt,
-  FaEnvelope,
-  FaMapMarkerAlt,
-  FaUsers,
-  FaPills,
-} from 'react-icons/fa';
+import { FaFacebookF, FaGithub, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
+import { FiMail, FiMapPin, FiPhone, FiUsers } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import './Footer.css';
+
+/**
+ * Social profiles. Leave `href` empty to hide an icon until the profile exists
+ * (empty "#" links are an accessibility anti-pattern).
+ */
+const SOCIAL_LINKS = [
+  { label: 'Facebook', icon: FaFacebookF, href: '' },
+  { label: 'X (Twitter)', icon: FaXTwitter, href: '' },
+  { label: 'Instagram', icon: FaInstagram, href: '' },
+  { label: 'LinkedIn', icon: FaLinkedinIn, href: 'https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a' },
+  { label: 'GitHub', icon: FaGithub, href: 'https://github.com' },
+];
 
 export default function AppFooter() {
   const year = new Date().getFullYear();
   const { isAuthenticated } = useAuth();
 
   return (
-    <footer className="medeasy-footer">
-      <div className="medeasy-footer-container">
-        <div className="medeasy-footer-grid">
-          {/* Brand/Tagline Column */}
-          <div className="medeasy-footer-brand-col">
-            <Link to="/" className="medeasy-footer-brand">
-              <FaPills style={{ fontSize: '24px', color: 'var(--fg-primary)' }} />
+    <footer className="site-footer">
+      <div className="container">
+        <div className="site-footer__grid">
+          <div className="site-footer__brand-col">
+            <Link to="/" className="site-footer__brand">
+              <img src="/MedEasy_withoutBG.png" alt="" width="32" height="32" loading="lazy" />
               <span>
-                Med<span style={{ color: 'var(--fg-primary)' }}>Easy</span>
+                Med<span className="site-footer__accent">Easy</span>
               </span>
             </Link>
-            <p className="medeasy-footer-tagline">
-              Your trusted digital pharmacy — medicines, appointments, and prescriptions at your fingertips.
+            <p className="site-footer__tagline">
+              Your trusted digital pharmacy — medicines, appointments and prescriptions at your fingertips.
             </p>
-            <div className="medeasy-footer-socials">
-              <a href="#" className="medeasy-footer-social-btn" aria-label="Facebook"><FaFacebookF /></a>
-              <a href="#" className="medeasy-footer-social-btn" aria-label="X (Twitter)"><FaXTwitter /></a>
-              <a href="#" className="medeasy-footer-social-btn" aria-label="Instagram"><FaInstagram /></a>
-              <a href="https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a" target="_blank" rel="noopener noreferrer" className="medeasy-footer-social-btn" aria-label="LinkedIn"><FaLinkedinIn /></a>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="medeasy-footer-social-btn" aria-label="GitHub"><FaGithub /></a>
-            </div>
+            <ul className="site-footer__socials">
+              {SOCIAL_LINKS.filter((s) => s.href).map(({ label, icon: Icon, href }) => (
+                <li key={label}>
+                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`MedEasy on ${label}`}>
+                    <Icon aria-hidden="true" />
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* Quick Links Column */}
-          <div>
-            <h4 className="medeasy-footer-heading">Quick Links</h4>
-            <ul className="medeasy-footer-links">
+          <nav aria-label="Quick links">
+            <h2 className="site-footer__heading">Quick links</h2>
+            <ul className="site-footer__links">
               <li><Link to="/">Home</Link></li>
               <li><Link to="/medicines">Medicines</Link></li>
-              <li><Link to="/appointments">Appointments</Link></li>
+              <li><Link to="/appointments/book">Appointments</Link></li>
               <li><Link to="/cart">Cart</Link></li>
-              <li><Link to="/orders">Order Tracking</Link></li>
+              <li><Link to="/orders">Order tracking</Link></li>
             </ul>
-          </div>
+          </nav>
 
-          {/* Account Column */}
-          <div>
-            <h4 className="medeasy-footer-heading">Account</h4>
-            <ul className="medeasy-footer-links">
+          <nav aria-label="Account">
+            <h2 className="site-footer__heading">Account</h2>
+            <ul className="site-footer__links">
               {!isAuthenticated && (
                 <>
-                  <li><Link to="/login">Login</Link></li>
-                  <li><Link to="/register">Register</Link></li>
+                  <li><Link to="/login">Log in</Link></li>
+                  <li><Link to="/register">Create account</Link></li>
                 </>
               )}
-              <li><Link to="/profile">My Profile</Link></li>
-              <li><Link to="/prescription-upload">Upload Rx</Link></li>
+              <li><Link to="/profile">My profile</Link></li>
+              <li><Link to="/prescriptions/upload">Upload prescription</Link></li>
               <li><Link to="/reviews">Reviews</Link></li>
             </ul>
-          </div>
+          </nav>
 
-          {/* Contact Column */}
           <div>
-            <h4 className="medeasy-footer-heading">Contact Us</h4>
-            <ul className="medeasy-footer-contact">
-              <li>
-                <FaMapMarkerAlt className="contact-icon" />
-                Sector H-10, Islamabad Capital Territory, Pakistan
-              </li>
-              <li>
-                <FaPhoneAlt className="contact-icon" />
-                <a href="tel:+923019476165">+923019476165</a>
-              </li>
-              <li>
-                <FaEnvelope className="contact-icon" />
+            <h2 className="site-footer__heading">Contact us</h2>
+            <address className="site-footer__contact">
+              <p>
+                <FiMapPin aria-hidden="true" />
+                <span>Sector H-10, Islamabad Capital Territory, Pakistan</span>
+              </p>
+              <p>
+                <FiPhone aria-hidden="true" />
+                <a href="tel:+923019476165">+92 301 9476165</a>
+              </p>
+              <p>
+                <FiMail aria-hidden="true" />
                 <a href="mailto:support@medeasy.systems">support@medeasy.systems</a>
-              </li>
-              <li style={{ marginTop: '16px' }}>
-                <Link to="/team" className="medeasy-footer-team-link">
-                  <FaUsers style={{ marginRight: '8px' }} /> Our Team
-                </Link>
-              </li>
-            </ul>
+              </p>
+            </address>
+            <Link to="/team" className="site-footer__team">
+              <FiUsers aria-hidden="true" /> Meet our team
+            </Link>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="medeasy-footer-bottom">
-          <p className="medeasy-footer-copy">
-            © {year} MedEasy. All rights reserved.
-          </p>
+        <div className="site-footer__bottom">
+          <p>© {year} MedEasy. All rights reserved.</p>
+          <p className="site-footer__note">Medicines dispensed by licensed pharmacists. Always follow your doctor’s advice.</p>
         </div>
       </div>
     </footer>

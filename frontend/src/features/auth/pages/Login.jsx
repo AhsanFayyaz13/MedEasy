@@ -5,6 +5,7 @@ import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaUserLock, FaKey } from 'react-
 import { useAuth } from '../../../context/AuthContext';
 import { ROLE_DASHBOARD } from '../../../context/AuthContext';
 import './Auth.css';
+import PageMeta from '../../../components/seo/PageMeta';
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -165,6 +166,7 @@ export default function Login() {
 
   return (
     <div className="auth-page">
+      <PageMeta title="Log in" />
       <Container>
         <Row className="justify-content-center align-items-center min-vh-auth">
           <Col xs={12} sm={10} md={7} lg={5}>

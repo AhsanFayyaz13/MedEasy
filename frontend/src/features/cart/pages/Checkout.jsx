@@ -12,6 +12,7 @@ import StepBar from '../components/StepBar';
 import PrescriptionUpload from '../components/PrescriptionUpload';
 import OrderItemRow from '../components/OrderItemRow';
 import OrderSuccess from '../components/OrderSuccess';
+import PageMeta from '../../../components/seo/PageMeta';
 
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -208,6 +209,7 @@ export default function Checkout() {
 
   return (
     <div className="checkout-page">
+      <PageMeta title="Checkout" noindex />
       <Container className="py-4 py-md-5">
 
         {/* Header */}

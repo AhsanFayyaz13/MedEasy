@@ -23,7 +23,7 @@
 .checkout-empty h3   { font-weight: var(--weight-extrabold); color: var(--color-neutral-900); }
 .checkout-empty p    { color: var(--color-neutral-500); }
 .btn-shop-medicines  {
-  background: linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700)) !important;
+  background: var(--action) !important;
   border: none !important; border-radius: var(--radius-md) !important;
   color: var(--color-white) !important; font-weight: var(--weight-bold);
   padding: var(--space-3) var(--space-6) !important;
@@ -253,7 +253,7 @@
 
 /* ── Place order button ─────────────────────────────────────────── */
 .btn-place-order {
-  background: linear-gradient(135deg, var(--color-secondary-900) 0%, var(--color-secondary-700) 100%) !important;
+  background: var(--action) !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   font-weight: var(--weight-extrabold);
@@ -324,7 +324,7 @@
   margin-top: var(--space-2);
 }
 .btn-view-order {
-  background: linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700)) !important;
+  background: var(--action) !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   font-weight: var(--weight-bold);

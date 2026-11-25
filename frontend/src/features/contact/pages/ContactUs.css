@@ -108,7 +108,7 @@
 
 /* ── Submit Button ─────────────────────────────────────────── */
 .contact-btn-submit {
-  background: linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700)) !important;
+  background: var(--action) !important;
   border: none !important;
   color: var(--color-white) !important;
   font-size: var(--text-base);

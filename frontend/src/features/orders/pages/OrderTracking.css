@@ -88,7 +88,7 @@
 .orders-empty h5   { font-weight: var(--weight-bold); color: var(--color-neutral-900); }
 .orders-empty p    { color: var(--color-neutral-500); max-width: 300px; margin: 0; }
 .btn-shop-now {
-  background: linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700)) !important;
+  background: var(--action) !important;
   border: none !important; border-radius: var(--radius-md) !important;
   color: var(--color-white) !important; font-weight: var(--weight-bold);
   padding: var(--space-2) var(--space-6) !important; margin-top: var(--space-2);

@@ -184,7 +184,7 @@
 /* Buttons */
 .cart-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 .btn-add-cart {
-  background: linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700)) !important;
+  background: var(--action) !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   font-weight: var(--weight-bold);

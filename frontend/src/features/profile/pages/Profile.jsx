@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 import './Profile.css';
 import { API_ORIGIN } from '../../../lib/env';
+import PageMeta from '../../../components/seo/PageMeta';
 
 // Specialty choices for Doctors
 const SPECIALTIES = [
@@ -188,6 +189,7 @@ export default function Profile() {
 
   return (
     <div className="profile-page">
+      <PageMeta title="My profile" noindex />
       <Container className="py-5">
         <h1 className="page-title text-start mb-4">My Account Profile</h1>
 

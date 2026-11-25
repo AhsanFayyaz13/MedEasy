@@ -6,6 +6,7 @@ import './Reviews.css';
 import { fetchReviews, postReview } from '../../../services/api/reviewService';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
+import PageMeta from '../../../components/seo/PageMeta';
 
 function StarDisplay({ rating }) {
   return (
@@ -79,6 +80,7 @@ export default function Reviews() {
 
   return (
     <div className="reviews-page">
+      <PageMeta title="Patient reviews" />
       <Container className="py-5">
         <h1 className="page-title">Customer Reviews</h1>
 

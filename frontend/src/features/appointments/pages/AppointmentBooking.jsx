@@ -14,6 +14,7 @@ import { fetchDoctors, bookAppointment, fetchMyAppointments, cancelAppointment }
 import ReviewSection from '../../reviews/components/ReviewSection';
 import { useLocation } from 'react-router-dom';
 import './AppointmentBooking.css';
+import PageMeta from '../../../components/seo/PageMeta';
 
 const fmtDate = (d) => {
   if (!d) return '—';
@@ -359,6 +360,7 @@ export default function AppointmentBooking() {
 
   return (
     <div className="appt-page">
+      <PageMeta title="Book a doctor appointment" noindex />
       <Container className="py-4 py-md-5">
 
         {/* Header */}

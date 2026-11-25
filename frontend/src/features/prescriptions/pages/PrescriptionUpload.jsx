@@ -11,6 +11,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { uploadPrescription, fetchPrescriptions, deletePrescription } from '../../../services/api/prescriptionService';
 import './PrescriptionUpload.css';
 import { API_ORIGIN } from '../../../lib/env';
+import PageMeta from '../../../components/seo/PageMeta';
 
 const serverUrl = API_ORIGIN;
 
@@ -277,6 +278,7 @@ export default function PrescriptionUpload() {
 
   return (
     <div className="prescription-page">
+      <PageMeta title="Upload prescription" noindex />
       <Container className="py-4 py-md-5">
         <div className="rx-page-header">
           <div>

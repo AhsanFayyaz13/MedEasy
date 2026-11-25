@@ -8,6 +8,7 @@ import { useCart } from '../../../context/CartContext';
 import { useToast } from '../../../context/ToastContext';
 import MedicalIcon from '../../medicines/components/MedicalIcon';
 import './Cart.css';
+import PageMeta from '../../../components/seo/PageMeta';
 
 // ─── Cart Item Row ────────────────────────────────────────────────────────────
 function CartRow({ item }) {
@@ -109,6 +110,7 @@ export default function Cart() {
 
   return (
     <div className="cart-page">
+      <PageMeta title="Your cart" noindex />
       <Container className="py-5">
 
         {/* Header */}

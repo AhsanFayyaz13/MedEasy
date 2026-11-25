@@ -15,6 +15,7 @@ import OrdersTab from '../components/OrdersTab';
 import ReportsTab from '../components/ReportsTab';
 import SettingsTab from '../components/SettingsTab';
 import AuditsTab from '../components/AuditsTab';
+import PageMeta from '../../../components/seo/PageMeta';
 
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Filler, Title, Tooltip, Legend);
@@ -71,6 +72,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="adm-page">
+      <PageMeta title="Admin dashboard" noindex />
       <button className="adm-mobile-toggle d-lg-none" onClick={() => setMobileOpen(o => !o)}>
         ☰ Administrator Panel Menu
       </button>

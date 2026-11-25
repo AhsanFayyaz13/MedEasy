@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { ROLE_DASHBOARD } from '../../../context/AuthContext';
 import './Auth.css';
 import { API_ORIGIN } from '../../../lib/env';
+import PageMeta from '../../../components/seo/PageMeta';
 
 
 // Specialty choices for Doctors
@@ -530,6 +531,7 @@ export default function Register() {
   // ─── Step 2: Render Details Registration Form ──────────────────────────────
   return (
     <div className="auth-page">
+      <PageMeta title="Create your account" />
       <Container>
         <Row className="justify-content-center align-items-center min-vh-auth">
           <Col xs={12} sm={10} md={8} lg={6}>

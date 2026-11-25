@@ -190,7 +190,7 @@
 
 /* ── Submit button ────────────────────────────────────────────── */
 .btn-auth {
-  background: linear-gradient(135deg, var(--color-secondary-900) 0%, var(--color-secondary-700) 100%) !important;
+  background: var(--action) !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   font-weight: var(--weight-bold);

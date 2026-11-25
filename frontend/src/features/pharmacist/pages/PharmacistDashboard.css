@@ -81,13 +81,13 @@
 }
 .ph-search:focus { border-color: var(--color-primary-400); }
 .btn-ph-add {
-  background: linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700)) !important;
+  background: var(--action) !important;
   border: none !important; border-radius: var(--radius-md) !important;
   font-weight: var(--weight-bold); font-size: var(--text-sm); color: var(--color-white) !important;
   padding: var(--space-2) var(--space-4) !important;
 }
 .btn-ph-save {
-  background: linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700)) !important;
+  background: var(--action) !important;
   border: none !important; border-radius: var(--radius-md) !important;
   font-weight: var(--weight-bold); color: var(--color-white) !important;
 }

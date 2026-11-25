@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '../../../lib/env';
 import {
   FaPills,
   FaVial,
@@ -63,11 +64,10 @@ const COLOR_MAP = {
   'default': 'var(--color-secondary-500)',
 };
 
-import { API_ORIGIN } from '../../../lib/env';
-
 const serverUrl = API_ORIGIN;
 
-export default function MedicalIcon({ emoji, category, size = 32, className = '' }) {
+export default function MedicalIcon({ emoji, category, alt, size = 32, className = '', eager = false }) {
+  const altText = alt ?? (category ? `${category} medicine` : 'Medicine');
   // Check if emoji is actually a file path (starts with /, http, data: or contains extensions)
   const isRealImage = emoji && (
     emoji.startsWith('data:') || 
@@ -92,9 +92,11 @@ export default function MedicalIcon({ emoji, category, size = 32, className = ''
             height: size * 1.8,
           }}
         >
-          <img 
-            src={src} 
-            alt={category || "Medicine"} 
+          <img
+            src={src}
+            alt={altText}
+            loading="lazy"
+            decoding="async"
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         </div>
@@ -104,9 +106,12 @@ export default function MedicalIcon({ emoji, category, size = 32, className = ''
     // For larger displays (e.g. product cards and details), let the image fill the container container/box beautifully
     return (
       <div className={`real-image-badge-large ${className}`}>
-        <img 
-          src={src} 
-          alt={category || "Medicine"} 
+        <img
+          src={src}
+          alt={altText}
+          loading={eager ? 'eager' : 'lazy'}
+          decoding="async"
+          fetchPriority={eager ? 'high' : undefined}
         />
       </div>
     );
@@ -143,6 +148,8 @@ export default function MedicalIcon({ emoji, category, size = 32, className = ''
 
   return (
     <div
+      role="img"
+      aria-label={altText}
       className={`medical-icon-badge ${className}`}
       style={{
         background,
@@ -151,7 +158,7 @@ export default function MedicalIcon({ emoji, category, size = 32, className = ''
         height: size * 1.8,
       }}
     >
-      <IconComponent size={size} />
+      <IconComponent size={size} aria-hidden="true" />
     </div>
   );
 }

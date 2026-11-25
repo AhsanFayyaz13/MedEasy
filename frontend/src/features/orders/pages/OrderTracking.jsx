@@ -9,6 +9,7 @@ import './OrderTracking.css';
 import { STATUS_CONFIG, STATUS_TABS } from '../components/orderShared';
 import OrderDetailsModal from '../components/OrderDetailsModal';
 import OrderCard from '../components/OrderCard';
+import PageMeta from '../../../components/seo/PageMeta';
 
 
 // ─── Status configuration ─────────────────────────────────────────────────────
@@ -228,6 +229,7 @@ export default function OrderTracking() {
 
   return (
     <div className="tracking-page">
+      <PageMeta title="My orders" noindex />
       <Container className="py-4 py-md-5">
 
         {/* ── Page header ───────────────────────────────────── */}

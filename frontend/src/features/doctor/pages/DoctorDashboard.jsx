@@ -11,6 +11,7 @@ import OverviewTab from '../components/OverviewTab';
 import ScheduleTab from '../components/ScheduleTab';
 import PrescribeTab from '../components/PrescribeTab';
 import PatientsTab from '../components/PatientsTab';
+import PageMeta from '../../../components/seo/PageMeta';
 
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -228,6 +229,7 @@ export default function DoctorDashboard() {
 
   return (
     <div className="doc-page">
+      <PageMeta title="Doctor dashboard" noindex />
       {/* Mobile Sidebar Toggle Button */}
       <button className="doc-mobile-toggle d-lg-none" onClick={() => setMobileOpen(o => !o)}>
         ☰ Medical Board Menu

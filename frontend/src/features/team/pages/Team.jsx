@@ -1,6 +1,7 @@
 import { Container, Row, Col, Card } from 'react-bootstrap';
 import { FaGithub, FaLinkedinIn, FaUsers } from 'react-icons/fa';
 import './Team.css';
+import PageMeta from '../../../components/seo/PageMeta';
 
 const teamMembers = [
   {
@@ -35,6 +36,7 @@ const teamMembers = [
 export default function Team() {
   return (
     <div className="team-page-wrapper py-5">
+      <PageMeta title="Our team" />
       <Container>
         {/* Header Section */}
         <div className="team-header text-center mb-5">

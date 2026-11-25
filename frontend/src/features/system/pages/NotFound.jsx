@@ -1,20 +1,24 @@
-import { Link } from 'react-router-dom';
-import { Container } from 'react-bootstrap';
-import { FaExclamationTriangle } from 'react-icons/fa';
+import { FiCompass, FiHome, FiSearch } from 'react-icons/fi';
+import { Button, EmptyState } from '../../../components/ui';
+import PageMeta from '../../../components/seo/PageMeta';
 
 export default function NotFound() {
   return (
-    <Container className="d-flex flex-column align-items-center justify-content-center text-center py-5 min-vh-50">
-      <div className="auth-icon-badge-wrap mb-4 mx-auto" style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, var(--color-neutral-200) 0%, var(--tint-error-200) 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justify: 'center', boxShadow: '0 8px 20px color-mix(in srgb, var(--color-error-500) 15%, transparent)', color: 'var(--color-error-500)' }}>
-        <FaExclamationTriangle size={36} />
-      </div>
-      <h2 className="display-5 fw-bold text-primary mb-3">404 – Page Not Found</h2>
-      <p className="text-muted fs-5 mb-4 max-w-md mx-auto">
-        The page you're looking for doesn't exist or has been moved.
-      </p>
-      <Link to="/" className="btn btn-primary px-4 py-2 fw-semibold" style={{ background: 'linear-gradient(135deg, var(--color-secondary-900) 0%, var(--color-secondary-700) 100%)', border: 'none', borderRadius: '10px' }}>
-        ← Back to Home
-      </Link>
-    </Container>
+    <div className="container py-5">
+      <PageMeta title="Page not found" noindex />
+      <EmptyState
+        icon={<FiCompass />}
+        title="We couldn’t find that page"
+        description="The link may be broken or the page may have moved. Let’s get you back on track."
+        action={
+          <div className="d-flex flex-wrap justify-content-center gap-2">
+            <Button to="/" leftIcon={<FiHome aria-hidden="true" />}>Go home</Button>
+            <Button to="/medicines" variant="secondary" leftIcon={<FiSearch aria-hidden="true" />}>
+              Browse medicines
+            </Button>
+          </div>
+        }
+      />
+    </div>
   );
 }

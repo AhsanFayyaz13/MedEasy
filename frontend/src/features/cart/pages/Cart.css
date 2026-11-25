@@ -25,7 +25,7 @@
 .cart-empty h2  { font-weight: var(--weight-extrabold); color: var(--color-neutral-900); font-size: var(--text-2xl); }
 .cart-empty p   { color: var(--color-neutral-500); max-width: 300px; }
 .btn-shop {
-  background: linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700)) !important;
+  background: var(--action) !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   font-weight: var(--weight-bold);
@@ -276,7 +276,7 @@
 
 /* Checkout button */
 .btn-checkout {
-  background: linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700)) !important;
+  background: var(--action) !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   font-weight: var(--weight-bold);
