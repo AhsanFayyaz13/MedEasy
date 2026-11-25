@@ -67,10 +67,31 @@ const userSchema = new mongoose.Schema({
   resetPasswordCode: { type: String }, // SHA-256 hash of the OTP
   resetPasswordAttempts: { type: Number, default: 0 },
   resetPasswordExpires: { type: Date },
+  // Sessions carry this number; bumping it (password changed or reset) ends every older session.
+  tokenVersion: { type: Number, default: 0 },
 
 }, {
   timestamps: true
 });
+
+/** Secrets that must never leave the server, whichever endpoint returns the user. */
+const PRIVATE_FIELDS = ['password', 'resetPasswordCode', 'resetPasswordAttempts', 'resetPasswordExpires', 'tokenVersion', '__v'];
+
+function stripPrivate(obj) {
+  if (!obj) return obj;
+  for (const field of PRIVATE_FIELDS) delete obj[field];
+  if (obj.pharmacistDetails) {
+    obj.pharmacistDetails = { ...obj.pharmacistDetails };
+    delete obj.pharmacistDetails.password;
+  }
+  return obj;
+}
+
+// res.json(userDoc) and res.json([userDocs]) go through toJSON, so they are always safe.
+userSchema.set('toJSON', { transform: (doc, ret) => stripPrivate(ret) });
+
+/** Safe plain copy of a user document or object (for hand-built responses). */
+userSchema.statics.toPublic = (user) => stripPrivate(typeof user?.toObject === 'function' ? user.toObject() : { ...user });
 
 userSchema.index({ role: 1, isVerifiedProfile: 1 });
 userSchema.index({ 'pharmacistDetails.email': 1 }, { sparse: true });
@@ -83,6 +104,8 @@ userSchema.pre('save', async function() {
   if (!this.isModified('password')) {
     return;
   }
+  // A changed password ends every older session.
+  if (!this.isNew) this.tokenVersion = (this.tokenVersion || 0) + 1;
   // Already hashed (e.g. copied from a PendingUser) — don't hash twice.
   if (BCRYPT_HASH.test(this.password)) {
     return;

@@ -3,6 +3,8 @@
  */
 const path = require('path');
 const express = require('express');
+const mongoose = require('mongoose');
+const compression = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -44,6 +46,9 @@ app.use(
   })
 );
 
+// ── Compression (JSON lists shrink ~70–80%) ──────────────────────
+app.use(compression());
+
 // ── Parsing, sanitising, logging, rate limiting ──────────────────
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
@@ -51,13 +56,24 @@ app.use(sanitizeInput);
 if (!env.isTest) app.use(morgan(env.isProd ? 'combined' : 'dev'));
 app.use('/api', apiLimiter);
 
+// Personal data (orders, prescriptions, profiles) must never be stored by browsers or proxies.
+app.use('/api', (req, res, next) => {
+  if (req.headers.authorization) res.set('Cache-Control', 'private, no-store');
+  next();
+});
+
 // ── Static uploads + seed images ─────────────────────────────────
 const staticOpts = { maxAge: '7d', immutable: false };
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOpts));
 app.use('/uploads', express.static(path.join(__dirname, 'static'), staticOpts));
 
 // ── Routes ───────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: Date.now() }));
+// Health check for the host's monitor: 503 while the database is unreachable, so it can restart us.
+app.get('/api/health', (req, res) => {
+  const dbUp = mongoose.connection.readyState === 1;
+  res.set('Cache-Control', 'no-store');
+  res.status(dbUp ? 200 : 503).json({ status: dbUp ? 'ok' : 'degraded', database: dbUp ? 'up' : 'down', uptime: Math.round(process.uptime()), timestamp: Date.now() });
+});
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/medicines', require('./routes/medicines'));
 app.use('/api/prescriptions', require('./routes/prescriptions'));

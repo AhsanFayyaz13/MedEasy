@@ -82,6 +82,10 @@ const auth = {
     .refine((d) => d.identifier || d.email, { message: 'Email/Phone and password are required', path: ['identifier'] }),
   forgotPassword: z.object({ identifier: trimmed(254).min(3, 'Email or phone number is required.') }),
   resetPassword: z.object({ identifier: trimmed(254).min(3), code: z.string().trim().min(4).max(10), password }),
+  changePassword: z.object({
+    currentPassword: z.string().min(1, 'Please enter your current password').max(128),
+    newPassword: password,
+  }),
   updateProfile: z.object({
     name: optionalText(120),
     email: emptyToUndefined(email.optional()).or(z.literal('')),

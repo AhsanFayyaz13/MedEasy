@@ -4,6 +4,8 @@
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret-0123456789-abcdefghijklmnopqrstuvwxyz';
 process.env.MONGO_URI = 'mongodb://placeholder/test'; // replaced in setup()
+// Never reach real third-party services from tests (dotenv won't override keys set here).
+for (const key of ['RESEND_API_KEY', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET', 'FIREBASE_API_KEY']) process.env[key] = '';
 
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');

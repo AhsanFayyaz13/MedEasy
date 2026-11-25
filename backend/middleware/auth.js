@@ -22,6 +22,12 @@ const protect = async (req, res, next) => {
   if (!user) return next(new AppError(401, 'Not authorized, user not found'));
   if (user.status === 'suspended') return next(new AppError(403, 'Your account has been suspended by the administrator.', 'ACCOUNT_SUSPENDED'));
 
+  // Password changed or reset since this token was issued → this session has ended.
+  // (Representative tokens are exempt: the owner's password isn't theirs.)
+  if (decoded.role !== 'pharmacist' && (decoded.tv || 0) !== (user.tokenVersion || 0)) {
+    return next(new AppError(401, 'Your session has ended. Please sign in again.', 'SESSION_REVOKED'));
+  }
+
   // Pharmacist representative signing in on behalf of a pharmacy account.
   if (decoded.role === 'pharmacist' && user.role === 'pharmacy') {
     if (user.pharmacistDetails?.status !== 'approved') {

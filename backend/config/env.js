@@ -11,7 +11,7 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(5000),
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
-  JWT_EXPIRES_IN: z.string().default('30d'),
+  JWT_EXPIRES_IN: z.string().default('7d'),
   FRONTEND_ORIGIN: z.string().default(process.env.REACT_APP_API_URL || 'http://localhost:5173,http://localhost:5174'),
   MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024),
   TRUST_PROXY: z.coerce.number().int().min(0).default(1),

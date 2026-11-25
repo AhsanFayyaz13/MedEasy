@@ -16,11 +16,19 @@ const {
 const { sendVerificationEmail, sendResetPasswordEmail } = require('../utils/mailer');
 const { uploadToCloudinary } = require('../utils/cloudinary');
 
-const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '30d',
+/** tv = the user's tokenVersion; protect() rejects tokens whose version is out of date. */
+const generateToken = (id, role, tv = 0) => {
+  return jwt.sign({ id, role, tv }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 };
+
+/** What the client stores for a signed-in session: the public profile (no secrets) plus a token. */
+const sessionPayload = (user, token, overrides = {}) => ({ ...User.toPublic(user), ...overrides, token });
+
+// A real bcrypt hash at the same cost as stored passwords: comparing against it when the
+// account doesn't exist takes as long as a wrong password, so timing reveals nothing.
+const DUMMY_HASH = bcrypt.hashSync('medeasy-timing-equaliser', 12);
 
 const verifyFirebaseToken = (idToken, apiKey) => {
   return new Promise((resolve, reject) => {
@@ -292,19 +300,18 @@ exports.verifyRegistration = async (req, res) => {
   // Clean up all pending registers for this phone number
   await PendingUser.deleteMany({ phone: normalizedPhone });
 
-  res.status(201).json({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    phone: user.phone,
-    address: user.address,
-    pharmacyName: user.pharmacyName,
-    ownerName: user.ownerName,
-    pharmacistDetails: user.pharmacistDetails,
-    isVerifiedProfile: user.isVerifiedProfile,
-    token: generateToken(user._id, user.role)
-  });
+  // Doctors can't sign in until an admin has checked their PMC registration, so no session yet.
+  if (user.role === 'doctor' && !user.isVerifiedProfile) {
+    return res.status(201).json({
+      pendingReview: true,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      message: 'Your email is verified. Our team will check your PMC registration and email you once your account is approved.',
+    });
+  }
+
+  res.status(201).json(sessionPayload(user, generateToken(user._id, user.role, user.tokenVersion)));
 };
 
 exports.resendVerificationCode = async (req, res) => {
@@ -372,95 +379,80 @@ exports.login = async (req, res) => {
   let isSubAccount = false;
 
   if (!user && inputIdentifier.includes('@')) {
-    // Look up pharmacist sub-account
-    user = await User.findOne({
-      role: 'pharmacy',
-      'pharmacistDetails.email': inputIdentifier.toLowerCase()
-    });
-    if (user) {
-      isSubAccount = true;
-    }
+    // Pharmacist representative signing in with the email their pharmacy registered.
+    user = await User.findOne({ role: 'pharmacy', 'pharmacistDetails.email': inputIdentifier.toLowerCase() });
+    isSubAccount = Boolean(user);
   }
 
-  if (!user) {
-    return res.status(404).json({ message: 'This email or phone number is not registered. Please create an account.' });
+  // Unknown account and wrong password get the same answer in the same time,
+  // so the form can't be used to find out who has an account.
+  const hash = isSubAccount ? user.pharmacistDetails.password : user?.password;
+  const passwordOk = await bcrypt.compare(password, hash || DUMMY_HASH);
+  if (!user || !hash || !passwordOk) {
+    throw new AppError(401, 'Incorrect email/phone or password.', 'INVALID_CREDENTIALS');
   }
 
+  // Account-state messages only after the password is proven.
   if (user.status === 'suspended') {
-    return res.status(403).json({ message: 'Your account has been suspended by the administrator.' });
+    throw new AppError(403, 'Your account has been suspended. Please contact support if you think this is a mistake.', 'ACCOUNT_SUSPENDED');
   }
 
-  if (user) {
-    if (isSubAccount) {
-      const isMatch = await bcrypt.compare(password, user.pharmacistDetails.password || '');
-      if (!isMatch) {
-        return res.status(401).json({ message: 'Incorrect password. If you forgot your password, please reset it.' });
-      }
-
-      // Hired pharmacist representatives can only log in after being verified/approved by Admin
-      if (user.pharmacistDetails.status !== 'approved') {
-        return res.status(401).json({ 
-          message: 'Your pharmacist representative account is currently pending administrator verification. You will be able to log in once approved.' 
-        });
-      }
-
-      return res.json({
-        _id: user._id,
+  if (isSubAccount) {
+    if (user.pharmacistDetails.status !== 'approved') {
+      throw new AppError(403, 'Your pharmacist account is waiting for approval by our team. You’ll be able to sign in once it’s approved.', 'PENDING_APPROVAL');
+    }
+    return res.json(
+      sessionPayload(user, generateToken(user._id, 'pharmacist'), {
         name: user.pharmacistDetails.name,
         email: user.pharmacistDetails.email,
         role: 'pharmacist',
-        pharmacyName: user.pharmacyName,
-        ownerName: user.ownerName,
-        pharmacistDetails: user.pharmacistDetails,
         isVerifiedProfile: true,
-        token: generateToken(user._id, 'pharmacist')
-      });
-    }
-
-    // Normal user flow
-    if (await user.comparePassword(password)) {
-      // Block unapproved professional accounts (doctor) from logging in
-      if (user.role === 'doctor' && !user.isVerifiedProfile) {
-        return res.status(401).json({ message: 'Your professional profile is currently pending administrator credentials audit. You will be able to log in once approved.' });
-      }
-
-      return res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        address: user.address,
-        pharmacyName: user.pharmacyName,
-        ownerName: user.ownerName,
-        pharmacistDetails: user.pharmacistDetails,
-        isVerifiedProfile: user.isVerifiedProfile,
-        token: generateToken(user._id, user.role)
-      });
-    } else {
-      return res.status(401).json({ message: 'Incorrect password. If you forgot your password, please reset it.' });
-    }
+      })
+    );
   }
 
-  return res.status(401).json({ message: 'Invalid credentials. Please verify your email/phone and password.' });
+  if (user.role === 'doctor' && !user.isVerifiedProfile) {
+    const declined = user.verificationDeclinedAt
+      ? `Your doctor application wasn’t approved${user.verificationDeclineReason ? `: ${user.verificationDeclineReason}` : '.'} Please contact support to update your details.`
+      : 'Your doctor account is being reviewed. We’ll email you as soon as it’s approved — usually within 1–2 working days.';
+    throw new AppError(403, declined, user.verificationDeclinedAt ? 'APPLICATION_DECLINED' : 'PENDING_REVIEW');
+  }
+
+  return res.json(sessionPayload(user, generateToken(user._id, user.role, user.tokenVersion)));
+};
+
+// @desc    Change password (signed in). Ends every other session.
+// @route   PUT /api/auth/password
+exports.changePassword = async (req, res) => {
+  if (req.user.role === 'pharmacist') {
+    throw new AppError(403, 'Your sign-in is managed by your pharmacy. Ask the pharmacy owner to change your password.', 'MANAGED_ACCOUNT');
+  }
+  const { currentPassword, newPassword } = req.body;
+  const user = await User.findById(req.user._id);
+  if (!user) throw new AppError(404, 'User not found', 'NOT_FOUND');
+
+  // 400 (not 401) so a typo here doesn't end the session.
+  if (!(await user.comparePassword(currentPassword))) {
+    throw new AppError(400, 'Your current password is incorrect.', 'WRONG_PASSWORD');
+  }
+  if (currentPassword === newPassword) {
+    throw new AppError(400, 'Your new password must be different from the current one.', 'SAME_PASSWORD');
+  }
+
+  user.password = newPassword; // pre-save hashes it and bumps tokenVersion
+  await user.save();
+  res.json({ message: 'Password changed. You’ve been signed out on other devices.', token: generateToken(user._id, user.role, user.tokenVersion) });
 };
 
 exports.getProfile = async (req, res) => {
-  // If the middleware overrode the role (pharmacist sub-account), use req.user directly
+  // Pharmacist representative: the middleware already merged their name/email onto the pharmacy.
   if (req.user && req.user.role === 'pharmacist' && req.user._id) {
-    const userObj = typeof req.user.toObject === 'function' ? req.user.toObject() : { ...req.user };
-    if (userObj.pharmacistDetails) delete userObj.pharmacistDetails.password;
-    return res.json(userObj);
+    return res.json(User.toPublic(req.user));
   }
 
-  const user = await User.findById(req.user._id).select('-password');
-  if (user) {
-    const userObj = user.toObject();
-    if (userObj.pharmacistDetails) delete userObj.pharmacistDetails.password;
-    res.json(userObj);
-  } else {
-    res.status(404).json({ message: 'User not found' });
-  }
+  const user = await User.findById(req.user._id);
+  if (!user) throw new AppError(404, 'User not found', 'NOT_FOUND');
+  res.json(user); // toJSON strips secrets
 };
 
 exports.updateProfile = async (req, res) => {
@@ -699,8 +691,9 @@ exports.uploadPharmacistPhoto = async (req, res) => {
   }
 };
 
-/** j***@gmail.com — shows where the code went without revealing the address. */
-const maskEmail = (email) => email.replace(/^(.)[^@]*(@.*)$/, '$1***$2');
+/** Same reply whether or not the account exists, so the form can't be used to look people up. */
+const FORGOT_PASSWORD_REPLY =
+  'If that account exists and has an email address, we’ve emailed it a 6-digit reset code. Didn’t get one? Contact support.';
 
 exports.forgotPassword = async (req, res) => {
   const { identifier } = req.body;
@@ -721,13 +714,9 @@ exports.forgotPassword = async (req, res) => {
   }
 
   const user = await User.findOne(query);
-  if (!user) {
-    return res.status(404).json({ message: 'This email or phone number is not registered. Please create an account.' });
-  }
-
-  // Codes are only sent by email; phone-only (older) accounts need support to add an email.
-  if (!user.email) {
-    return res.status(400).json({ message: 'This account has no email address, so we can’t send a code. Please contact support to recover it.' });
+  // Codes are only sent by email; phone-only (older) accounts need support to recover.
+  if (!user || !user.email) {
+    return res.status(200).json({ message: FORGOT_PASSWORD_REPLY, channel: 'email' });
   }
 
   // Generate 6-digit OTP reset code and set 15-minute expiration
@@ -744,11 +733,7 @@ exports.forgotPassword = async (req, res) => {
   sendResetPasswordEmail(user.email.toLowerCase(), resetCode)
     .catch((err) => console.error('Failed to send password reset email via SMTP in background:', err.message));
 
-  res.status(200).json({
-    message: `We’ve emailed a reset code to ${maskEmail(user.email)}.`,
-    sentTo: maskEmail(user.email),
-    channel: 'email'
-  });
+  res.status(200).json({ message: FORGOT_PASSWORD_REPLY, channel: 'email' });
 };
 
 exports.resetPassword = async (req, res) => {
@@ -775,7 +760,7 @@ exports.resetPassword = async (req, res) => {
 
   const user = await User.findOne(query);
   if (!user) {
-    return res.status(404).json({ message: 'User not found.' });
+    return res.status(400).json({ message: 'Invalid password recovery code.' });
   }
 
   // Verify recovery code (hashed, constant-time, max attempts)
@@ -806,7 +791,7 @@ exports.resetPassword = async (req, res) => {
   user.resetPasswordAttempts = 0;
   await user.save();
 
-  res.status(200).json({ message: 'Password has been reset successfully. You can now log in.' });
+  res.status(200).json({ message: 'Your password has been reset. You can now sign in — any other devices have been signed out.' });
 };
 
 

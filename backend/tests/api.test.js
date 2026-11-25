@@ -66,11 +66,21 @@ describe('registration security', () => {
   });
 
   it('emails password reset codes, even when asked by phone number', async () => {
-    await createUser({ email: 'pat@example.com', phone: '923001234567' });
+    const user = await createUser({ email: 'pat@example.com', phone: '923001234567' });
     const res = await request(app).post('/api/auth/forgot-password').send({ identifier: '03001234567' });
     assert.equal(res.status, 200);
     assert.equal(res.body.channel, 'email');
-    assert.equal(res.body.sentTo, 'p***@example.com');
+    const User = require('../models/User');
+    assert.match((await User.findById(user._id)).resetPasswordCode, /^[a-f0-9]{64}$/);
+  });
+
+  it('answers forgot-password identically whether or not the account exists', async () => {
+    await createUser({ email: 'pat@example.com' });
+    const known = await request(app).post('/api/auth/forgot-password').send({ identifier: 'pat@example.com' });
+    const unknown = await request(app).post('/api/auth/forgot-password').send({ identifier: 'nobody@example.com' });
+    assert.equal(known.status, 200);
+    assert.deepEqual(unknown.body, known.body);
+    assert.equal(unknown.status, known.status);
   });
 
   it('requires acceptance of the terms', async () => {
@@ -107,6 +117,73 @@ describe('registration security', () => {
 });
 
 describe('authentication & authorization', () => {
+  it('gives the same login error for an unknown account and a wrong password', async () => {
+    await createUser({ email: 'real@example.com' });
+    const wrong = await request(app).post('/api/auth/login').send({ identifier: 'real@example.com', password: 'Nope12345' });
+    const unknown = await request(app).post('/api/auth/login').send({ identifier: 'ghost@example.com', password: 'Nope12345' });
+    assert.equal(wrong.status, 401);
+    assert.equal(unknown.status, 401);
+    assert.equal(unknown.body.message, wrong.body.message);
+  });
+
+  it('never returns password hashes or reset codes', async () => {
+    const owner = await createUser({
+      role: 'pharmacy',
+      email: 'owner@example.com',
+      isVerifiedProfile: true,
+      resetPasswordCode: 'a'.repeat(64),
+      pharmacistDetails: { name: 'Rep', email: 'rep@example.com', password: '$2b$12$abcdefghijklmnopqrstuuJ0s7kQ9Zr2l0uYV8v6b0c1d2e3f4g5h', status: 'approved' },
+    });
+    const login = await request(app).post('/api/auth/login').send({ identifier: 'owner@example.com', password: 'Password123!' });
+    assert.equal(login.status, 200);
+    const profile = await request(app).get('/api/auth/profile').set('Authorization', `Bearer ${login.body.token}`);
+    const admin = await createUser({ role: 'admin' });
+    const users = await request(app).get('/api/admin/users/all').set('Authorization', `Bearer ${tokenFor(admin)}`);
+    for (const body of [login.body, profile.body, users.body.find((u) => String(u._id) === String(owner._id))]) {
+      const json = JSON.stringify(body);
+      assert.doesNotMatch(json, /\$2[aby]\$/, 'bcrypt hash leaked');
+      assert.equal(body.password, undefined);
+      assert.equal(body.resetPasswordCode, undefined);
+      assert.equal(body.pharmacistDetails.password, undefined);
+    }
+  });
+
+  it('ends other sessions when the password is changed', async () => {
+    const user = await createUser({ email: 'pw@example.com' });
+    const jwt = require('jsonwebtoken');
+    const old = jwt.sign({ id: user._id, role: 'patient', iat: Math.floor(Date.now() / 1000) - 10 }, process.env.JWT_SECRET);
+    const auth = (t) => ({ Authorization: `Bearer ${t}` });
+
+    const wrong = await request(app).put('/api/auth/password').set(auth(old)).send({ currentPassword: 'Wrong1234', newPassword: 'NewPassword456' });
+    assert.equal(wrong.status, 400, 'a wrong current password must not end the session');
+
+    const justBefore = tokenFor(user); // same second as the change
+    const ok = await request(app).put('/api/auth/password').set(auth(old)).send({ currentPassword: 'Password123!', newPassword: 'NewPassword456' });
+    assert.equal(ok.status, 200);
+    assert.ok(ok.body.token);
+    assert.equal((await request(app).get('/api/auth/profile').set(auth(old))).status, 401);
+    assert.equal((await request(app).get('/api/auth/profile').set(auth(justBefore))).status, 401, 'a token from moments before the change must end too');
+    assert.equal((await request(app).get('/api/auth/profile').set(auth(ok.body.token))).status, 200);
+    const relogin = await request(app).post('/api/auth/login').send({ identifier: 'pw@example.com', password: 'NewPassword456' });
+    assert.equal(relogin.status, 200);
+  });
+
+  it('does not sign in a doctor until an admin approves them', async () => {
+    const reg = { name: 'Dr Who', email: 'drwho@example.com', phone: '03004445555', password: 'Password123!', role: 'doctor', acceptTerms: true,
+      specialty: 'Cardiology', pmcRegistration: 'PMC-12345', degree: 'MBBS', experience: 5, clinicAddress: 'Clinic 1, Lahore', availableDays: ['Monday'], consultationFee: 1500 };
+    assert.equal((await request(app).post('/api/auth/register').send(reg)).status, 200);
+    const PendingUser = require('../models/PendingUser');
+    const { hashCode } = require('../utils/verification');
+    await PendingUser.updateOne({}, { verificationCode: hashCode('123456') });
+    const verified = await request(app).post('/api/auth/verify-registration').send({ phone: reg.phone, code: '123456' });
+    assert.equal(verified.status, 201);
+    assert.equal(verified.body.pendingReview, true);
+    assert.equal(verified.body.token, undefined);
+    const login = await request(app).post('/api/auth/login').send({ identifier: reg.email, password: reg.password });
+    assert.equal(login.status, 403);
+    assert.equal(login.body.error.code, 'PENDING_REVIEW');
+  });
+
   it('rejects suspended users even with a valid token', async () => {
     const user = await createUser({ status: 'suspended' });
     const res = await request(app).get('/api/auth/profile').set('Authorization', `Bearer ${tokenFor(user)}`);
