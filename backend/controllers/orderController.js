@@ -7,7 +7,7 @@ const Prescription = require('../models/Prescription');
 // @access  Private
 exports.placeOrder = async (req, res) => {
   // Body is validated by validators.orders.place (ids, 1–100 qty, address fields).
-  const { prescriptionId, shippingAddress } = req.body;
+  const { prescriptionId, shippingAddress, paymentMethod } = req.body;
 
   // Merge duplicate lines so stock checks are per medicine.
   const qtyById = new Map();
@@ -63,6 +63,7 @@ exports.placeOrder = async (req, res) => {
       prescriptionId: requiresPrescription ? prescriptionId : undefined,
       totalAmount,
       shippingAddress,
+      paymentMethod,
       status: 'pending',
       paymentStatus: 'pending',
     });
@@ -123,6 +124,7 @@ exports.updateOrderStatus = async (req, res) => {
   // status is validated against the enum by validators.orders.status
 
   order.status = status;
+  if (status === 'cancelled' && req.body.reason) order.cancellationReason = req.body.reason;
   const updatedOrder = await order.save();
   res.json(updatedOrder);
 };

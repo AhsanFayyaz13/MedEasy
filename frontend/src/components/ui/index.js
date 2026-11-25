@@ -14,3 +14,4 @@ export { Badge, Skeleton, SkeletonCard, SkeletonGrid, EmptyState, ErrorState, Al
 export { Table, Tabs, StatCard, PageHeader, Avatar } from './Data';
 export { default as ThemeToggle } from './ThemeToggle';
 export { default as Reveal } from './Reveal';
+export { default as SearchInput } from './SearchInput';

@@ -159,14 +159,14 @@ export async function fetchAllOrders(filters = {}) {
   return Array.isArray(list) ? list.map(mapOrderToFrontend) : [];
 }
 
-export async function updateOrderStatus(id, newStatus) {
+export async function updateOrderStatus(id, newStatus, reason) {
   if (USE_MOCK) {
     await delay(500);
     const order = MOCK_ORDERS.find((o) => o.id === id);
     if (order) { order.status = newStatus; order.updatedAt = new Date().toISOString(); }
     return order;
   }
-  const { data } = await api.put(`/orders/${id}/status`, { status: newStatus });
+  const { data } = await api.put(`/orders/${id}/status`, { status: newStatus, ...(reason ? { reason } : {}) });
   return mapOrderToFrontend(data);
 }
 

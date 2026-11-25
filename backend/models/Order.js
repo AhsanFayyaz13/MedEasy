@@ -29,6 +29,16 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'confirmed', 'processing', 'dispatched', 'delivered', 'cancelled'],
     default: 'pending'
   },
+  paymentMethod: {
+    type: String,
+    enum: ['cod', 'jazz', 'easy', 'card'],
+    default: 'cod'
+  },
+  cancellationReason: {
+    type: String,
+    trim: true,
+    maxlength: 500
+  },
   paymentStatus: {
     type: String,
     enum: ['pending', 'paid', 'refunded'],

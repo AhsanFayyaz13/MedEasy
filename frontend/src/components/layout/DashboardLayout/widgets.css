@@ -235,3 +235,9 @@
   color: var(--badge-fg);
   font-size: var(--text-xs);
 }
+
+.dw-toolbar > .ui-tabs {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}

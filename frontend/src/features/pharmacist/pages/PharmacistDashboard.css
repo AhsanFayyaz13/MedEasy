@@ -311,3 +311,126 @@
   letter-spacing: 0.5px;
 }
 
+
+/* ── Rebuilt order management ─────────────────────────────────── */
+.ph-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ph-order-id {
+  color: var(--fg-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.ph-cell-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.ph-cell-stack strong {
+  color: var(--text-strong);
+}
+
+.ph-cell-stack span {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.ph-invoice {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.ph-invoice h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-base);
+}
+
+.ph-invoice h3 svg {
+  color: var(--fg-primary);
+}
+
+.ph-invoice__items ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ph-invoice__items li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.ph-invoice__items li div {
+  display: flex;
+  flex-direction: column;
+}
+
+.ph-invoice__items li strong {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+}
+
+.ph-invoice__items li span {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.ph-invoice__items .ph-invoice__line {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.ph-invoice__total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: var(--space-3);
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.ph-invoice__total strong {
+  color: var(--fg-primary);
+  font-size: var(--text-xl);
+}
+
+.ph-invoice__side {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+}
+
+.ph-invoice__side address {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-sm);
+  font-style: normal;
+}
+
+.ph-invoice__payment,
+.ph-invoice__rx {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 768px) {
+  .ph-invoice {
+    grid-template-columns: 7fr 5fr;
+  }
+}

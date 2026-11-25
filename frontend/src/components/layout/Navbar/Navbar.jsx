@@ -14,7 +14,7 @@ import {
 } from 'react-icons/fi';
 import { useCart } from '../../../context/CartContext';
 import { useAuth } from '../../../context/AuthContext';
-import { API_ORIGIN } from '../../../lib/env';
+import { assetUrl } from '../../../lib/media';
 import { Avatar, Button, ThemeToggle } from '../../ui';
 import NotificationsMenu from './NotificationsMenu';
 import FeedbackModal from './FeedbackModal';
@@ -28,8 +28,6 @@ const ROLE_META = {
   admin: { label: 'Admin', dashPath: '/admin' },
   patient: { label: 'Patient', dashPath: null },
 };
-
-const avatarSrc = (img) => (!img ? undefined : img.startsWith('data:') || img.startsWith('http') ? img : `${API_ORIGIN}${img}`);
 
 /** Links shown in both the desktop bar and the mobile drawer. */
 function useNavItems({ isAuthenticated, isPatientOrGuest, userRole, roleMeta }) {
@@ -138,7 +136,7 @@ export default function AppNavbar() {
           {isAuthenticated ? (
             <Dropdown align="end">
               <Dropdown.Toggle as="button" type="button" className="nav-user" aria-label="Account menu">
-                <Avatar src={avatarSrc(user?.profileImage)} name={user?.name} size={34} />
+                <Avatar src={assetUrl(user?.profileImage)} name={user?.name} size={34} />
                 <span className="nav-user__meta">
                   <span className="nav-user__name">{user?.name || 'Account'}</span>
                   <span className="nav-user__role">{roleMeta.label}</span>

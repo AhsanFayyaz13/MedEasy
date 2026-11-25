@@ -1,11 +1,9 @@
 import { FiAlertTriangle, FiCamera, FiCheckCircle, FiEdit2, FiLock } from 'react-icons/fi';
 import { Alert, Avatar, Badge, Button, Spinner } from '../../../components/ui';
-import { API_ORIGIN } from '../../../lib/env';
+import { assetUrl } from '../../../lib/media';
 import { formatDate, formatPrice } from '../../../lib/format';
 
 const ROLE_LABEL = { patient: 'Patient', doctor: 'Doctor', pharmacist: 'Pharmacist', pharmacy: 'Pharmacy', admin: 'Administrator' };
-
-export const imageUrl = (img) => (!img ? undefined : img.startsWith('data:') || img.startsWith('http') ? img : `${API_ORIGIN}${img}`);
 
 /** Definition list of label → value rows; empty values show a muted placeholder. */
 export function DetailList({ items }) {
@@ -29,7 +27,7 @@ export function ProfileSummary({ user, editing, saving, uploading, photoError, o
   return (
     <aside className="profile-summary">
       <div className="profile-summary__avatar">
-        <Avatar src={imageUrl(user?.profileImage)} name={user?.name} size={104} />
+        <Avatar src={assetUrl(user?.profileImage)} name={user?.name} size={104} />
         <label className="profile-summary__photo" title="Change photo">
           {uploading ? <Spinner size="sm" label="Uploading photo" /> : <FiCamera aria-hidden="true" />}
           <span className="sr-only">Change profile photo</span>

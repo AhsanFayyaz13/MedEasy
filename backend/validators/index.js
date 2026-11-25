@@ -152,10 +152,10 @@ const orders = {
       postalCode: optionalText(12),
       phone,
     }),
-    paymentMethod: optionalText(20),
+    paymentMethod: z.enum(['cod', 'jazz', 'easy', 'card']).default('cod'),
     notes: optionalText(500),
   }),
-  status: z.object({ status: z.enum(ORDER_STATUSES, { message: 'Invalid status' }) }),
+  status: z.object({ status: z.enum(ORDER_STATUSES, { message: 'Invalid status' }), reason: optionalText(500) }),
   listAll: z.object({ status: z.enum([...ORDER_STATUSES, 'all']).optional() }),
 };
 

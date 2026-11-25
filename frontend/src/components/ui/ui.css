@@ -880,3 +880,33 @@
     transform: none;
   }
 }
+
+/* ── Search input ────────────────────────────────────────────── */
+.ui-search {
+  position: relative;
+}
+
+.ui-search .ui-control {
+  padding-left: var(--space-10);
+  padding-right: var(--space-10);
+}
+
+.ui-search__icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  color: var(--text-subtle);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.ui-search__clear {
+  position: absolute;
+  top: 50%;
+  right: var(--space-1);
+  transform: translateY(-50%);
+}
+
+.ui-search input[type='search']::-webkit-search-cancel-button {
+  display: none;
+}
