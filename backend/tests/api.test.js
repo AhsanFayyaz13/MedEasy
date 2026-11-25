@@ -304,6 +304,22 @@ describe('prescription orders', () => {
 });
 
 describe('prescriptions', () => {
+  it('records who rejected a prescription and why', async () => {
+    const patient = await createUser();
+    const pharmacist = await createUser({ role: 'pharmacist' });
+    const up = await request(app)
+      .post('/api/prescriptions/upload')
+      .set('Authorization', `Bearer ${tokenFor(patient)}`)
+      .send({ fileUrl: 'https://example.com/rx.jpg' });
+    const res = await request(app)
+      .put(`/api/prescriptions/${up.body._id}/verify`)
+      .set('Authorization', `Bearer ${tokenFor(pharmacist)}`)
+      .send({ status: 'rejected', rejectionReason: 'Signature missing' });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.rejectionReason, 'Signature missing');
+    assert.equal(res.body.reviewedBy, pharmacist._id.toString());
+  });
+
   it('keeps the patient note for the pharmacist', async () => {
     const patient = await createUser();
     const res = await request(app)

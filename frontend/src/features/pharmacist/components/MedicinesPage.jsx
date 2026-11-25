@@ -1,252 +1,177 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Row, Col, Button, Table, Badge, Modal, Form, Spinner, Alert } from 'react-bootstrap';
-import { FaPlus, FaEdit, FaTrash, FaExclamationTriangle, FaSearch } from 'react-icons/fa';
+import { useCallback, useEffect, useState } from 'react';
+import { FiAlertTriangle, FiEdit2, FiPackage, FiPlus, FiSlash, FiXCircle } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
+import { Badge, Button, EmptyState, ErrorState, Modal, SearchInput, Skeleton, Table, Tabs } from '../../../components/ui';
+import { StatGrid } from '../../../components/layout/DashboardLayout/widgets';
+import { formatPrice } from '../../../lib/format';
 import MedicalIcon from '../../medicines/components/MedicalIcon';
-import { fetchAllMedicines, createMedicine, updateMedicine, deleteMedicine, uploadMedicinePhoto } from '../../../services/api/pharmacistService';
-import { EMPTY_MED } from './pharmacistShared';
+import { fetchAllMedicines, createMedicine, updateMedicine } from '../../../services/api/pharmacistService';
+import MedicineFormModal from './MedicineFormModal';
 
+const LOW = 10;
+const FILTERS = [
+  { id: 'all', label: 'All', test: () => true },
+  { id: 'low', label: 'Low stock', test: (m) => m.stock > 0 && m.stock < LOW },
+  { id: 'out', label: 'Out of stock', test: (m) => m.stock === 0 },
+  { id: 'rx', label: 'Prescription', test: (m) => m.requires_prescription },
+];
 
-/* ═══════════════════ MEDICINES SUB-PAGE ════════════════════════ */
+/**
+ * Pharmacy inventory: add and edit medicines, spot low stock.
+ * Deleting from the catalogue is admin-only (API), so staff mark items out of stock instead.
+ */
 export default function MedicinesPage() {
   const { toast } = useToast();
-  const [meds,    setMeds]    = useState([]);
+  const [meds, setMeds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
-  const [search,  setSearch]  = useState('');
-  const [modal,   setModal]   = useState(null);   // null | 'add' | med-object
-  const [form,    setForm]    = useState(EMPTY_MED);
-  const [saving,  setSaving]  = useState(false);
-  const [delId,   setDelId]   = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [editing, setEditing] = useState(null); // null | 'new' | medicine
+  const [clearing, setClearing] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true); setError(null);
-    try { setMeds(await fetchAllMedicines()); }
-    catch(e) { setError(e.message); }
-    finally { setLoading(false); }
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  const openAdd  = () => { setForm(EMPTY_MED); setModal('add'); };
-  const openEdit = (m) => { setForm({ ...m }); setModal(m); };
-  const closeModal = () => { setModal(null); setSaving(false); };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setSaving(true);
+    setLoading(true);
+    setError(null);
     try {
-      const payload = {
-        ...form,
-        price:          Number(form.price),
-        original_price: Number(form.original_price) || Number(form.price),
-        stock:          Number(form.stock),
-      };
-      if (modal === 'add') {
-        const created = await createMedicine(payload);
-        setMeds(prev => [created, ...prev]);
-        toast.success(`${created.name} added`);
-      } else {
-        const updated = await updateMedicine(modal.id, payload);
-        setMeds(prev => prev.map(m => m.id === updated.id ? updated : m));
-        toast.success(`${updated.name} updated`);
-      }
-      closeModal();
-    } catch(e) { toast.error(e.message); }
-    finally { setSaving(false); }
-  };
-
-  const handleDelete = async (id) => {
-    setDelId(id);
-    try {
-      await deleteMedicine(id);
-      setMeds(prev => prev.filter(m => m.id !== id));
-      toast.success('Medicine deleted');
-    } catch(e) { toast.error(e.message); }
-    finally { setDelId(null); }
-  };
-
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const res = await uploadMedicinePhoto(file);
-      setForm(p => ({ ...p, image: res.imageUrl }));
-      toast.success('Medicine photo uploaded successfully');
-    } catch (err) {
-      toast.error(err.message || 'Failed to upload photo');
+      setMeds(await fetchAllMedicines());
+    } catch (e) {
+      setError(e.response?.data?.message || 'Could not load the inventory.');
     } finally {
-      setUploading(false);
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const save = async (payload) => {
+    try {
+      if (editing === 'new') {
+        const created = await createMedicine(payload);
+        setMeds((prev) => [created, ...prev]);
+        toast.success(`${created.brand || created.name} added.`);
+      } else {
+        const updated = await updateMedicine(editing.id, payload);
+        setMeds((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+        toast.success(`${updated.brand || updated.name} updated.`);
+      }
+      setEditing(null);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Could not save the medicine.');
     }
   };
 
-  const visible = meds.filter(m =>
-    m.name.toLowerCase().includes(search.toLowerCase()) ||
-    m.brand.toLowerCase().includes(search.toLowerCase()) ||
-    m.category.toLowerCase().includes(search.toLowerCase())
-  );
-  const lowStock  = meds.filter(m => m.stock > 0  && m.stock < 10).length;
-  const outStock  = meds.filter(m => m.stock === 0).length;
+  const confirmOutOfStock = async () => {
+    setBusy(true);
+    try {
+      const updated = await updateMedicine(clearing.id, { ...clearing, stock: 0 });
+      setMeds((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      toast.success(`${clearing.brand || clearing.name} marked out of stock.`);
+      setClearing(null);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Could not update the stock.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  const fld = (k) => ({ value: form[k] ?? '', onChange: e => setForm(p => ({ ...p, [k]: e.target.value })) });
+  const q = search.trim().toLowerCase();
+  const active = FILTERS.find((f) => f.id === filter);
+  const visible = meds.filter((m) => active.test(m) && (!q || `${m.name} ${m.brand} ${m.category} ${m.manufacturer || ''}`.toLowerCase().includes(q)));
+  const count = (id) => meds.filter(FILTERS.find((f) => f.id === id).test).length;
+
+  const columns = [
+    {
+      key: 'medicine',
+      header: 'Medicine',
+      render: (m) => (
+        <div className="ph-med">
+          <span className="ph-med__icon"><MedicalIcon emoji={m.image} category={m.category} size={18} /></span>
+          <div>
+            <strong>{m.brand || m.name}</strong>
+            <span>{m.brand ? m.name : m.manufacturer || ''}</span>
+          </div>
+        </div>
+      ),
+    },
+    { key: 'category', header: 'Category', render: (m) => <span className="ph-muted">{m.category}</span> },
+    { key: 'price', header: 'Price', render: (m) => <strong>{formatPrice(m.price)}</strong> },
+    {
+      key: 'stock',
+      header: 'Stock',
+      render: (m) =>
+        m.stock === 0 ? <Badge tone="error">Out of stock</Badge> : m.stock < LOW ? <Badge tone="warning" icon={<FiAlertTriangle />}>{m.stock} left</Badge> : <span>{m.stock}</span>,
+    },
+    { key: 'rx', header: 'Type', render: (m) => (m.requires_prescription ? <Badge tone="warning">Rx</Badge> : <Badge tone="success">OTC</Badge>) },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'end',
+      render: (m) => (
+        <div className="ph-row-actions">
+          <Button size="sm" variant="secondary" leftIcon={<FiEdit2 aria-hidden="true" />} onClick={() => setEditing(m)} aria-label={`Edit ${m.brand || m.name}`}>Edit</Button>
+          {m.stock > 0 && (
+            <Button size="sm" variant="ghost" className="ph-danger" leftIcon={<FiSlash aria-hidden="true" />} onClick={() => setClearing(m)} aria-label={`Mark ${m.brand || m.name} out of stock`}>
+              Out of stock
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <>
-      {/* Stats row */}
-      <div className="ph-stat-row mb-3">
-        <div className="ph-stat"><span className="ph-stat-num">{meds.length}</span><span>Total</span></div>
-        <div className="ph-stat warn"><span className="ph-stat-num">{lowStock}</span><span>Low Stock</span></div>
-        <div className="ph-stat danger"><span className="ph-stat-num">{outStock}</span><span>Out of Stock</span></div>
-      </div>
+    <div className="ph-section">
+      <StatGrid
+        loading={loading}
+        stats={[
+          { label: 'Medicines listed', value: meds.length, icon: <FiPackage />, tone: 'primary' },
+          { label: 'Low stock', value: count('low'), icon: <FiAlertTriangle />, tone: 'warning', hint: `Fewer than ${LOW} units` },
+          { label: 'Out of stock', value: count('out'), icon: <FiXCircle />, tone: 'error' },
+        ]}
+      />
 
-      {/* Toolbar */}
-      <div className="ph-toolbar mb-3">
-        <div className="ph-search-wrap">
-          <FaSearch className="ph-search-icon" />
-          <input className="ph-search" placeholder="Search medicines…" value={search}
-            onChange={e => setSearch(e.target.value)} />
+      <div className="ph-toolbar">
+        <Tabs tabs={FILTERS.map((f) => ({ id: f.id, label: f.label, badge: f.id === 'all' ? null : count(f.id) || null }))} active={filter} onChange={setFilter} label="Filter inventory" />
+        <div className="ph-toolbar__end">
+          <SearchInput label="Search inventory" placeholder="Name, brand, category" value={search} onChange={setSearch} />
+          <Button leftIcon={<FiPlus aria-hidden="true" />} onClick={() => setEditing('new')}>Add medicine</Button>
         </div>
-        <Button className="btn-ph-add" onClick={openAdd}>
-          <FaPlus className="me-1" />Add Medicine
-        </Button>
       </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
       {loading ? (
-        <div className="ph-loading"><Spinner animation="border" variant="primary" /></div>
+        <Skeleton lines={8} />
+      ) : error ? (
+        <ErrorState message={error} onRetry={load} />
       ) : (
-        <div className="ph-table-wrap">
-          <Table hover responsive className="ph-table">
-            <thead>
-              <tr>
-                <th>#</th><th>Medicine</th><th>Category</th>
-                <th>Price</th><th>Stock</th><th>Rx</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.length === 0 && (
-                <tr><td colSpan={7} className="text-center text-muted py-4">No medicines found.</td></tr>
-              )}
-              {visible.map(m => {
-                const lowRow = m.stock > 0 && m.stock < 10;
-                const outRow = m.stock === 0;
-                return (
-                  <tr key={m.id} className={outRow ? 'row-danger' : lowRow ? 'row-warn' : ''}>
-                    <td className="text-muted small">{m.id}</td>
-                    <td>
-                      <div className="med-cell" style={{ display: 'flex', alignItems: 'center' }}>
-                        <div className="me-2">
-                          <MedicalIcon emoji={m.image} category={m.category} size={20} />
-                        </div>
-                        <div>
-                          <div className="med-name">{m.brand || m.name}</div>
-                          {m.brand && <div className="med-brand">{m.name}</div>}
-                        </div>
-                      </div>
-                    </td>
-                    <td><Badge bg="secondary" className="cat-badge">{m.category}</Badge></td>
-                    <td className="fw-bold">Rs.{m.price}</td>
-                    <td>
-                      {outRow
-                        ? <Badge bg="danger">Out of Stock</Badge>
-                        : lowRow
-                          ? <span className="stock-low"><FaExclamationTriangle className="me-1"/>{m.stock}</span>
-                          : <span className="stock-ok">{m.stock}</span>}
-                    </td>
-                    <td>{m.requires_prescription ? <Badge bg="warning" text="dark">Rx</Badge> : '—'}</td>
-                    <td>
-                      <div className="action-btns">
-                        <Button size="sm" variant="outline-primary" onClick={() => openEdit(m)}><FaEdit /></Button>
-                        <Button size="sm" variant="outline-danger"
-                          onClick={() => handleDelete(m.id)} disabled={delId === m.id}>
-                          {delId === m.id ? <Spinner size="sm" animation="border" /> : <FaTrash />}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </div>
+        <Table
+          columns={columns}
+          data={visible}
+          rowKey="id"
+          caption="Inventory"
+          empty={<EmptyState icon={<FiPackage />} title={q || filter !== 'all' ? 'No medicines match' : 'No medicines yet'} description={!meds.length ? 'Add your first medicine to start selling.' : undefined} />}
+        />
       )}
 
-      {/* Add / Edit Modal */}
-      <Modal show={!!modal} onHide={closeModal} size="lg" centered>
-        <Modal.Header closeButton className="ph-modal-header">
-          <Modal.Title>{modal === 'add' ? 'Add New Medicine' : `Edit – ${modal?.name}`}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSave}>
-            <Row className="g-3">
-              {form.image && (
-                <Col xs={12} className="d-flex justify-content-center mb-1">
-                  <div 
-                    style={{ 
-                      width: '100px', 
-                      height: '100px', 
-                      borderRadius: '12px', 
-                      border: '1px solid var(--color-neutral-200)', 
-                      background: 'var(--color-neutral-50)',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 2px 8px color-mix(in srgb, var(--color-black) 4%, transparent)'
-                    }}
-                  >
-                    <MedicalIcon emoji={form.image} category={form.category} size={38} />
-                  </div>
-                </Col>
-              )}
-              <Col md={6}><Form.Group><Form.Label>Name *</Form.Label>
-                <Form.Control required placeholder="Paracetamol 500mg" {...fld('name')} /></Form.Group></Col>
-              <Col md={6}><Form.Group><Form.Label>Brand</Form.Label>
-                <Form.Control placeholder="Panadol" {...fld('brand')} /></Form.Group></Col>
-              <Col md={6}><Form.Group><Form.Label>Category *</Form.Label>
-                <Form.Control required placeholder="Analgesics" {...fld('category')} /></Form.Group></Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Medicine Photo Upload</Form.Label>
-                  <div className="d-flex align-items-center gap-2">
-                    <Form.Control 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handlePhotoUpload} 
-                      disabled={uploading} 
-                    />
-                    {uploading && <Spinner size="sm" animation="border" variant="primary" />}
-                  </div>
-                </Form.Group>
-              </Col>
-              <Col xs={12}>
-                <Form.Group>
-                  <Form.Label>Or Enter Icon Key / Image Path / Data URI</Form.Label>
-                  <Form.Control placeholder="💊 or uploads/image.png or data:image/png;base64,..." {...fld('image')} />
-                </Form.Group>
-              </Col>
-              <Col md={4}><Form.Group><Form.Label>Price (Rs.) *</Form.Label>
-                <Form.Control required type="number" min="0" {...fld('price')} /></Form.Group></Col>
-              <Col md={4}><Form.Group><Form.Label>Original Price (Rs.)</Form.Label>
-                <Form.Control type="number" min="0" {...fld('original_price')} /></Form.Group></Col>
-              <Col md={4}><Form.Group><Form.Label>Stock *</Form.Label>
-                <Form.Control required type="number" min="0" {...fld('stock')} /></Form.Group></Col>
-              <Col xs={12}><Form.Group><Form.Label>Description</Form.Label>
-                <Form.Control as="textarea" rows={2} {...fld('description')} /></Form.Group></Col>
-              <Col xs={12}><Form.Check type="switch" id="rxSwitch" label="Requires Prescription"
-                checked={!!form.requires_prescription}
-                onChange={e => setForm(p => ({ ...p, requires_prescription: e.target.checked }))} /></Col>
-            </Row>
-            <div className="mt-4 d-flex justify-content-end gap-2">
-              <Button variant="outline-secondary" type="button" onClick={closeModal}>Cancel</Button>
-              <Button className="btn-ph-save" type="submit" disabled={saving}>
-                {saving ? <Spinner size="sm" animation="border" /> : modal === 'add' ? 'Add Medicine' : 'Save Changes'}
-              </Button>
-            </div>
-          </Form>
-        </Modal.Body>
-      </Modal>
-    </>
+      {editing && (
+        <MedicineFormModal key={editing === 'new' ? 'new' : editing.id} show medicine={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSave={save} />
+      )}
+
+      <Modal
+        show={!!clearing}
+        onClose={() => setClearing(null)}
+        title={`Mark ${clearing?.brand || clearing?.name || 'medicine'} out of stock?`}
+        description="Customers can’t order it until you add stock again. To remove it from the catalogue entirely, ask an admin."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setClearing(null)}>Cancel</Button>
+            <Button variant="danger" loading={busy} onClick={confirmOutOfStock}>Mark out of stock</Button>
+          </>
+        }
+      />
+    </div>
   );
 }

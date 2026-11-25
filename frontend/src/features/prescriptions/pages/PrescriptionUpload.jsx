@@ -48,7 +48,10 @@ function PrescriptionItem({ rx, onDelete }) {
         </div>
         {rx.notes && <p className="rxu-item__note">“{rx.notes}”</p>}
         {rx.status === 'rejected' && (
-          <p className="rxu-item__hint">The pharmacist couldn’t accept this one. Please upload a clearer or newer prescription.</p>
+          <p className="rxu-item__hint">
+            {rx.rejectionReason ? <>Pharmacist’s note: “{rx.rejectionReason}”. </> : 'The pharmacist couldn’t accept this one. '}
+            Please upload a clearer or newer prescription.
+          </p>
         )}
         {rx.status === 'verified' && <p className="rxu-item__hint is-ok">You can now order the medicines on this prescription.</p>}
         <div className="rxu-item__actions">

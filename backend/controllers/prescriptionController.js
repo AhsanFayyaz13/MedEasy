@@ -44,7 +44,8 @@ exports.uploadPrescription = async (req, res) => {
 // @access  Private
 exports.getPrescriptions = async (req, res) => {
   if (req.user.role === 'pharmacist' || req.user.role === 'pharmacy' || req.user.role === 'admin') {
-    const prescriptions = await Prescription.find({ status: 'pending' }).populate('userId', 'name email');
+    // Staff need contact and delivery details to fulfil the prescription.
+    const prescriptions = await Prescription.find({ status: 'pending' }).populate('userId', 'name email phone address').sort({ createdAt: 1 });
     return res.json(prescriptions);
   } else {
     const prescriptions = await Prescription.find({ userId: req.user._id });
@@ -56,11 +57,14 @@ exports.getPrescriptions = async (req, res) => {
 // @route   PUT /api/prescriptions/:id/verify
 // @access  Private (Pharmacist)
 exports.verifyPrescription = async (req, res) => {
-  const { status, doctorId } = req.body;
+  const { status, doctorId, rejectionReason } = req.body;
   const prescription = await Prescription.findById(req.params.id);
 
   if (prescription) {
     prescription.status = status; // validated enum
+    prescription.rejectionReason = status === 'rejected' ? rejectionReason || undefined : undefined;
+    prescription.reviewedBy = req.user._id;
+    prescription.reviewedAt = new Date();
     if (doctorId) {
       prescription.doctorId = doctorId;
     }

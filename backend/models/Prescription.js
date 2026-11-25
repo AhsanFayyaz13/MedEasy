@@ -20,6 +20,9 @@ const prescriptionSchema = new mongoose.Schema({
     default: 'pending'
   },
   notes: { type: String, trim: true, maxlength: 500 }, // patient's note for the pharmacist
+  rejectionReason: { type: String, trim: true, maxlength: 500 }, // shown to the patient
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  reviewedAt: { type: Date },
   uploadedAt: {
     type: Date,
     default: Date.now

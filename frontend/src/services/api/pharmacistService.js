@@ -39,6 +39,8 @@ function mapMedicineToBackend(payload) {
     originalPrice: Number(payload.original_price) || Number(payload.price),
     stock: Number(payload.stock),
     requiresPrescription: payload.requires_prescription || false,
+    manufacturer: payload.manufacturer || undefined,
+    expiryDate: payload.expiryDate || undefined,
     imageUrl: payload.image || '💊',
   };
 }
@@ -202,6 +204,6 @@ export async function verifyPrescription(id, status, rejectionReason = '') {
     }
     return rx;
   }
-  const { data } = await api.put(`/prescriptions/${id}/verify/`, { status, rejection_reason: rejectionReason });
+  const { data } = await api.put(`/prescriptions/${id}/verify/`, { status, rejectionReason: rejectionReason || undefined });
   return data;
 }

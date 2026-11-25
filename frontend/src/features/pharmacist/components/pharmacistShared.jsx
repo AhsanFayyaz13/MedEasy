@@ -33,4 +33,5 @@ export const PAYMENT_LABELS = { cod:'Cash on Delivery', jazz:'JazzCash', easy:'E
 export const EMPTY_MED = {
   name:'', brand:'', category:'', price:'', original_price:'',
   stock:'', requires_prescription: false, description:'', image:'💊',
+  manufacturer:'', expiryDate:'',
 };

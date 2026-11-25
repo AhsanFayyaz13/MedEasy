@@ -104,7 +104,7 @@ const auth = {
     degreeName: optionalText(120),
     degreePlace: optionalText(200),
     email,
-    password: emptyToUndefined(z.string().min(6, 'The password must be at least 6 characters long.').max(128).optional()),
+    password: emptyToUndefined(z.string().min(8, 'The password must be at least 8 characters long.').max(128).optional()),
   }),
 };
 
@@ -177,7 +177,7 @@ const appointments = {
 
 // ── Prescriptions ──────────────────────────────────────────────────
 const prescriptions = {
-  verify: z.object({ status: z.enum(['pending', 'verified', 'rejected']), doctorId: emptyToUndefined(objectId.optional()) }),
+  verify: z.object({ status: z.enum(['pending', 'verified', 'rejected']), doctorId: emptyToUndefined(objectId.optional()), rejectionReason: optionalText(500) }),
   upload: z.object({ fileUrl: emptyToUndefined(z.string().url().max(1000).optional()), notes: optionalText(500) }),
 };
 
