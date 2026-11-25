@@ -1,83 +1,187 @@
 /* ═══════════════════════════════════════════════
-   MedicineList Page Styles
+   MedicineList Page Styles - Google Stitch Layout
    ═══════════════════════════════════════════════ */
 
 .medicine-list-page {
-  background: #f8fafc;
+  background-color: #f4f7fa;
   min-height: calc(100vh - 72px);
+  padding: 40px 0;
 }
 
-/* Header */
+/* Page Header */
 .ml-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 0.75rem;
-}
-.page-title {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #0d1b2a;
-  margin: 0;
-}
-.page-subtitle {
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin: 0;
-}
-.clear-btn {
-  border-radius: 20px !important;
-  font-size: 0.82rem;
+  gap: 16px;
 }
 
-/* Search group */
-.search-group .search-icon-wrap {
-  background: #fff;
-  border-right: none;
-  color: #9ca3af;
-}
-.search-input {
-  border-left: none !important;
-  box-shadow: none !important;
-}
-.search-input:focus { border-color: #38bdf8 !important; }
-.clear-search {
-  border-color: #ced4da;
-  color: #9ca3af;
-  padding: 0 0.6rem;
-}
-
-/* Filter selects */
-.filter-select {
-  border-radius: 8px !important;
-  font-size: 0.875rem;
-  border-color: #e2e8f0;
-  box-shadow: none !important;
-}
-.filter-select:focus { border-color: #38bdf8 !important; }
-
-/* Toggle switches */
-.filter-switch {
-  font-size: 0.82rem;
-  color: #374151;
-  user-select: none;
-}
-.filter-switch .form-check-input:checked {
-  background-color: #38bdf8;
-  border-color: #38bdf8;
-}
-
-/* Active filter chips */
-.active-filters { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.filter-tag {
-  font-size: 0.75rem;
-  border-radius: 20px;
-  padding: 0.3em 0.7em;
+.ml-header .page-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 32px;
   font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.25;
 }
 
-/* Empty / error / loading states */
+.ml-header .page-subtitle {
+  font-family: 'Public Sans', sans-serif;
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px !important;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px !important;
+  transition: all 0.2s ease;
+}
+
+/* Search Bar Wrapper */
+.search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 20px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.search-wrapper .search-input {
+  width: 100%;
+  padding: 12px 40px 12px 44px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  font-family: 'Public Sans', sans-serif;
+  font-size: 14px;
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease;
+}
+
+.search-wrapper .search-input:focus {
+  border-color: #0052cc !important;
+  box-shadow: 0 0 0 1px #0052cc !important;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  z-index: 5;
+  transition: color 0.2s ease;
+}
+
+.clear-search-btn:hover {
+  color: #64748b;
+}
+
+/* Filter Dropdowns */
+.filter-select {
+  width: 100%;
+  padding: 12px 36px 12px 16px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  background-color: #ffffff !important;
+  font-family: 'Public Sans', sans-serif;
+  font-size: 14px;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 12px 12px !important;
+  transition: all 0.2s ease;
+}
+
+.filter-select:focus {
+  border-color: #0052cc !important;
+  box-shadow: 0 0 0 1px #0052cc !important;
+}
+
+/* Filter Toggle Switches */
+.filter-switch {
+  font-family: 'Public Sans', sans-serif;
+  font-size: 14px;
+  color: #475569;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.filter-switch .form-check-input {
+  width: 36px !important;
+  height: 20px !important;
+  background-color: #e2e8f0;
+  border-color: #cbd5e1;
+  cursor: pointer;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.filter-switch .form-check-input:checked {
+  background-color: #0052cc !important;
+  border-color: #0052cc !important;
+}
+
+.filter-switch .form-check-input:focus {
+  box-shadow: none !important;
+  border-color: #0052cc !important;
+}
+
+.filter-switch .form-check-label {
+  margin-left: 8px;
+  cursor: pointer;
+  line-height: 20px;
+}
+
+/* Active Filter Chips */
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-tag {
+  font-family: 'Public Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 9999px !important;
+  padding: 6px 12px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Empty, Error, Loading States */
 .loading-state,
 .empty-state,
 .error-state {
@@ -85,13 +189,34 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 5rem 1rem;
+  padding: 80px 24px;
   text-align: center;
-  gap: 0.5rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
+
 .empty-emoji,
-.error-emoji { font-size: 3.5rem; margin-bottom: 0.5rem; }
+.error-emoji {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
 .empty-state h5,
-.error-state h5 { font-weight: 700; color: #0d1b2a; }
+.error-state h5 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
 .empty-state p,
-.error-state p { color: #6b7280; max-width: 300px; }
+.error-state p {
+  font-family: 'Public Sans', sans-serif;
+  color: #64748b;
+  font-size: 14px;
+  max-width: 320px;
+  margin-bottom: 20px;
+}

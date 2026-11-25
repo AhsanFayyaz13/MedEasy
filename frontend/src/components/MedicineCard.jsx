@@ -1,6 +1,4 @@
-import { Card, Button, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaShoppingCart, FaStar, FaRegStar, FaStarHalfAlt } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,7 +7,7 @@ import MedicalIcon from './MedicalIcon';
 import './MedicineCard.css';
 
 /**
- * MedicineCard – responsive Bootstrap card for a single medicine.
+ * MedicineCard – responsive custom card for a single medicine aligned with Stitch design.
  * Fires a toast notification on "Add to Cart".
  * Shows login modal if unauthenticated user tries to add to cart.
  */
@@ -39,26 +37,25 @@ export default function MedicineCard({ medicine }) {
   const displayImage = image || imageUrl || '💊';
 
   const inStock  = stock > 0;
-  const lowStock = inStock && stock <= 20;
   const inCart   = isInCart(id);
   const canAdd   = inStock && !requires_prescription;
 
-  // ── Half-star rendering ────────────────────────────────────────
+  // ── Star rendering using Material Icons ────────────────────────
   const stars = Array.from({ length: 5 }, (_, i) => {
-    if (i < Math.floor(rating)) return <FaStar        key={i} className="star filled" />;
-    if (i < rating)             return <FaStarHalfAlt key={i} className="star filled" />;
-    return                             <FaRegStar      key={i} className="star"        />;
+    const isFilled = i < Math.round(rating);
+    return (
+      <span 
+        key={i} 
+        className="material-symbols-outlined card-star-icon" 
+        style={isFilled ? { fontVariationSettings: "'FILL' 1" } : undefined}
+      >
+        star
+      </span>
+    );
   });
-
-  // ── Stock badge ────────────────────────────────────────────────
-  let stockBadge;
-  if (!inStock)       stockBadge = <Badge bg="danger"  className="stock-badge">Out of Stock</Badge>;
-  else if (lowStock)  stockBadge = <Badge bg="warning" text="dark" className="stock-badge">Only {stock} left</Badge>;
-  else                stockBadge = <Badge bg="success" className="stock-badge">In Stock</Badge>;
 
   // ── Add to cart handler ────────────────────────────────────────
   const handleAdd = () => {
-    // Check if user is authenticated
     if (!isAuthenticated) {
       openLoginModal();
       return;
@@ -81,47 +78,58 @@ export default function MedicineCard({ medicine }) {
   };
 
   return (
-    <Card className={`medicine-card h-100 ${!inStock ? 'out-of-stock' : ''}`}>
-      {/* Discount chip */}
-      {discount_pct > 0 && inStock && (
-        <span className="discount-chip">-{discount_pct}%</span>
-      )}
-
+    <div className={`medicine-card ${!inStock ? 'out-of-stock' : ''}`}>
       {/* Image area */}
-      <Link to={`/medicines/${id}`} className="card-img-link" tabIndex={-1}>
-        <div className="medicine-img-box">
-          <MedicalIcon emoji={displayImage} category={category} size={40} />
-        </div>
-        {requires_prescription && (
-          <Badge bg="warning" text="dark" className="rx-badge">Rx Required</Badge>
+      <Link to={`/medicines/${id}`} className="medicine-card-img-link" tabIndex={-1}>
+        {/* Floating Rx / OTC badges */}
+        {requires_prescription ? (
+          <span className="card-floating-badge rx">
+            <span className="material-symbols-outlined text-[14px]">prescriptions</span> Rx
+          </span>
+        ) : (
+          <span className="card-floating-badge otc">OTC</span>
         )}
-        {!inStock && <div className="oos-overlay">Out of Stock</div>}
+
+        {/* Discount chip */}
+        {discount_pct > 0 && inStock && (
+          <span className="card-discount-chip">-{discount_pct}%</span>
+        )}
+
+        {/* Product image */}
+        <MedicalIcon emoji={displayImage} category={category} size={40} />
+
+        {/* OOS Overlay */}
+        {!inStock && <div className="card-oos-overlay">Out of Stock</div>}
       </Link>
 
-      <Card.Body className="d-flex flex-column p-3">
-        <span className="med-category-label">{category}</span>
-
-        <Card.Title as={Link} to={`/medicines/${id}`} className="medicine-name mt-1 mb-0">
+      <div className="medicine-card-body">
+        {/* Title */}
+        <Link to={`/medicines/${id}`} className="medicine-card-title">
           {brand || name}
-        </Card.Title>
-        {brand && <span className="medicine-brand">{name}</span>}
-
-        <div className="stars-row my-1">
-          {stars}
-          <span className="review-count ms-1">({reviews_count})</span>
+        </Link>
+        
+        {/* Subtitle */}
+        <div className="medicine-card-subtitle">
+          {brand ? name : category}
         </div>
 
-        <div className="price-row mb-2">
-          <span className="price">Rs. {Number(price).toFixed(0)}</span>
+        {/* Stars review */}
+        <div className="card-stars-row">
+          {stars}
+          <span className="card-reviews-count">({reviews_count})</span>
+        </div>
+
+        {/* Price row */}
+        <div className="card-price-row">
+          <span className="card-price-active">Rs. {Number(price).toFixed(0)}</span>
           {original_price && original_price > price && (
-            <span className="original-price ms-2">Rs. {Number(original_price).toFixed(0)}</span>
+            <span className="card-price-original">Rs. {Number(original_price).toFixed(0)}</span>
           )}
         </div>
 
-        <div className="mb-2">{stockBadge}</div>
-
-        <Button
-          className={`add-to-cart-btn mt-auto w-100 ${inCart ? 'in-cart' : ''} ${requires_prescription ? 'rx-btn' : ''}`}
+        {/* Add to Cart button */}
+        <button
+          className={`card-action-button ${requires_prescription ? 'rx-button' : ''} ${inCart ? 'in-cart' : ''}`}
           onClick={handleAdd}
           disabled={!inStock}
           title={
@@ -131,13 +139,26 @@ export default function MedicineCard({ medicine }) {
             : 'Add to cart'
           }
         >
-          <FaShoppingCart className="me-1" />
-          {requires_prescription ? 'Rx Only'
-            : !inStock           ? 'Unavailable'
-            : inCart             ? 'In Cart ✓'
-            : 'Add to Cart'}
-        </Button>
-      </Card.Body>
-    </Card>
+          {requires_prescription ? (
+            <>
+              <span className="material-symbols-outlined text-[18px]">upload_file</span>
+              Rx Only
+            </>
+          ) : !inStock ? (
+            'Unavailable'
+          ) : inCart ? (
+            <>
+              <span className="material-symbols-outlined text-[18px]">check</span>
+              In Cart ✓
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+              Add to Cart
+            </>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }

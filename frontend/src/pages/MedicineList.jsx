@@ -1,13 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import {
-  Container, Row, Col, Form, InputGroup,
-  Button, Spinner, Badge, Dropdown,
-} from 'react-bootstrap';
+import { Container, Row, Col, Spinner, Badge } from 'react-bootstrap';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaSearch, FaTimes, FaSlidersH, FaSortAmountDown } from 'react-icons/fa';
 import MedicineCard from '../components/MedicineCard';
 import api from '../services/api';
+import './MedicineList.css';
 
 const CATEGORIES = [
   'Analgesics', 
@@ -23,11 +20,9 @@ const CATEGORIES = [
   'Eye Care',
   'Child Health',
 ];
-import './MedicineList.css';
 
-// ─── Sort options ─────────────────────────────────────────────────────────────
 const SORT_OPTIONS = [
-  { value: 'default',    label: 'Default'             },
+  { value: 'default',    label: 'Default Sort'        },
   { value: 'price_asc',  label: 'Price: Low → High'   },
   { value: 'price_desc', label: 'Price: High → Low'   },
   { value: 'rating',     label: 'Highest Rated'        },
@@ -48,7 +43,7 @@ function useMedicines() {
           const mapped = res.data.medicines.map(m => ({
             ...m,
             id: m._id,
-            requires_prescription: m.requiresPrescription // Map camelCase to snake_case for UI
+            requires_prescription: m.requiresPrescription
           }));
           setData(mapped);
         }
@@ -65,7 +60,6 @@ function useMedicines() {
   return { data, loading, error };
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export default function MedicineList() {
   const navigate = useNavigate();
   const { isAuthenticated, userRole } = useAuth();
@@ -84,7 +78,7 @@ export default function MedicineList() {
   const [query,        setQuery]        = useState('');
   const [category,     setCategory]     = useState(searchParams.get('category') || '');
   const [sort,         setSort]         = useState('default');
-  const [rxOnly,       setRxOnly]       = useState(false);
+  const [typeFilter,   setTypeFilter]   = useState('all');
   const [inStockOnly,  setInStockOnly]  = useState(false);
 
   useEffect(() => {
@@ -113,9 +107,17 @@ export default function MedicineList() {
     // Category filter
     if (category) list = list.filter((m) => m.category === category);
 
-    // Toggle filters
-    if (rxOnly)      list = list.filter((m) => m.requires_prescription);
-    if (inStockOnly) list = list.filter((m) => m.stock > 0);
+    // Type filter (All Types, Rx Required, OTC)
+    if (typeFilter === 'rx') {
+      list = list.filter((m) => m.requires_prescription);
+    } else if (typeFilter === 'otc') {
+      list = list.filter((m) => !m.requires_prescription);
+    }
+
+    // In stock filter
+    if (inStockOnly) {
+      list = list.filter((m) => m.stock > 0);
+    }
 
     // Sort
     switch (sort) {
@@ -127,27 +129,26 @@ export default function MedicineList() {
     }
 
     return list;
-  }, [medicines, query, category, sort, rxOnly, inStockOnly]);
+  }, [medicines, query, category, sort, typeFilter, inStockOnly]);
 
-  const hasFilters = query || category || rxOnly || inStockOnly || sort !== 'default';
+  const hasFilters = query || category || typeFilter !== 'all' || inStockOnly || sort !== 'default';
 
   const clearFilters = () => {
     setQuery('');
     setCategory('');
     setSort('default');
-    setRxOnly(false);
+    setTypeFilter('all');
     setInStockOnly(false);
   };
 
-  // ── Render ─────────────────────────────────────────────────────
   return (
     <div className="medicine-list-page">
-      <Container className="py-5">
+      <Container>
 
-        {/* ── Page header ────────────────────────────────────── */}
-        <div className="ml-header mb-4">
+        {/* ── Page Header ────────────────────────────────────── */}
+        <div className="ml-header mb-5">
           <div>
-            <h1 className="page-title">Browse Medicines</h1>
+            <h1 className="page-title">Pharmacy Marketplace</h1>
             <p className="page-subtitle">
               {loading
                 ? 'Loading…'
@@ -155,109 +156,120 @@ export default function MedicineList() {
             </p>
           </div>
           {hasFilters && (
-            <Button variant="outline-danger" size="sm" className="clear-btn" onClick={clearFilters}>
-              <FaTimes className="me-1" /> Clear Filters
-            </Button>
+            <button className="clear-btn btn btn-outline-danger" onClick={clearFilters}>
+              <span className="material-symbols-outlined text-[16px]">close</span>
+              Clear Filters
+            </button>
           )}
         </div>
 
-        {/* ── Search + filter bar ─────────────────────────────── */}
-        <Row className="mb-4 gy-2 align-items-center">
+        {/* ── Search + Filter Bar ─────────────────────────────── */}
+        <Row className="mb-4 gy-3 align-items-center">
           {/* Search */}
-          <Col lg={5} md={6}>
-            <InputGroup className="search-group">
-              <InputGroup.Text className="search-icon-wrap">
-                <FaSearch />
-              </InputGroup.Text>
-              <Form.Control
-                type="search"
-                placeholder="Search by name, brand, category…"
+          <Col lg={4} md={6}>
+            <div className="search-wrapper">
+              <span className="material-symbols-outlined search-icon">search</span>
+              <input
+                type="text"
+                placeholder="Search medications..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="search-input"
+                className="search-input form-control"
                 id="medicine-search"
                 aria-label="Search medicines"
               />
               {query && (
-                <Button variant="light" className="clear-search" onClick={() => setQuery('')}>
-                  <FaTimes />
-                </Button>
+                <button className="clear-search-btn" onClick={() => setQuery('')}>
+                  <span className="material-symbols-outlined">close</span>
+                </button>
               )}
-            </InputGroup>
+            </div>
           </Col>
 
-          {/* Category */}
+          {/* Category Filter */}
           <Col lg={3} md={3} sm={6}>
-            <Form.Select
+            <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               aria-label="Category filter"
-              className="filter-select"
+              className="filter-select form-select"
               id="category-filter"
             >
               <option value="">All Categories</option>
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
-            </Form.Select>
+            </select>
           </Col>
 
-          {/* Sort */}
+          {/* Type Filter */}
           <Col lg={2} md={3} sm={6}>
-            <Form.Select
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              aria-label="Type filter"
+              className="filter-select form-select"
+              id="type-filter"
+            >
+              <option value="all">All Types</option>
+              <option value="rx">Rx Required</option>
+              <option value="otc">OTC</option>
+            </select>
+          </Col>
+
+          {/* Sort Option */}
+          <Col lg={2} md={3} sm={6}>
+            <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
               aria-label="Sort by"
-              className="filter-select"
+              className="filter-select form-select"
               id="sort-select"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
-            </Form.Select>
+            </select>
           </Col>
 
-          {/* Toggle chips */}
-          <Col lg={2} className="d-flex gap-2 flex-wrap">
-            <Form.Check
-              type="switch"
-              id="in-stock-toggle"
-              label="In stock"
-              checked={inStockOnly}
-              onChange={(e) => setInStockOnly(e.target.checked)}
-              className="filter-switch"
-            />
-            <Form.Check
-              type="switch"
-              id="rx-toggle"
-              label="Rx only"
-              checked={rxOnly}
-              onChange={(e) => setRxOnly(e.target.checked)}
-              className="filter-switch"
-            />
+          {/* Toggle Switch */}
+          <Col lg={1} md={3} sm={6} className="d-flex align-items-center">
+            <div className="filter-switch form-check form-switch">
+              <input
+                type="checkbox"
+                id="in-stock-toggle"
+                checked={inStockOnly}
+                onChange={(e) => setInStockOnly(e.target.checked)}
+                className="form-check-input"
+              />
+              <label htmlFor="in-stock-toggle" className="form-check-label">
+                In Stock
+              </label>
+            </div>
           </Col>
         </Row>
 
-        {/* ── Active filter badges ─────────────────────────────── */}
+        {/* ── Active Filter Badges ─────────────────────────────── */}
         {hasFilters && (
-          <div className="active-filters mb-3">
-            {query      && <Badge bg="primary" className="filter-tag">🔍 "{query}"</Badge>}
-            {category   && <Badge bg="secondary" className="filter-tag">{category}</Badge>}
+          <div className="active-filters mb-4">
+            {query && <Badge bg="primary" className="filter-tag">🔍 "{query}"</Badge>}
+            {category && <Badge bg="secondary" className="filter-tag">{category}</Badge>}
             {inStockOnly && <Badge bg="success" className="filter-tag">In Stock</Badge>}
-            {rxOnly     && <Badge bg="warning" text="dark" className="filter-tag">Rx Only</Badge>}
+            {typeFilter === 'rx' && <Badge bg="warning" text="dark" className="filter-tag">Rx Required</Badge>}
+            {typeFilter === 'otc' && <Badge bg="info" className="filter-tag">OTC</Badge>}
             {sort !== 'default' && (
-              <Badge bg="info" className="filter-tag">
+              <Badge bg="dark" className="filter-tag">
                 {SORT_OPTIONS.find((o) => o.value === sort)?.label}
               </Badge>
             )}
           </div>
         )}
 
-        {/* ── States ──────────────────────────────────────────── */}
+        {/* ── Loading, Empty, and Error States ────────────────── */}
         {loading && (
           <div className="loading-state">
             <Spinner animation="border" variant="primary" className="mb-3" />
-            <p className="text-muted">Fetching medicines…</p>
+            <p className="text-muted mb-0">Fetching medicines…</p>
           </div>
         )}
 
@@ -265,7 +277,7 @@ export default function MedicineList() {
           <div className="error-state">
             <div className="error-emoji">⚠️</div>
             <h5>Something went wrong</h5>
-            <p>{error}</p>
+            <p className="mb-0">{error}</p>
           </div>
         )}
 
@@ -274,11 +286,13 @@ export default function MedicineList() {
             <div className="empty-emoji">🔍</div>
             <h5>No medicines found</h5>
             <p>Try adjusting your search or filters.</p>
-            <Button variant="outline-primary" onClick={clearFilters}>Clear Filters</Button>
+            <button className="btn btn-outline-primary rounded-8 px-4" onClick={clearFilters}>
+              Clear Filters
+            </button>
           </div>
         )}
 
-        {/* ── Medicine grid ─────────────────────────────────── */}
+        {/* ── Medicine Grid ─────────────────────────────────── */}
         {!loading && !error && displayed.length > 0 && (
           <Row xs={1} sm={2} md={3} lg={4} className="g-4">
             {displayed.map((med) => (

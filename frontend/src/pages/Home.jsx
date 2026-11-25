@@ -1,289 +1,84 @@
 import { useEffect, useState } from 'react';
-import { Container, Row, Col, Button, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  FaArrowRight,
-  FaShieldAlt,
-  FaTruck,
-  FaClock,
-  FaStar,
-  FaRegStar,
-  FaShoppingCart,
-  FaUpload,
-  FaCalendarAlt,
-  FaMapMarkerAlt,
-  FaLock,
-  FaCommentDots,
-  FaSyncAlt,
-  FaFlask,
-  FaStethoscope,
-  FaHospital,
-  FaHeart,
-  FaUserMd,
-  FaPills,
-  FaCheckCircle,
-} from 'react-icons/fa';
-import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { useAuthModal } from '../context/AuthModalContext';
-import MedicalIcon from '../components/MedicalIcon';
+import MedicineCard from '../components/MedicineCard';
 import api from '../services/api';
 import './Home.css';
 
-// ─── Hardcoded sample medicines ───────────────────────────────────────────────
-const SAMPLE_MEDICINES = [
-  {
-    id: 1,
-    name: 'Paracetamol 500mg',
-    brand: 'Panadol',
-    category: 'Analgesics',
-    price: 50,
-    originalPrice: 65,
-    rating: 4,
-    reviews: 128,
-    requires_prescription: false,
-    in_stock: true,
-    badge: 'Bestseller',
-    badgeColor: '#34d399',
-    emoji: '/panadol.png',
-  },
-  {
-    id: 2,
-    name: 'Amoxicillin 250mg',
-    brand: 'Amoxil',
-    category: 'Antibiotics',
-    price: 180,
-    originalPrice: 200,
-    rating: 5,
-    reviews: 94,
-    requires_prescription: true,
-    in_stock: true,
-    badge: 'Rx Required',
-    badgeColor: '#f59e0b',
-    emoji: '/amoxil.png',
-  },
-  {
-    id: 3,
-    name: 'Omeprazole 20mg',
-    brand: 'Risek',
-    category: 'Gastroenterology',
-    price: 95,
-    originalPrice: 110,
-    rating: 4,
-    reviews: 76,
-    requires_prescription: false,
-    in_stock: true,
-    badge: null,
-    badgeColor: null,
-    emoji: '/risek.png',
-  },
-  {
-    id: 4,
-    name: 'Cetirizine 10mg',
-    brand: 'Zyrtec',
-    category: 'Antihistamines',
-    price: 65,
-    originalPrice: 75,
-    rating: 4,
-    reviews: 211,
-    requires_prescription: false,
-    in_stock: true,
-    badge: 'Popular',
-    badgeColor: '#818cf8',
-    emoji: '/zyrtec.png',
-  },
-  {
-    id: 5,
-    name: 'Metformin 500mg',
-    brand: 'Glucophage',
-    category: 'Diabetes',
-    price: 120,
-    originalPrice: 140,
-    rating: 5,
-    reviews: 183,
-    requires_prescription: true,
-    in_stock: false,
-    badge: 'Out of Stock',
-    badgeColor: '#ef4444',
-    emoji: '/glucophage.png',
-  },
-  {
-    id: 6,
-    name: 'Amlodipine 5mg',
-    brand: 'Norvasc',
-    category: 'Cardiology',
-    price: 140,
-    originalPrice: 160,
-    rating: 5,
-    reviews: 97,
-    requires_prescription: true,
-    in_stock: true,
-    badge: 'Rx Required',
-    badgeColor: '#f59e0b',
-    emoji: '/norvasc.png',
-  },
-];
+// ─── Helper to normalize a DB medicine to MedicineCard-compatible shape ───────
+function normalizeMedicine(db) {
+  const originalPrice = db.originalPrice || db.original_price || db.price;
+  const requires_prescription = db.requiresPrescription || db.requires_prescription || false;
+  const stock = db.stock !== undefined ? Number(db.stock) : (db.in_stock ? 10 : 0);
+  const discount_pct = originalPrice > db.price
+    ? Math.round(((originalPrice - db.price) / originalPrice) * 100)
+    : db.discount_pct || 0;
+
+  return {
+    id: db._id || db.id,
+    name: db.name,
+    brand: db.brand || '',
+    category: db.category || 'General',
+    price: db.price,
+    original_price: originalPrice > db.price ? originalPrice : undefined,
+    discount_pct,
+    rating: db.rating || 0,
+    reviews_count: db.reviews_count || db.reviews || db.reviewCount || 0,
+    requires_prescription,
+    stock,
+    image: db.imageUrl || db.image || db.emoji || null,
+    imageUrl: db.imageUrl || db.image || db.emoji || null,
+  };
+}
 
 // ─── Feature list ─────────────────────────────────────────────────────────────
 const FEATURES = [
   {
-    icon: <FaShieldAlt />,
+    materialIcon: 'verified_user',
     title: 'Verified Medicines',
-    desc:  'All medicines sourced exclusively from licensed pharmaceutical suppliers and distributors.',
+    desc:  'All medicines sourced exclusively from licensed pharmaceutical suppliers and distributors with 100% authenticity tracking.',
     color: '#38bdf8',
   },
   {
-    icon: <FaTruck />,
-    title: 'Same-Day Delivery',
+    materialIcon: 'rocket_launch',
+    title: 'Lightning Delivery',
     desc:  'Order before 2 PM and receive your medicines the same day in Mailsi, Karachi, Lahore & Islamabad.',
     color: '#34d399',
   },
   {
-    icon: <FaClock />,
+    materialIcon: 'support_agent',
     title: '24/7 Pharmacist Support',
     desc:  'Our licensed pharmacists are available around the clock to answer your health queries.',
     color: '#a78bfa',
   },
   {
-    icon: <FaUpload />,
+    materialIcon: 'upload_file',
     title: 'Prescription Upload',
-    desc:  'Snap a photo of your prescription. Our team verifies it within 30 minutes.',
+    desc:  'Snap a photo of your prescription. Our team of licensed pharmacists verifies it within 30 minutes.',
     color: '#f59e0b',
   },
   {
-    icon: <FaCalendarAlt />,
+    materialIcon: 'calendar_month',
     title: 'Doctor Appointments',
-    desc:  'Book online consultations with verified doctors across multiple specialties.',
+    desc:  'Book online consultations and physical appointments with verified doctors across multiple specialties.',
     color: '#f472b6',
   },
   {
-    icon: <FaMapMarkerAlt />,
+    materialIcon: 'public',
     title: 'Nationwide Reach',
-    desc:  'Delivering to 30+ cities across Pakistan with real-time order tracking.',
+    desc:  'Delivering to 30+ cities across Pakistan with real-time order tracking and secure shipping.',
     color: '#fb923c',
   },
 ];
 
-// ─── Star renderer ────────────────────────────────────────────────────────────
-function Stars({ rating }) {
-  return (
-    <div className="home-stars">
-      {Array.from({ length: 5 }, (_, i) =>
-        i < Math.round(rating)
-          ? <FaStar    key={i} className="star-filled" />
-          : <FaRegStar key={i} className="star-empty"  />
-      )}
-    </div>
-  );
-}
 
-// ─── Home medicine card ───────────────────────────────────────────────────────
-function HomeMedicineCard({ medicine }) {
-  const { addToCart } = useCart();
-  const { isAuthenticated } = useAuth();
-  const { openLoginModal } = useAuthModal();
-  const navigate = useNavigate();
 
-  const canBuy = medicine.in_stock && !medicine.requires_prescription;
-  const discount = Math.round(
-    ((medicine.originalPrice - medicine.price) / medicine.originalPrice) * 100
-  );
-
-  const handleAddToCart = () => {
-    if (!isAuthenticated) {
-      openLoginModal();
-      return;
-    }
-    if (medicine.requires_prescription) {
-      navigate('/prescriptions/upload', { state: { requiredForMedicine: medicine.name } });
-      return;
-    }
-    canBuy && addToCart(medicine);
-  };
-
-  return (
-    <div className={`home-med-card ${!medicine.in_stock ? 'oos' : ''}`}>
-      {/* Badge */}
-      {medicine.badge && (
-        <span className="med-badge" style={{ background: medicine.badgeColor }}>
-          {medicine.badge}
-        </span>
-      )}
-
-      {/* Discount chip */}
-      {discount > 0 && medicine.in_stock && (
-        <span className="discount-chip">-{discount}%</span>
-      )}
-
-      {/* Image area */}
-      <Link to={`/medicines/${medicine.id}`} className="med-img-link">
-        {(() => {
-          const isRealImage = medicine.emoji && (
-            medicine.emoji.startsWith('data:') || 
-            medicine.emoji.startsWith('/') || 
-            medicine.emoji.startsWith('http') || 
-            medicine.emoji.includes('.')
-          );
-          return (
-            <div 
-              className="med-emoji-box" 
-              style={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                padding: isRealImage ? '0' : '1.25rem 0' 
-              }}
-            >
-              <MedicalIcon emoji={medicine.emoji} category={medicine.category} size={38} />
-            </div>
-          );
-        })()}
-      </Link>
-
-      {/* Info */}
-      <div className="med-info">
-        <span className="med-category">{medicine.category}</span>
-        <Link to={`/medicines/${medicine.id}`} className="med-name">
-          {medicine.brand || medicine.name}
-        </Link>
-        <span className="med-brand">{medicine.brand ? medicine.name : ''}</span>
-
-        <Stars rating={medicine.rating} />
-        <span className="med-reviews">({medicine.reviews} reviews)</span>
-
-        <div className="med-price-row">
-          <span className="med-price">Rs. {medicine.price}</span>
-          <span className="med-original-price">Rs. {medicine.originalPrice}</span>
-        </div>
-
-        <button
-          className={`med-cart-btn ${!medicine.in_stock ? 'disabled' : ''} ${medicine.requires_prescription ? 'rx-btn' : ''}`}
-          onClick={handleAddToCart}
-          disabled={!medicine.in_stock}
-          title={
-            !medicine.in_stock
-              ? 'Out of stock'
-              : medicine.requires_prescription
-              ? 'Requires prescription – click to upload and order'
-              : 'Add to cart'
-          }
-        >
-          <FaShoppingCart />
-          {medicine.requires_prescription
-            ? 'Rx Only'
-            : !medicine.in_stock
-            ? 'Out of Stock'
-            : 'Add to Cart'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Home Page Component ──────────────────────────────────────────────────────
 export default function Home() {
   const navigate = useNavigate();
   const { isAuthenticated, user, userRole } = useAuth();
-  const [featuredMeds, setFeaturedMeds] = useState(SAMPLE_MEDICINES);
+  const [featuredMeds, setFeaturedMeds] = useState([]);
+  const [medsLoading, setMedsLoading] = useState(true);
 
   useEffect(() => {
     if (isAuthenticated && userRole && userRole !== 'patient') {
@@ -294,228 +89,268 @@ export default function Home() {
   }, [isAuthenticated, userRole, navigate]);
 
   useEffect(() => {
-    const syncFeaturedMedicines = async () => {
+    const fetchFeaturedMedicines = async () => {
+      setMedsLoading(true);
       try {
         const { data } = await api.get('/medicines?limit=100');
         const dbMeds = data.medicines ?? data.results ?? data;
-        if (Array.isArray(dbMeds)) {
-          const updated = SAMPLE_MEDICINES.map(sample => {
-            const dbMatch = dbMeds.find(db => 
-              (db.brand && sample.brand && db.brand.toLowerCase() === sample.brand.toLowerCase()) ||
-              db.name.toLowerCase().includes(sample.brand.toLowerCase()) ||
-              db.name.toLowerCase() === sample.name.toLowerCase()
-            );
-            if (dbMatch) {
-              return {
-                ...sample,
-                id: dbMatch._id || dbMatch.id,
-                in_stock: dbMatch.stock > 0,
-                stock: dbMatch.stock,
-                price: dbMatch.price,
-                requires_prescription: dbMatch.requiresPrescription || false,
-                name: dbMatch.name,
-                brand: dbMatch.brand || sample.brand,
-                emoji: dbMatch.imageUrl || sample.emoji
-              };
-            }
-            return sample;
-          });
-          setFeaturedMeds(updated);
+        if (Array.isArray(dbMeds) && dbMeds.length > 0) {
+          // Show first 6 medicines directly from API
+          const featured = dbMeds.slice(0, 6).map(normalizeMedicine);
+          setFeaturedMeds(featured);
         }
       } catch (err) {
-        console.error('Failed to sync featured medicines:', err);
+        console.error('Failed to fetch featured medicines:', err);
+      } finally {
+        setMedsLoading(false);
       }
     };
-    syncFeaturedMedicines();
+    fetchFeaturedMedicines();
   }, []);
 
   return (
-    <div className="home-page">
-
-      {/* ══ HERO ══════════════════════════════════════════════════════ */}
-      <section className="hero-section">
-        <Container>
-          <Row className="align-items-center hero-row">
-            <Col lg={6} className="hero-content">
-              <Badge bg="info" className="hero-badge mb-3">
-                Pakistan's #1 Online Pharmacy
-              </Badge>
-
-              {isAuthenticated ? (
-                <h1 className="hero-title">
-                  Welcome back,<br />
-                  <span className="hero-accent">{user?.name?.split(' ')[0] || 'Friend'}!</span>
-                </h1>
-              ) : (
-                <h1 className="hero-title">
-                  Your Health,<br />
-                  <span className="hero-accent">Delivered Fast</span>
-                </h1>
-              )}
-
-              <p className="hero-subtitle">
-                Order medicines, book doctor appointments, and upload prescriptions —
-                all from the comfort of your home with <strong>guaranteed authenticity</strong>.
-              </p>
-
-              <div className="hero-stats">
-                {[
-                  { value: '50K+', label: 'Happy Patients' },
-                  { value: '10K+', label: 'Medicines'      },
-                  { value: '200+', label: 'Doctors'        },
-                  { value: '30+',  label: 'Cities'         },
-                ].map((s) => (
-                  <div key={s.label} className="hero-stat">
-                    <span className="hero-stat-value">{s.value}</span>
-                    <span className="hero-stat-label">{s.label}</span>
-                  </div>
-                ))}
+    <div className="home-page antialiased">
+      {/* ══ HERO SECTION ══════════════════════════════════════════════ */}
+      <section className="hero-gradient relative py-20 px-margin-desktop overflow-hidden">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="z-10">
+            <span className="inline-block bg-primary-container text-white text-label-md font-label-md px-3 py-1 rounded-full mb-6">
+              Pakistan's #1 Online Pharmacy
+            </span>
+            {isAuthenticated ? (
+              <h1 className="font-headline-xl text-headline-xl text-primary mb-6 leading-tight">
+                Welcome back, <br />
+                <span className="text-secondary">{user?.name?.split(' ')[0] || 'Friend'}!</span>
+              </h1>
+            ) : (
+              <h1 className="font-headline-xl text-headline-xl text-primary mb-6 leading-tight">
+                Your Health, <br />
+                <span className="text-secondary">Delivered Fast</span>
+              </h1>
+            )}
+            <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl mb-10">
+              Order medicines, book doctor appointments, and upload prescriptions — all from the comfort of your home with guaranteed authenticity.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <button 
+                onClick={() => navigate('/medicines')}
+                className="btn-stitch-primary"
+              >
+                Shop Medicines
+                <span className="material-symbols-outlined">shopping_bag</span>
+              </button>
+              <button 
+                onClick={() => navigate('/appointments/book')}
+                className="btn-stitch-outline"
+              >
+                Book Appointment
+              </button>
+            </div>
+            <div className="flex gap-12 mt-12 border-t border-ui-border pt-8">
+              <div>
+                <div className="font-headline-md text-headline-md text-primary">50K+</div>
+                <div className="text-label-md text-on-surface-variant">Happy Patients</div>
               </div>
-
-              <div className="hero-actions">
-                <Button as={Link} to="/medicines" size="lg" className="btn-hero-primary">
-                  Shop Medicines <FaArrowRight className="ms-2" />
-                </Button>
-                <Button as={Link} to="/appointments/book" size="lg" className="btn-hero-secondary">
-                  Book Appointment
-                </Button>
+              <div>
+                <div className="font-headline-md text-headline-md text-primary">10K+</div>
+                <div className="text-label-md text-on-surface-variant">Medicines</div>
               </div>
-            </Col>
-
-            <Col lg={6} className="hero-visual d-none d-lg-flex">
-              <div className="hero-blob">
-                <div className="hero-pill-orbit">
-                  <span className="orbit-icon o1"><div className="hero-orbit-card"><FaPills className="text-info" /></div></span>
-                  <span className="orbit-icon o2"><div className="hero-orbit-card"><FaStethoscope className="text-primary" /></div></span>
-                  <span className="orbit-icon o3"><div className="hero-orbit-card"><FaFlask className="text-success" /></div></span>
-                  <span className="orbit-icon o4"><div className="hero-orbit-card"><FaHeart className="text-danger" /></div></span>
-                </div>
-                <div className="hero-center-icon">
-                  <FaUserMd className="text-info" size={80} style={{ filter: 'drop-shadow(0 8px 24px rgba(56, 189, 248, 0.35))' }} />
-                </div>
+              <div>
+                <div className="font-headline-md text-headline-md text-primary">200+</div>
+                <div className="text-label-md text-on-surface-variant">Top Doctors</div>
               </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
-
-      {/* ══ TRUST STRIP ══════════════════════════════════════════════ */}
-      <section className="trust-strip">
-        <Container>
-          <div className="trust-items">
-            {[
-              { icon: <FaCheckCircle className="text-success" />, text: '100% Authentic'  },
-              { icon: <FaTruck className="text-info" />, text: 'Free Delivery ≥ Rs.1000' },
-              { icon: <FaLock className="text-warning" />, text: 'Secure Checkout' },
-              { icon: <FaCommentDots className="text-primary" />, text: '24/7 Support'   },
-              { icon: <FaSyncAlt className="text-secondary" />, text: 'Easy Returns'   },
-            ].map((t) => (
-              <div key={t.text} className="trust-item">
-                <span className="trust-icon d-flex align-items-center fs-5">{t.icon}</span>
-                <span>{t.text}</span>
+              <div>
+                <div className="font-headline-md text-headline-md text-primary">30+</div>
+                <div className="text-label-md text-on-surface-variant">Cities Covered</div>
               </div>
-            ))}
+            </div>
           </div>
-        </Container>
+          <div className="relative hidden lg:block h-[500px]">
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* Abstract medical illustration background */}
+              <div className="w-96 h-96 bg-primary-container/10 rounded-full animate-pulse"></div>
+              <div className="absolute w-80 h-80 border-2 border-dashed border-primary/20 rounded-full animate-[spin_20s_linear_infinite]"></div>
+            </div>
+            {/* Floating Icons Simulation */}
+            <div className="absolute top-1/4 right-1/4 bg-sterile-white p-4 rounded-2xl shadow-xl animate-bounce" style={{ animationDuration: '3s' }}>
+              <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>medical_services</span>
+            </div>
+            <div className="absolute bottom-1/4 left-1/4 bg-sterile-white p-4 rounded-2xl shadow-xl animate-bounce" style={{ animationDuration: '4s' }}>
+              <span className="material-symbols-outlined text-secondary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>prescriptions</span>
+            </div>
+            <div className="absolute top-1/2 left-0 bg-sterile-white p-4 rounded-2xl shadow-xl animate-bounce" style={{ animationDuration: '3.5s' }}>
+              <span className="material-symbols-outlined text-error-red text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>monitor_heart</span>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* ══ FEATURED MEDICINES ════════════════════════════════════════ */}
-      <section className="medicines-section">
-        <Container>
-          <div className="section-header">
+      {/* ══ TRUST BADGES STRIP ════════════════════════════════════════ */}
+      <div className="bg-sterile-white py-6 border-y border-ui-border">
+        <div className="max-w-7xl mx-auto px-margin-desktop flex flex-wrap justify-between gap-8 opacity-70 grayscale hover:grayscale-0 transition-all">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-secondary">verified</span>
+            <span className="font-label-md text-label-md">100% Authentic</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-secondary">local_shipping</span>
+            <span className="font-label-md text-label-md">Free Delivery ≥ Rs.1000</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-secondary">lock</span>
+            <span className="font-label-md text-label-md">Secure Checkout</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-secondary">support_agent</span>
+            <span className="font-label-md text-label-md">24/7 Support</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-secondary">replay</span>
+            <span className="font-label-md text-label-md">Easy Returns</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ FEATURED MEDICINES SECTION ════════════════════════════════ */}
+      <section className="py-20 px-margin-desktop bg-surface">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-end mb-12">
             <div>
-              <h2 className="section-title">Featured Medicines</h2>
-              <p className="section-sub">Carefully selected, always in stock, shipped fast</p>
+              <h2 className="font-headline-lg text-headline-lg text-on-surface mb-2">Featured Medicines</h2>
+              <p className="text-body-md text-on-surface-variant">Carefully selected, always in stock, shipped fast.</p>
             </div>
-            <Button as={Link} to="/medicines" variant="outline-primary" className="view-all-btn">
-              View All <FaArrowRight className="ms-1" />
-            </Button>
+            <button 
+              onClick={() => navigate('/medicines')}
+              className="btn-view-all"
+            >
+              View All
+              <span className="material-symbols-outlined">arrow_forward</span>
+            </button>
           </div>
-
-          <div className="med-grid">
-            {featuredMeds.map((med) => (
-              <HomeMedicineCard key={med.id} medicine={med} />
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      {/* ══ CATEGORIES ════════════════════════════════════════════════ */}
-      <section className="categories-section">
-        <Container>
-          <h2 className="section-title text-center mb-4">Shop by Category</h2>
-          <Row className="gy-3">
-            {[
-              { name: 'Pain Relief',    linkTo: 'Analgesics',             color: '#fef3c7', icon: <MedicalIcon category="Pain Relief" size={24} /> },
-              { name: 'Antibiotics',    linkTo: 'Antibiotics',            color: '#d1fae5', icon: <MedicalIcon category="Antibiotics" size={24} /> },
-              { name: 'Vitamins',       linkTo: 'Vitamins & Supplements', color: '#dbeafe', icon: <MedicalIcon category="Vitamins" size={24} /> },
-              { name: 'Diabetes',       linkTo: 'Diabetes',               color: '#fce7f3', icon: <MedicalIcon category="Diabetes" size={24} /> },
-              { name: 'Cardiology',     linkTo: 'Cardiology',             color: '#fee2e2', icon: <MedicalIcon category="Cardiology" size={24} /> },
-              { name: 'Dermatology',    linkTo: 'Dermatology',            color: '#ede9fe', icon: <MedicalIcon category="Dermatology" size={24} /> },
-              { name: 'Eye Care',       linkTo: 'Eye Care',               color: '#e0f2fe', icon: <MedicalIcon category="Eye Care" size={24} /> },
-              { name: 'Child Health',   linkTo: 'Child Health',           color: '#fef9c3', icon: <MedicalIcon category="Child Health" size={24} /> },
-            ].map((cat) => (
-              <Col xs={6} sm={4} md={3} key={cat.name}>
-                <Link
-                  to={`/medicines?category=${encodeURIComponent(cat.linkTo)}`}
-                  className="category-card"
-                  style={{ '--cat-bg': cat.color }}
-                >
-                  <span className="cat-icon-badge mb-2">{cat.icon}</span>
-                  <span className="cat-name">{cat.name}</span>
-                </Link>
-              </Col>
-            ))}
-          </Row>
-        </Container>
-      </section>
-
-      {/* ══ FEATURES ══════════════════════════════════════════════════ */}
-      <section className="features-section">
-        <Container>
-          <h2 className="section-title text-center mb-2">Why MedEasy?</h2>
-          <p className="section-sub text-center mb-5">
-            We combine technology and healthcare to make your life easier
-          </p>
-          <Row className="gy-4">
-            {FEATURES.map((f) => (
-              <Col md={4} key={f.title}>
-                <div className="feature-card" style={{ '--feat-color': f.color }}>
-                  <div className="feature-icon-wrap">
-                    <div className="feature-icon">{f.icon}</div>
+          {medsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-sterile-white border border-ui-border rounded-xl flex flex-col overflow-hidden" style={{ minHeight: '340px' }}>
+                  <div className="h-36 bg-app-background animate-pulse"></div>
+                  <div className="p-5 flex flex-col flex-1 gap-3">
+                    <div className="h-4 bg-app-background rounded animate-pulse w-2/3"></div>
+                    <div className="h-3 bg-app-background rounded animate-pulse w-1/2"></div>
+                    <div className="h-3 bg-app-background rounded animate-pulse w-1/3 mt-1"></div>
+                    <div className="h-4 bg-app-background rounded animate-pulse w-1/4 mt-1"></div>
+                    <div className="mt-auto h-10 bg-app-background rounded animate-pulse"></div>
                   </div>
-                  <h5>{f.title}</h5>
-                  <p>{f.desc}</p>
                 </div>
-              </Col>
-            ))}
-          </Row>
-        </Container>
+              ))}
+            </div>
+          ) : featuredMeds.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+              {featuredMeds.map((med) => (
+                <MedicineCard key={med.id} medicine={med} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-on-surface-variant">
+              <span className="material-symbols-outlined" style={{ fontSize: '48px', opacity: 0.4 }}>medication</span>
+              <p className="mt-4 text-body-md">Medicines unavailable. Please check back later.</p>
+              <button onClick={() => navigate('/medicines')} className="btn-stitch-primary mt-6" style={{ display: 'inline-flex' }}>Browse All Medicines</button>
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* ══ CTA BANNER ════════════════════════════════════════════════ */}
-      <section className="cta-section">
-        <Container>
-          <div className="cta-card">
-            <div className="cta-content">
-              <h2>Need a prescription filled?</h2>
-              <p>Upload your prescription and our pharmacists will prepare your order within the hour.</p>
-              <div className="cta-actions">
-                <Button as={Link} to="/prescriptions/upload" className="btn-cta-primary">
-                  <FaUpload className="me-2" /> Upload Prescription
-                </Button>
-                <Button as={Link} to="/appointments/book" variant="outline-light" className="btn-cta-secondary">
-                  <FaCalendarAlt className="me-2" /> Book a Doctor
-                </Button>
+      {/* ══ SHOP BY CATEGORY SECTION ══════════════════════════════════ */}
+      <section className="py-20 px-margin-desktop bg-sterile-white">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="font-headline-lg text-headline-lg text-on-surface mb-12 text-center">Shop by Category</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            {[
+              { name: 'Pain Relief', linkTo: 'Analgesics', bg: '#FFEEDB', textClass: 'text-orange-600', icon: 'pill' },
+              { name: 'Antibiotics', linkTo: 'Antibiotics', bg: '#E4F9F1', textClass: 'text-green-600', icon: 'vaccines' },
+              { name: 'Vitamins', linkTo: 'Vitamins & Supplements', bg: '#E7EEFF', textClass: 'text-primary', icon: 'eco' },
+              { name: 'Diabetes', linkTo: 'Diabetes', bg: '#FFEBF0', textClass: 'text-pink-600', icon: 'bloodtype' },
+              { name: 'Cardiology', linkTo: 'Cardiology', bg: '#F3E8FF', textClass: 'text-purple-600', icon: 'favorite' },
+              { name: 'Dermatology', linkTo: 'Dermatology', bg: '#EDF2F7', textClass: 'text-slate-600', icon: 'spa' },
+              { name: 'Eye Care', linkTo: 'Eye Care', bg: '#E2FAFC', textClass: 'text-cyan-600', icon: 'visibility' },
+              { name: 'Pediatrics', linkTo: 'Child Health', bg: '#FFF8E1', textClass: 'text-amber-600', icon: 'child_care' }
+            ].map((cat) => (
+              <Link
+                key={cat.name}
+                to={`/medicines?category=${encodeURIComponent(cat.linkTo)}`}
+                className="p-6 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:scale-105 transition-transform group"
+                style={{ backgroundColor: cat.bg }}
+              >
+                <span className={`material-symbols-outlined text-3xl ${cat.textClass} group-hover:scale-110 transition-transform`}>
+                  {cat.icon}
+                </span>
+                <span className="text-label-md font-bold text-on-surface">{cat.name}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ WHY CHOOSE US SECTION ═════════════════════════════════════ */}
+      <section className="py-20 px-margin-desktop bg-surface-container-low">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="font-headline-lg text-headline-lg text-on-surface mb-4">Why MedEasy?</h2>
+            <p className="text-body-md text-on-surface-variant max-w-2xl mx-auto">
+              We combine technology and healthcare to make your life easier.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="bg-sterile-white p-8 rounded-2xl border border-ui-border bento-card">
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-6"
+                  style={{ backgroundColor: `${f.color}15`, color: f.color }}
+                >
+                  <span className="material-symbols-outlined">{f.materialIcon}</span>
+                </div>
+                <h3 className="font-headline-sm text-headline-sm mb-3 text-on-surface">{f.title}</h3>
+                <p className="text-body-md text-on-surface-variant">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ PRESCRIPTION UPLOAD CTA SECTION ═══════════════════════════ */}
+      <section className="py-20 px-margin-desktop bg-surface">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-primary rounded-[2rem] overflow-hidden relative p-12 md:p-20 text-on-primary">
+            <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 bg-[radial-gradient(circle_at_center,_white_1px,_transparent_1px)] bg-[length:24px_24px] pointer-events-none"></div>
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="font-headline-lg text-headline-lg text-white mb-6">Need a prescription filled?</h2>
+                <p className="text-body-lg text-white mb-10 opacity-90">
+                  Upload a photo of your prescription and our team of licensed pharmacists will prepare your order within 30 minutes for confirmation.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <button 
+                    onClick={() => navigate('/prescriptions/upload')}
+                    className="btn-stitch-white"
+                  >
+                    <span className="material-symbols-outlined">upload_file</span>
+                    Upload Prescription
+                  </button>
+                  <button 
+                    onClick={() => navigate('/appointments/book')}
+                    className="btn-stitch-outline-white"
+                  >
+                    Book a Doctor
+                  </button>
+                </div>
+              </div>
+              <div className="hidden lg:flex justify-center">
+                <div className="cta-glowing-orbit">
+                  <span className="material-symbols-outlined">prescriptions</span>
+                </div>
               </div>
             </div>
-            <div className="cta-illustration d-none d-md-block text-white">
-              <FaHospital size={110} style={{ filter: 'drop-shadow(0 8px 24px rgba(56, 189, 248, 0.35))' }} />
-            </div>
           </div>
-        </Container>
+        </div>
       </section>
-
     </div>
   );
 }

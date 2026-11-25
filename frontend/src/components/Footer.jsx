@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Container, Row, Col } from 'react-bootstrap';
 import {
-  FaPills,
   FaFacebookF,
   FaInstagram,
   FaLinkedinIn,
@@ -9,91 +7,57 @@ import {
   FaPhoneAlt,
   FaEnvelope,
   FaMapMarkerAlt,
-  FaHeart,
   FaUsers,
+  FaPills,
 } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { useAuth } from '../context/AuthContext';
 import './Footer.css';
 
-const teamMembers = [
-  {
-    id: 1,
-    name: "Ahsan Fayyaz",
-    role: "Lead Full-Stack Developer & Architect",
-    contribution: "Designed system architecture, configured MongoDB schemas, built Express REST APIs, and developed 100% of the React frontend codebase.",
-    github: "https://github.com/AhsanFayyaz13",
-    linkedin: "https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a",
-    image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80"
-  },
-  {
-    id: 2,
-    name: "Owaimer Khalid",
-    role: "UI/UX & Quality Assurance Lead",
-    contribution: "Assisted with initial UI layout ideation, prepared presentation mockups, and handled client-side QA user testing.",
-    github: "#",
-    linkedin: "https://www.linkedin.com",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80"
-  },
-  {
-    id: 3,
-    name: "Murad Ali Khan",
-    role: "Product Manager & Technical Writer",
-    contribution: "Managed project delivery timelines, coordinated team assets, and compiled external project documentation.",
-    github: "#",
-    linkedin: "https://www.linkedin.com",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80"
-  }
-];
-
-/**
- * AppFooter – multi-column footer with links, social icons, and contact info.
- */
 export default function AppFooter() {
   const year = new Date().getFullYear();
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   return (
     <footer className="medeasy-footer">
-      <Container>
-        <Row className="footer-main gy-4">
-          {/* Brand column */}
-          <Col md={4}>
-            <div className="footer-brand">
-              <FaPills className="footer-brand-icon" />
-              <span className="footer-brand-name">
-                Med<span className="footer-accent">Easy</span>
+      <div className="medeasy-footer-container">
+        <div className="medeasy-footer-grid">
+          {/* Brand/Tagline Column */}
+          <div className="medeasy-footer-brand-col">
+            <Link to="/" className="medeasy-footer-brand">
+              <FaPills style={{ fontSize: '24px', color: '#003d9b' }} />
+              <span>
+                Med<span style={{ color: '#003d9b' }}>Easy</span>
               </span>
-            </div>
-            <p className="footer-tagline">
-              Your trusted digital pharmacy — medicines, appointments,
-              and prescriptions at your fingertips.
+            </Link>
+            <p className="medeasy-footer-tagline">
+              Your trusted digital pharmacy — medicines, appointments, and prescriptions at your fingertips.
             </p>
-            <div className="social-links">
-              <a href="#" aria-label="Facebook"><FaFacebookF /></a>
-              <a href="#" aria-label="X (Twitter)"><FaXTwitter /></a>
-              <a href="#" aria-label="Instagram"><FaInstagram /></a>
-              <a href="https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><FaLinkedinIn /></a>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><FaGithub /></a>
+            <div className="medeasy-footer-socials">
+              <a href="#" className="medeasy-footer-social-btn" aria-label="Facebook"><FaFacebookF /></a>
+              <a href="#" className="medeasy-footer-social-btn" aria-label="X (Twitter)"><FaXTwitter /></a>
+              <a href="#" className="medeasy-footer-social-btn" aria-label="Instagram"><FaInstagram /></a>
+              <a href="https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a" target="_blank" rel="noopener noreferrer" className="medeasy-footer-social-btn" aria-label="LinkedIn"><FaLinkedinIn /></a>
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="medeasy-footer-social-btn" aria-label="GitHub"><FaGithub /></a>
             </div>
-          </Col>
+          </div>
 
-          {/* Quick links */}
-          <Col md={2} sm={6}>
-            <h6 className="footer-heading">Quick Links</h6>
-            <ul className="footer-links">
+          {/* Quick Links Column */}
+          <div>
+            <h4 className="medeasy-footer-heading">Quick Links</h4>
+            <ul className="medeasy-footer-links">
               <li><Link to="/">Home</Link></li>
               <li><Link to="/medicines">Medicines</Link></li>
               <li><Link to="/appointments">Appointments</Link></li>
               <li><Link to="/cart">Cart</Link></li>
               <li><Link to="/orders">Order Tracking</Link></li>
             </ul>
-          </Col>
+          </div>
 
-          {/* Account links */}
-          <Col md={2} sm={6}>
-            <h6 className="footer-heading">Account</h6>
-            <ul className="footer-links">
+          {/* Account Column */}
+          <div>
+            <h4 className="medeasy-footer-heading">Account</h4>
+            <ul className="medeasy-footer-links">
               {!isAuthenticated && (
                 <>
                   <li><Link to="/login">Login</Link></li>
@@ -104,12 +68,12 @@ export default function AppFooter() {
               <li><Link to="/prescription-upload">Upload Rx</Link></li>
               <li><Link to="/reviews">Reviews</Link></li>
             </ul>
-          </Col>
+          </div>
 
-          {/* Contact */}
-          <Col md={4}>
-            <h6 className="footer-heading">Contact Us</h6>
-            <ul className="footer-contact">
+          {/* Contact Column */}
+          <div>
+            <h4 className="medeasy-footer-heading">Contact Us</h4>
+            <ul className="medeasy-footer-contact">
               <li>
                 <FaMapMarkerAlt className="contact-icon" />
                 Sector H-10, Islamabad Capital Territory, Pakistan
@@ -122,21 +86,22 @@ export default function AppFooter() {
                 <FaEnvelope className="contact-icon" />
                 <a href="mailto:support@medeasy.systems">support@medeasy.systems</a>
               </li>
-              <li className="mt-3">
-                <Link to="/team" className="team-pill-link">
-                  <FaUsers className="pill-icon me-2" /> Our Team
+              <li style={{ marginTop: '16px' }}>
+                <Link to="/team" className="medeasy-footer-team-link">
+                  <FaUsers style={{ marginRight: '8px' }} /> Our Team
                 </Link>
               </li>
             </ul>
-          </Col>
-        </Row>
+          </div>
+        </div>
 
-        <hr className="footer-divider" />
-
-        <p className="footer-copy d-flex align-items-center justify-content-center gap-1">
-          &copy; {year} MedEasy. All rights reserved.
-        </p>
-      </Container>
+        {/* Bottom Bar */}
+        <div className="medeasy-footer-bottom">
+          <p className="medeasy-footer-copy">
+            © {year} MedEasy. All rights reserved.
+          </p>
+        </div>
+      </div>
     </footer>
   );
 }
