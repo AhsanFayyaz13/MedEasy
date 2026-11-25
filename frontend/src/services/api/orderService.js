@@ -133,18 +133,20 @@ export async function fetchOrders(filters = {}) {
 /**
  * Cancel an order by ID.
  * @param {string} orderId
+ * @param {string} [reason] shown to the pharmacy and on the order
  * @returns {Promise<{ success: boolean }>}
  */
-export async function cancelOrder(orderId) {
+export async function cancelOrder(orderId, reason) {
   if (USE_MOCK) {
     await delay(500);
     const order = MOCK_ORDERS.find(o => o.id === orderId);
     if (order) {
       order.status = 'cancelled';
+      order.cancellationReason = reason;
       order.updatedAt = new Date().toISOString();
     }
     return { success: true };
   }
-  await api.delete(`/orders/${orderId}`);
+  await api.delete(`/orders/${orderId}`, { data: reason ? { reason } : {} });
   return { success: true };
 }

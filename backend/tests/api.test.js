@@ -226,6 +226,18 @@ describe('prescription orders', () => {
     assert.equal(ok.status, 200);
   });
 
+  it('stores the reason when a patient cancels their order', async () => {
+    const patient = await createUser();
+    const med = await createMedicine({ stock: 5 });
+    const auth = { Authorization: `Bearer ${tokenFor(patient)}` };
+    const order = await request(app).post('/api/orders').set(auth).send({ items: [{ medicineId: med._id.toString(), quantity: 2 }], shippingAddress: validAddress });
+    const res = await request(app).delete(`/api/orders/${order.body._id}`).set(auth).send({ reason: 'Ordered by mistake' });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.order.cancellationReason, 'Ordered by mistake');
+    const Medicine = require('../models/Medicine');
+    assert.equal((await Medicine.findById(med._id)).stock, 5);
+  });
+
   it('restocks when staff cancel an order, and cannot reopen it', async () => {
     const patient = await createUser();
     const pharmacist = await createUser({ role: 'pharmacist' });

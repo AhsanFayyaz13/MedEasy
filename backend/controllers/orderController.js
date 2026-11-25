@@ -174,7 +174,7 @@ exports.cancelOrder = async (req, res) => {
   // Flip status first (atomically) so a double-cancel can't restock twice.
   const cancelled = await Order.findOneAndUpdate(
     { _id: order._id, status: { $in: ['pending', 'confirmed'] } },
-    { $set: { status: 'cancelled' } },
+    { $set: { status: 'cancelled', ...(req.body?.reason ? { cancellationReason: req.body.reason } : {}) } },
     { returnDocument: 'after' }
   );
   if (!cancelled) {

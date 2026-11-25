@@ -16,7 +16,7 @@ router.get('/all', protect, authorizeRoles('pharmacist', 'admin'), validate({ qu
 router
   .route('/:id')
   .get(protect, validate({ params: idParam }), ctrl.getOrderById)
-  .delete(protect, validate({ params: idParam }), ctrl.cancelOrder);
+  .delete(protect, validate({ params: idParam, body: v.cancel }), ctrl.cancelOrder);
 
 router.put('/:id/status', protect, authorizeRoles('pharmacist', 'admin'), validate({ params: idParam, body: v.status }), ctrl.updateOrderStatus);
 

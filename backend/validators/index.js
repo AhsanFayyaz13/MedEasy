@@ -158,6 +158,7 @@ const orders = {
   }),
   status: z.object({ status: z.enum(ORDER_STATUSES, { message: 'Invalid status' }), reason: optionalText(500) }),
   listAll: z.object({ status: z.enum([...ORDER_STATUSES, 'all']).optional() }),
+  cancel: z.object({ reason: optionalText(500) }),
 };
 
 // ── Appointments ───────────────────────────────────────────────────
