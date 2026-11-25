@@ -162,6 +162,20 @@ describe('medicines', () => {
   });
 });
 
+describe('appointments', () => {
+  it('keeps the patient’s reason for the visit', async () => {
+    const patient = await createUser();
+    const doctor = await createUser({ role: 'doctor', isVerifiedProfile: true });
+    const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const res = await request(app)
+      .post('/api/appointments/book')
+      .set('Authorization', `Bearer ${tokenFor(patient)}`)
+      .send({ doctorId: doctor._id.toString(), date, time: '10:00', reason: 'Recurring headaches' });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.reason, 'Recurring headaches');
+  });
+});
+
 describe('orders', () => {
   it('uses database prices and decrements stock', async () => {
     const patient = await createUser();

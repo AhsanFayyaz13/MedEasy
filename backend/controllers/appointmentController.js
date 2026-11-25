@@ -5,7 +5,7 @@ const User = require('../models/User');
 // @route   POST /api/appointments/book
 // @access  Private (Patient)
 exports.bookAppointment = async (req, res) => {
-  const { doctorId, doctor, date, time } = req.body;
+  const { doctorId, doctor, date, time, reason } = req.body;
   const resolvedDoctorId = doctorId || doctor;
 
   // ── End-to-End Date Validation System ──
@@ -48,6 +48,7 @@ exports.bookAppointment = async (req, res) => {
     doctorId: resolvedDoctorId,
     date: bookingDate,
     time,
+    reason: reason || undefined,
     status: 'scheduled'
   });
 

@@ -24,6 +24,7 @@ const appointmentSchema = new mongoose.Schema({
     enum: ['scheduled', 'completed', 'cancelled'],
     default: 'scheduled'
   },
+  reason: { type: String, trim: true, maxlength: 500 }, // patient's reason for the visit
   consultationNotes: {
     type: String
   },

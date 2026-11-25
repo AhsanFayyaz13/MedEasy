@@ -1,79 +1,73 @@
 import { useState } from 'react';
-import { Card, Button, Form, Spinner } from 'react-bootstrap';
-import { FaCheckCircle, FaFilePrescription } from 'react-icons/fa';
+import { FiCheckCircle, FiFileText } from 'react-icons/fi';
+import { Button, Card, EmptyState, Select, Textarea } from '../../../components/ui';
+import { fmtDate } from './doctorShared';
 
-
-/* ═══════════════════ PRESCRIBE TAB ═════════════════════════════ */
-export default function PrescribeTab({ apts, handleIssueIndependent }) {
-  const [patientEmail, setPatientEmail] = useState('');
-  const [instructions, setInstructions] = useState('');
+/**
+ * Prescription pad. A prescription is always saved on an open appointment
+ * (completing it), so the patient receives it and it stays in their record.
+ */
+export default function PrescribeTab({ apts, handleIssueIndependent, setActive }) {
+  const open = apts.filter((a) => a.status === 'scheduled').sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const [aptId, setAptId] = useState('');
   const [notes, setNotes] = useState('');
+  const [rx, setRx] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Extract unique patients from appointments
-  const patientsList = Array.from(new Set(apts.map(a => a.patientEmail))).map(email => {
-    const apt = apts.find(a => a.patientEmail === email);
-    return { email: email, name: apt.patientName };
-  });
+  if (!open.length) {
+    return (
+      <EmptyState
+        icon={<FiFileText />}
+        title="No open consultations"
+        description="Prescriptions are issued from a consultation. When a patient books with you, you can prescribe here or from your schedule."
+        action={setActive && <Button variant="secondary" onClick={() => setActive('schedule')}>Open schedule</Button>}
+      />
+    );
+  }
 
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    if (!patientEmail) return;
+    const apt = open.find((a) => a.id === aptId);
+    if (!apt || !rx.trim()) return;
     setSaving(true);
-    const selectedPat = patientsList.find(p => p.email === patientEmail);
-    await handleIssueIndependent({
-      patientName: selectedPat.name,
-      patientEmail: selectedPat.email,
-      notes: notes,
-      prescription: instructions,
-    });
-    setSaving(false);
-    setPatientEmail('');
-    setInstructions('');
-    setNotes('');
+    try {
+      await handleIssueIndependent({ appointment: apt, notes: notes.trim(), prescription: rx.trim() });
+      setAptId('');
+      setNotes('');
+      setRx('');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <Card className="doc-card shadow-sm border-0">
-      <Card.Body className="p-4">
-        <h5 className="fw-bold text-dark mb-3"><FaFilePrescription className="text-primary me-2" /> Digital Prescription Pad</h5>
-        <p className="text-muted small">Write prescriptions and treatment plans directly to your registered patient's medical history files.</p>
-        
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label className="doc-label">Select Patient *</Form.Label>
-            <Form.Select required value={patientEmail} onChange={e => setPatientEmail(e.target.value)} className="rounded-10">
-              <option value="">-- Select Patient --</option>
-              {patientsList.map(p => (
-                <option key={p.email} value={p.email}>{p.name} ({p.email})</option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label className="doc-label">Diagnosis / Treatment Notes</Form.Label>
-            <Form.Control as="textarea" rows={3} placeholder="Enter diagnosis advice, physical findings, or general recommendations..." value={notes} onChange={e => setNotes(e.target.value)} className="rounded-10" />
-          </Form.Group>
-
-          <Form.Group className="mb-4">
-            <Form.Label className="doc-label">Prescription Instructions *</Form.Label>
-            <div className="rx-pad">
-              <div className="rx-pad-header">
-                <FaFilePrescription className="me-2 text-success" />
-                <strong>Rx Medications List</strong>
-                <span className="rx-pad-date ms-auto">Today</span>
-              </div>
-              <Form.Control required as="textarea" rows={5} className="rx-textarea" placeholder="e.g.&#10;Amoxicillin 500mg -- 3 times daily x 7 days&#10;Paracetamol 500mg -- as needed for pain&#10;&#10;(Write one medicine per line for clarity)" value={instructions} onChange={e => setInstructions(e.target.value)} />
-            </div>
-          </Form.Group>
-
-          <div className="d-flex justify-content-end">
-            <Button type="submit" className="btn-doc-action py-2 px-4 rounded-10" disabled={saving || !patientEmail || !instructions.trim()}>
-              {saving ? <Spinner size="sm" animation="border" /> : <><FaCheckCircle className="me-1" /> Issue E-Prescription</>}
-            </Button>
-          </div>
-        </Form>
-      </Card.Body>
+    <Card as="section" aria-labelledby="rx-pad-title" className="doc-pad">
+      <h2 id="rx-pad-title" className="doc-pad__title"><FiFileText aria-hidden="true" /> Prescription pad</h2>
+      <p className="doc-muted">Issuing a prescription completes the consultation and sends it to the patient.</p>
+      <form onSubmit={submit}>
+        <Select
+          label="Consultation"
+          required
+          placeholder="Choose a patient’s open appointment"
+          options={open.map((a) => ({ value: a.id, label: `${a.patientName} — ${fmtDate(a.date)}, ${a.time}${a.reason ? ` (${a.reason})` : ''}` }))}
+          value={aptId}
+          onChange={(e) => setAptId(e.target.value)}
+        />
+        <Textarea label="Diagnosis and advice" rows={3} maxLength={5000} placeholder="Findings, diagnosis, lifestyle advice, follow-up…" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Textarea
+          label="Prescription"
+          required
+          rows={6}
+          maxLength={5000}
+          className="doc-pad__rx"
+          placeholder={'One medicine per line, e.g.\nAmoxicillin 500 mg — 1 capsule three times daily for 7 days\nParacetamol 500 mg — 1–2 tablets when needed, max 8 a day'}
+          value={rx}
+          onChange={(e) => setRx(e.target.value)}
+        />
+        <Button type="submit" loading={saving} disabled={!aptId || !rx.trim()} leftIcon={<FiCheckCircle aria-hidden="true" />}>
+          Issue prescription
+        </Button>
+      </form>
     </Card>
   );
 }

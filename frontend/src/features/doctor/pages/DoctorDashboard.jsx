@@ -75,8 +75,9 @@ export default function DoctorDashboard() {
 
   const handleComplete = async ({ notes, prescription }) => {
     try {
-      const updated = await completeAppointment(completing.id, { notes, prescription });
-      setApts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      await completeAppointment(completing.id, { notes, prescription });
+      // The API returns the raw document (no mapped id/patientName), so merge into the existing row.
+      setApts((prev) => prev.map((a) => (a.id === completing.id ? { ...a, status: 'completed', notes, prescription } : a)));
       toast.success('Consultation recorded and e-prescription issued.');
       notifyPatient(completing, `E-prescription issued: Dr. ${doctorName} issued a prescription for appointment #APT-${shortId(completing.id)}.`, 'prescription');
       setCompleting(null);
@@ -86,7 +87,6 @@ export default function DoctorDashboard() {
   };
 
   const handleCancel = async (id) => {
-    if (!window.confirm('Cancel this appointment? The patient will be notified.')) return;
     try {
       await cancelAppointment(id);
       const target = apts.find((a) => a.id === id);
@@ -98,31 +98,13 @@ export default function DoctorDashboard() {
     }
   };
 
-  /** Prescription pad: completes the patient's open appointment, or records a standalone prescription. */
-  const handleIssueIndependent = async (data) => {
+  /** Prescription pad: saves the prescription on the chosen open appointment (completing it). */
+  const handleIssueIndependent = async ({ appointment, notes, prescription }) => {
     try {
-      const scheduled = apts.find((a) => a.patientEmail === data.patientEmail && a.status === 'scheduled');
-      if (scheduled) {
-        const updated = await completeAppointment(scheduled.id, { notes: data.notes, prescription: data.prescription });
-        setApts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-        toast.success('Prescription issued and the open appointment was completed.');
-      } else {
-        setApts((prev) => [
-          {
-            id: `local-${Date.now()}`,
-            patientName: data.patientName,
-            patientEmail: data.patientEmail,
-            date: new Date().toISOString().slice(0, 10),
-            time: '12:00 PM',
-            reason: 'Direct e-prescription',
-            status: 'completed',
-            notes: data.notes,
-            prescription: data.prescription,
-          },
-          ...prev,
-        ]);
-        toast.success('E-prescription issued.');
-      }
+      await completeAppointment(appointment.id, { notes, prescription });
+      setApts((prev) => prev.map((a) => (a.id === appointment.id ? { ...a, status: 'completed', notes, prescription } : a)));
+      toast.success(`Prescription issued to ${appointment.patientName}.`);
+      notifyPatient(appointment, `E-prescription issued: Dr. ${doctorName} issued a prescription for appointment #APT-${shortId(appointment.id)}.`, 'prescription');
       setActive('schedule');
     } catch (e) {
       toast.error(e.message);
@@ -145,7 +127,7 @@ export default function DoctorDashboard() {
         {active === 'schedule' && (
           <ScheduleTab apts={apts} loading={loading} openComplete={setCompleting} handleCancel={handleCancel} setViewRx={setViewRx} setChatApt={setChatApt} />
         )}
-        {active === 'prescribe' && <PrescribeTab apts={apts} handleIssueIndependent={handleIssueIndependent} />}
+        {active === 'prescribe' && <PrescribeTab apts={apts} handleIssueIndependent={handleIssueIndependent} setActive={setActive} />}
         {active === 'patients' && <PatientsTab apts={apts} />}
       </DashboardLayout>
 

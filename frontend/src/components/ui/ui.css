@@ -670,6 +670,12 @@
     clip: rect(0, 0, 0, 0);
   }
 
+  .ui-table,
+  .ui-table tbody {
+    display: block;
+    width: 100%;
+  }
+
   .ui-table tbody tr {
     display: block;
     margin-bottom: var(--space-3);
@@ -688,7 +694,14 @@
     text-align: right;
   }
 
+  /* let cell content shrink and wrap beside its label instead of overflowing */
+  .ui-table td > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .ui-table td::before {
+    flex-shrink: 0;
     content: attr(data-label);
     color: var(--text-muted);
     font-size: var(--text-xs);

@@ -163,7 +163,7 @@ const orders = {
 const time = z.string().trim().max(20);
 const appointments = {
   book: z
-    .object({ doctorId: objectId.optional(), doctor: objectId.optional(), date: z.string().min(1, 'Appointment date is required.'), time })
+    .object({ doctorId: objectId.optional(), doctor: objectId.optional(), date: z.string().min(1, 'Appointment date is required.'), time, reason: optionalText(500) })
     .refine((d) => d.doctorId || d.doctor, { message: 'Doctor is required', path: ['doctorId'] }),
   update: z.object({
     status: z.enum(['scheduled', 'completed', 'cancelled']).optional(),
