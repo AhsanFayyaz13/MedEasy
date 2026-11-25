@@ -1,21 +1,19 @@
 import { Link } from 'react-router-dom';
-import { FaFacebookF, FaGithub, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
+import { FaFacebookF, FaInstagram } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
-import { FiMail, FiMapPin, FiPhone } from 'react-icons/fi';
+import { FiMail, FiPhone } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import { BUSINESS, LEGAL_LINKS } from '../../../lib/business';
 import './Footer.css';
 
 /**
- * Social profiles. Leave `href` empty to hide an icon until the profile exists
- * (empty "#" links are an accessibility anti-pattern).
+ * MedEasy's own social profiles. Fill in `href` once a page exists; empty ones are hidden
+ * (and the whole row is hidden while none are set).
  */
 const SOCIAL_LINKS = [
   { label: 'Facebook', icon: FaFacebookF, href: '' },
   { label: 'X (Twitter)', icon: FaXTwitter, href: '' },
   { label: 'Instagram', icon: FaInstagram, href: '' },
-  { label: 'LinkedIn', icon: FaLinkedinIn, href: 'https://www.linkedin.com/in/ahsan-fayyaz-a0a3a429a' },
-  { label: 'GitHub', icon: FaGithub, href: 'https://github.com' },
 ];
 
 export default function AppFooter() {
@@ -36,15 +34,17 @@ export default function AppFooter() {
             <p className="site-footer__tagline">
               Your trusted digital pharmacy — medicines, appointments and prescriptions at your fingertips.
             </p>
-            <ul className="site-footer__socials">
-              {SOCIAL_LINKS.filter((s) => s.href).map(({ label, icon: Icon, href }) => (
-                <li key={label}>
-                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${BUSINESS.brand} on ${label}`}>
-                    <Icon aria-hidden="true" />
-                  </a>
-                </li>
-              ))}
-            </ul>
+            {SOCIAL_LINKS.some((s) => s.href) && (
+              <ul className="site-footer__socials">
+                {SOCIAL_LINKS.filter((s) => s.href).map(({ label, icon: Icon, href }) => (
+                  <li key={label}>
+                    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${BUSINESS.brand} on ${label}`}>
+                      <Icon aria-hidden="true" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <nav aria-label="Quick links">
@@ -76,10 +76,6 @@ export default function AppFooter() {
           <div>
             <h2 className="site-footer__heading">Contact us</h2>
             <address className="site-footer__contact">
-              <p>
-                <FiMapPin aria-hidden="true" />
-                <span>{BUSINESS.address}</span>
-              </p>
               <p>
                 <FiPhone aria-hidden="true" />
                 <a href={`tel:${BUSINESS.phoneHref}`}>{BUSINESS.phone}</a>
