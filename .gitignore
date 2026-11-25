@@ -8,3 +8,6 @@ backend/uploads/
 .vscode/
 .postman/
 postman/
+# Example env files are documentation, not secrets
+!.env.example
+!**/.env.example
