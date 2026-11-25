@@ -37,4 +37,7 @@ const appointmentSchema = new mongoose.Schema({
   timestamps: true
 });
 
+appointmentSchema.index({ doctorId: 1, date: 1 });
+appointmentSchema.index({ patientId: 1, date: 1 });
+
 module.exports = mongoose.model('Appointment', appointmentSchema);

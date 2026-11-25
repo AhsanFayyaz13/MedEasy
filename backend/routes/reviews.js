@@ -1,20 +1,17 @@
 const express = require('express');
-const router = express.Router();
-const {
-  addReview,
-  getReviews,
-  getAverageRating
-} = require('../controllers/reviewController');
+const ctrl = require('../controllers/reviewController');
 const { protect } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const { reviews: v } = require('../validators');
 
-router.route('/')
-  .get(getReviews)
-  .post(protect, addReview);
+const router = express.Router();
 
-router.route('/:targetType/:targetId')
-  .get(getReviews);
+router
+  .route('/')
+  .get(validate({ query: v.list }), ctrl.getReviews)
+  .post(protect, validate({ body: v.add }), ctrl.addReview);
 
-router.route('/:targetType/:targetId/average')
-  .get(getAverageRating);
+router.get('/:targetType/:targetId', validate({ params: v.targetParams, query: v.list }), ctrl.getReviews);
+router.get('/:targetType/:targetId/average', validate({ params: v.targetParams }), ctrl.getAverageRating);
 
 module.exports = router;

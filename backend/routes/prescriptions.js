@@ -1,24 +1,24 @@
 const express = require('express');
-const router = express.Router();
-const {
-  uploadPrescription,
-  getPrescriptions,
-  verifyPrescription,
-  deletePrescription
-} = require('../controllers/prescriptionController');
+const ctrl = require('../controllers/prescriptionController');
 const { protect, authorizeRoles } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { validate } = require('../middleware/validate');
+const { uploadLimiter } = require('../middleware/security');
+const { upload } = require('../middleware/upload');
+const { idParam, prescriptions: v } = require('../validators');
 
-router.route('/')
-  .get(protect, getPrescriptions);
+const router = express.Router();
 
-router.route('/upload')
-  .post(protect, authorizeRoles('patient'), upload.single('prescription'), uploadPrescription);
-
-router.route('/:id')
-  .delete(protect, authorizeRoles('patient'), deletePrescription);
-
-router.route('/:id/verify')
-  .put(protect, authorizeRoles('pharmacist', 'admin'), verifyPrescription);
+router.get('/', protect, ctrl.getPrescriptions);
+router.post(
+  '/upload',
+  protect,
+  authorizeRoles('patient'),
+  uploadLimiter,
+  upload.single('prescription'),
+  validate({ body: v.upload }),
+  ctrl.uploadPrescription
+);
+router.delete('/:id', protect, authorizeRoles('patient'), validate({ params: idParam }), ctrl.deletePrescription);
+router.put('/:id/verify', protect, authorizeRoles('pharmacist', 'admin'), validate({ params: idParam, body: v.verify }), ctrl.verifyPrescription);
 
 module.exports = router;

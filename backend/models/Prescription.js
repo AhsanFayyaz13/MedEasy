@@ -27,4 +27,7 @@ const prescriptionSchema = new mongoose.Schema({
   timestamps: true
 });
 
+prescriptionSchema.index({ userId: 1, createdAt: -1 });
+prescriptionSchema.index({ status: 1 });
+
 module.exports = mongoose.model('Prescription', prescriptionSchema);

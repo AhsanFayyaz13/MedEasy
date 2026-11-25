@@ -1,38 +1,26 @@
 const express = require('express');
-const router = express.Router();
-const {
-  salesReport,
-  inventoryReport,
-  userStats,
-  prescriptionAnalytics,
-  listPendingProfessionals,
-  approveProfessional,
-  declineProfessional,
-  listAllUsers,
-  createAdminUser,
-  toggleUserStatus,
-  deleteUser,
-  updateUserRole
-} = require('../controllers/adminController');
+const ctrl = require('../controllers/adminController');
 const { protect, authorizeRoles } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const { idParam, admin: v } = require('../validators');
 
-// Apply middleware to all routes in this file
-router.use(protect);
-router.use(authorizeRoles('admin'));
+const router = express.Router();
 
-router.get('/sales', salesReport);
-router.get('/inventory', inventoryReport);
-router.get('/users', userStats);
-router.get('/prescriptions/analytics', prescriptionAnalytics);
+// Every admin route requires an authenticated admin.
+router.use(protect, authorizeRoles('admin'));
 
-router.get('/users/all', listAllUsers);
-router.post('/users', createAdminUser);
-router.put('/users/:id/status', toggleUserStatus);
-router.put('/users/:id/role', updateUserRole);
-router.delete('/users/:id', deleteUser);
+router.get('/sales', ctrl.salesReport);
+router.get('/inventory', ctrl.inventoryReport);
+router.get('/users', ctrl.userStats);
+router.get('/prescriptions/analytics', ctrl.prescriptionAnalytics);
 
-router.get('/users/pending', listPendingProfessionals);
-router.put('/users/:id/approve', approveProfessional);
-router.put('/users/:id/decline', declineProfessional);
+router.get('/users/all', ctrl.listAllUsers);
+router.get('/users/pending', ctrl.listPendingProfessionals);
+router.post('/users', validate({ body: v.createUser }), ctrl.createAdminUser);
+router.put('/users/:id/status', validate({ params: idParam }), ctrl.toggleUserStatus);
+router.put('/users/:id/role', validate({ params: idParam, body: v.role }), ctrl.updateUserRole);
+router.put('/users/:id/approve', validate({ params: idParam }), ctrl.approveProfessional);
+router.put('/users/:id/decline', validate({ params: idParam, body: v.decline }), ctrl.declineProfessional);
+router.delete('/users/:id', validate({ params: idParam }), ctrl.deleteUser);
 
 module.exports = router;

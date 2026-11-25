@@ -34,4 +34,6 @@ const contactSchema = new mongoose.Schema({
   timestamps: true
 });
 
+contactSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Contact', contactSchema);

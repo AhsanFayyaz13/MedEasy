@@ -22,10 +22,16 @@ const reviewSchema = new mongoose.Schema({
     max: 5
   },
   comment: {
-    type: String
+    type: String,
+    trim: true,
+    maxlength: 2000
   }
 }, {
   timestamps: true
 });
+
+// One review per user per target; fast lookups by target.
+reviewSchema.index({ userId: 1, targetType: 1, targetId: 1 }, { unique: true });
+reviewSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Review', reviewSchema);

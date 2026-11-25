@@ -1,55 +1,31 @@
 const express = require('express');
-const router = express.Router();
-const { uploadToCloudinary } = require('../utils/cloudinary');
-const { 
-  register, 
-  login, 
-  getProfile, 
-  updateProfile,
-  uploadProfilePhoto,
-  verifyRegistration, 
-  resendVerificationCode,
-  updatePharmacistDetails,
-  removePharmacistDetails,
-  uploadPharmacistPhoto,
-  forgotPassword,
-  resetPassword
-} = require('../controllers/authController');
+const ctrl = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
-const { requireFields } = require('../middleware/validate');
-const upload = require('../middleware/upload');
+const { validate } = require('../middleware/validate');
+const { authLimiter, uploadLimiter } = require('../middleware/security');
+const { imageUpload, upload } = require('../middleware/upload');
+const { auth: v } = require('../validators');
 
-router.post('/register', requireFields(['name', 'phone', 'password', 'verificationChannel']), register);
-router.post('/verify-registration', requireFields(['phone', 'code']), verifyRegistration);
-router.post('/resend-verification', requireFields(['phone']), resendVerificationCode);
-router.post('/login', requireFields(['password']), login);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
-router.get('/profile', protect, getProfile);
-router.put('/profile', protect, updateProfile);
-router.post('/profile/photo', protect, upload.single('profilePhoto'), uploadProfilePhoto);
-router.put('/profile/pharmacist', protect, updatePharmacistDetails);
-router.delete('/profile/pharmacist', protect, removePharmacistDetails);
-router.post('/upload-pharmacist-photo', protect, upload.single('pharmacistPhoto'), uploadPharmacistPhoto);
-router.post('/upload-pharmacy-image', upload.single('pharmacyImage'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded or invalid format. Images/PDFs only.' });
-    }
+const router = express.Router();
 
-    // Upload to Cloudinary
-    const secureUrl = await uploadToCloudinary(req.file.path, {
-      folder: `${process.env.CLOUDINARY_FOLDER || 'Medeasy Uploads'}/pharmacy_images`
-    });
+// Public auth flows — strictly rate limited
+router.post('/register', authLimiter, validate({ body: v.register }), ctrl.register);
+router.post('/verify-registration', authLimiter, validate({ body: v.verifyRegistration }), ctrl.verifyRegistration);
+router.post('/resend-verification', authLimiter, validate({ body: v.resend }), ctrl.resendVerificationCode);
+router.post('/login', authLimiter, validate({ body: v.login }), ctrl.login);
+router.post('/forgot-password', authLimiter, validate({ body: v.forgotPassword }), ctrl.forgotPassword);
+router.post('/reset-password', authLimiter, validate({ body: v.resetPassword }), ctrl.resetPassword);
 
-    res.status(200).json({ filePath: secureUrl });
-  } catch (error) {
-    if (req.file && req.file.path) {
-      const fs = require('fs');
-      try { fs.unlinkSync(req.file.path); } catch (e) {}
-    }
-    res.status(500).json({ message: error.message });
-  }
-});
+// Pharmacy storefront photo is uploaded *before* the account exists (registration step),
+// so it stays public — but images only, small, and rate limited.
+router.post('/upload-pharmacy-image', uploadLimiter, imageUpload.single('pharmacyImage'), ctrl.uploadPharmacyImage);
+
+// Authenticated profile management
+router.get('/profile', protect, ctrl.getProfile);
+router.put('/profile', protect, validate({ body: v.updateProfile }), ctrl.updateProfile);
+router.post('/profile/photo', protect, uploadLimiter, imageUpload.single('profilePhoto'), ctrl.uploadProfilePhoto);
+router.put('/profile/pharmacist', protect, validate({ body: v.pharmacistDetails }), ctrl.updatePharmacistDetails);
+router.delete('/profile/pharmacist', protect, ctrl.removePharmacistDetails);
+router.post('/upload-pharmacist-photo', protect, uploadLimiter, upload.single('pharmacistPhoto'), ctrl.uploadPharmacistPhoto);
 
 module.exports = router;

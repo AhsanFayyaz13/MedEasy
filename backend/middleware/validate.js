@@ -1,12 +1,41 @@
-// Simple request body validators
-function requireFields(fields) {
+/**
+ * Request validation with Zod.
+ *
+ *   router.post('/', validate({ body: createOrderSchema, params: idParam }), handler)
+ *
+ * Parsed (coerced, trimmed, unknown-keys-stripped) values replace the originals,
+ * so handlers only ever see validated data.
+ */
+const AppError = require('../utils/AppError');
+
+function validate(schemas) {
   return (req, res, next) => {
-    const missing = fields.filter((f) => !req.body[f]);
-    if (missing.length > 0) {
-      return res.status(400).json({ message: `Missing required fields: ${missing.join(', ')}` });
+    for (const part of ['params', 'query', 'body']) {
+      const schema = schemas[part];
+      if (!schema) continue;
+      const result = schema.safeParse(req[part] ?? {});
+      if (!result.success) {
+        const details = result.error.issues.map((i) => ({ path: i.path.join('.') || part, message: i.message }));
+        return next(new AppError(400, details[0]?.message || 'Invalid request', 'VALIDATION_ERROR', details));
+      }
+      if (part === 'query') {
+        // Express 5 exposes req.query as a getter; override it with validated data.
+        Object.defineProperty(req, 'query', { value: result.data, writable: true, configurable: true });
+      } else {
+        req[part] = result.data;
+      }
     }
-    next();
+    return next();
   };
 }
 
-module.exports = { requireFields };
+/** Legacy helper kept for compatibility: ensures fields are present and non-empty. */
+function requireFields(fields) {
+  return (req, res, next) => {
+    const missing = fields.filter((f) => req.body?.[f] === undefined || req.body?.[f] === '');
+    if (missing.length) return next(new AppError(400, `Missing required fields: ${missing.join(', ')}`));
+    return next();
+  };
+}
+
+module.exports = { validate, requireFields };

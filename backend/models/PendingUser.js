@@ -4,7 +4,7 @@ const pendingUserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String },
   phone: { type: String, required: true },
-  password: { type: String, required: true },
+  password: { type: String, required: true }, // bcrypt hash
   role: { 
     type: String, 
     enum: ['patient', 'pharmacist', 'doctor', 'admin', 'pharmacy'],
@@ -27,10 +27,13 @@ const pendingUserSchema = new mongoose.Schema({
   clinicAddress: { type: String },
   availableDays: { type: [String], default: [] },
   consultationFee: { type: Number },
-  verificationCode: { type: String, required: true },
+  verificationCode: { type: String, required: true }, // SHA-256 hash of the OTP, never the OTP itself
+  verificationAttempts: { type: Number, default: 0 },
   verificationCodeExpires: { type: Date, required: true },
   verificationChannel: { type: String, enum: ['email', 'phone'], required: true },
   createdAt: { type: Date, default: Date.now, expires: 900 } // TTL index: auto-deletes in 15 minutes (900 seconds)
 });
+
+pendingUserSchema.index({ phone: 1 });
 
 module.exports = mongoose.model('PendingUser', pendingUserSchema);

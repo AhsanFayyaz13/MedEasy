@@ -1,9 +1,12 @@
 const express = require('express');
-const router = express.Router();
 const { submitContactMessage } = require('../controllers/contactController');
 const { protect } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const { uploadLimiter } = require('../middleware/security');
+const { contact } = require('../validators');
 
-router.route('/')
-  .post(protect, submitContactMessage);
+const router = express.Router();
+
+router.post('/', protect, uploadLimiter, validate({ body: contact }), submitContactMessage);
 
 module.exports = router;

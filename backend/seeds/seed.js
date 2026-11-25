@@ -15,9 +15,8 @@ const Prescription = require('../models/Prescription');
 const PendingUser = require('../models/PendingUser');
 const bcrypt = require('bcryptjs');
 
-async function seed() {
-  await connectDB();
-
+/** Clear collections and insert demo users + medicines. Assumes an open mongoose connection. */
+async function seedData() {
   // Clear all collections to prevent old mock ID CastErrors
   await User.deleteMany({});
   await Medicine.deleteMany({});
@@ -86,10 +85,18 @@ async function seed() {
   }
 
   console.log('Seed completed.');
-  process.exit(0);
 }
 
-seed().catch((err) => {
-  console.error('Seed error:', err);
-  process.exit(1);
-});
+module.exports = { seedData };
+
+// CLI: `npm run seed`
+if (require.main === module) {
+  connectDB()
+    .then(seedData)
+    .then(() => mongoose.disconnect())
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('Seed error:', err);
+      process.exit(1);
+    });
+}

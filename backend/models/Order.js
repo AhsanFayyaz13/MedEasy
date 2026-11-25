@@ -12,8 +12,8 @@ const orderSchema = new mongoose.Schema({
       required: true,
       ref: 'Medicine'
     },
-    quantity: { type: Number, required: true },
-    price: { type: Number, required: true }
+    quantity: { type: Number, required: true, min: 1, max: 100 },
+    price: { type: Number, required: true, min: 0 }
   }],
   prescriptionId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -21,7 +21,8 @@ const orderSchema = new mongoose.Schema({
   },
   totalAmount: {
     type: Number,
-    required: true
+    required: true,
+    min: 0
   },
   status: {
     type: String,
@@ -44,5 +45,8 @@ const orderSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', orderSchema);

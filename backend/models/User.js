@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, unique: true, sparse: true },
+  name: { type: String, required: true, trim: true, maxlength: 120 },
+  email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   role: { 
     type: String, 
@@ -60,18 +60,30 @@ const userSchema = new mongoose.Schema({
   consultationFee: { type: Number }, // Consultation fee in PKR
   
   // Password recovery fields
-  resetPasswordCode: { type: String },
+  resetPasswordCode: { type: String }, // SHA-256 hash of the OTP
+  resetPasswordAttempts: { type: Number, default: 0 },
   resetPasswordExpires: { type: Date },
 
-  createdAt: { type: Date, default: Date.now }
+}, {
+  timestamps: true
 });
+
+userSchema.index({ role: 1, isVerifiedProfile: 1 });
+userSchema.index({ 'pharmacistDetails.email': 1 }, { sparse: true });
+userSchema.index({ 'pharmacistDetails.status': 1 }, { sparse: true });
+
+const BCRYPT_HASH = /^\$2[aby]\$\d{2}\$/;
 
 // Hash password before saving
 userSchema.pre('save', async function() {
   if (!this.isModified('password')) {
     return;
   }
-  const salt = await bcrypt.genSalt(10);
+  // Already hashed (e.g. copied from a PendingUser) — don't hash twice.
+  if (BCRYPT_HASH.test(this.password)) {
+    return;
+  }
+  const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
 });
 

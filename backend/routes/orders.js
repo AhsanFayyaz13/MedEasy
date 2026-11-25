@@ -1,26 +1,23 @@
 const express = require('express');
-const router = express.Router();
-const {
-  placeOrder,
-  getMyOrders,
-  getOrderById,
-  updateOrderStatus,
-  cancelOrder
-} = require('../controllers/orderController');
+const ctrl = require('../controllers/orderController');
 const { protect, authorizeRoles } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const { idParam, orders: v } = require('../validators');
 
-router.route('/')
-  .post(protect, placeOrder)
-  .get(protect, getMyOrders);
+const router = express.Router();
 
-router.route('/all')
-  .get(protect, authorizeRoles('pharmacist', 'admin'), require('../controllers/orderController').getAllOrders);
+router
+  .route('/')
+  .post(protect, authorizeRoles('patient'), validate({ body: v.place }), ctrl.placeOrder)
+  .get(protect, ctrl.getMyOrders);
 
-router.route('/:id')
-  .get(protect, getOrderById)
-  .delete(protect, cancelOrder);
+router.get('/all', protect, authorizeRoles('pharmacist', 'admin'), validate({ query: v.listAll }), ctrl.getAllOrders);
 
-router.route('/:id/status')
-  .put(protect, authorizeRoles('pharmacist', 'admin'), updateOrderStatus);
+router
+  .route('/:id')
+  .get(protect, validate({ params: idParam }), ctrl.getOrderById)
+  .delete(protect, validate({ params: idParam }), ctrl.cancelOrder);
+
+router.put('/:id/status', protect, authorizeRoles('pharmacist', 'admin'), validate({ params: idParam, body: v.status }), ctrl.updateOrderStatus);
 
 module.exports = router;

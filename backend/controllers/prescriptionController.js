@@ -9,6 +9,9 @@ exports.uploadPrescription = async (req, res) => {
     let fileUrl = '';
 
     if (req.body.fileUrl) {
+      if (!/^https:\/\//i.test(req.body.fileUrl)) {
+        return res.status(400).json({ message: 'Prescription URL must use https' });
+      }
       fileUrl = req.body.fileUrl;
     } else if (req.file) {
       // Upload to Cloudinary
@@ -29,9 +32,9 @@ exports.uploadPrescription = async (req, res) => {
   } catch (error) {
     if (req.file && req.file.path) {
       const fs = require('fs');
-      try { fs.unlinkSync(req.file.path); } catch (e) {}
+      try { fs.unlinkSync(req.file.path); } catch { /* already removed */ }
     }
-    res.status(500).json({ message: error.message });
+    throw error;
   }
 };
 
@@ -39,16 +42,12 @@ exports.uploadPrescription = async (req, res) => {
 // @route   GET /api/prescriptions
 // @access  Private
 exports.getPrescriptions = async (req, res) => {
-  try {
-    if (req.user.role === 'pharmacist' || req.user.role === 'pharmacy' || req.user.role === 'admin') {
-      const prescriptions = await Prescription.find({ status: 'pending' }).populate('userId', 'name email');
-      return res.json(prescriptions);
-    } else {
-      const prescriptions = await Prescription.find({ userId: req.user._id });
-      return res.json(prescriptions);
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (req.user.role === 'pharmacist' || req.user.role === 'pharmacy' || req.user.role === 'admin') {
+    const prescriptions = await Prescription.find({ status: 'pending' }).populate('userId', 'name email');
+    return res.json(prescriptions);
+  } else {
+    const prescriptions = await Prescription.find({ userId: req.user._id });
+    return res.json(prescriptions);
   }
 };
 
@@ -56,23 +55,19 @@ exports.getPrescriptions = async (req, res) => {
 // @route   PUT /api/prescriptions/:id/verify
 // @access  Private (Pharmacist)
 exports.verifyPrescription = async (req, res) => {
-  try {
-    const { status, doctorId } = req.body;
-    const prescription = await Prescription.findById(req.params.id);
+  const { status, doctorId } = req.body;
+  const prescription = await Prescription.findById(req.params.id);
 
-    if (prescription) {
-      prescription.status = status || prescription.status;
-      if (doctorId) {
-        prescription.doctorId = doctorId;
-      }
-
-      const updatedPrescription = await prescription.save();
-      res.json(updatedPrescription);
-    } else {
-      res.status(404).json({ message: 'Prescription not found' });
+  if (prescription) {
+    prescription.status = status; // validated enum
+    if (doctorId) {
+      prescription.doctorId = doctorId;
     }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+
+    const updatedPrescription = await prescription.save();
+    res.json(updatedPrescription);
+  } else {
+    res.status(404).json({ message: 'Prescription not found' });
   }
 };
 
@@ -80,26 +75,22 @@ exports.verifyPrescription = async (req, res) => {
 // @route   DELETE /api/prescriptions/:id
 // @access  Private (Patient/Owner)
 exports.deletePrescription = async (req, res) => {
-  try {
-    const prescription = await Prescription.findById(req.params.id);
+  const prescription = await Prescription.findById(req.params.id);
 
-    if (!prescription) {
-      return res.status(404).json({ message: 'Prescription not found' });
-    }
-
-    // Ensure the user owns the prescription
-    if (prescription.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to delete this prescription' });
-    }
-
-    // Only allow deleting pending prescriptions
-    if (prescription.status !== 'pending') {
-      return res.status(400).json({ message: 'Only pending prescriptions can be deleted' });
-    }
-
-    await prescription.deleteOne();
-    res.json({ message: 'Prescription removed successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (!prescription) {
+    return res.status(404).json({ message: 'Prescription not found' });
   }
+
+  // Ensure the user owns the prescription
+  if (prescription.userId.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ message: 'Not authorized to delete this prescription' });
+  }
+
+  // Only allow deleting pending prescriptions
+  if (prescription.status !== 'pending') {
+    return res.status(400).json({ message: 'Only pending prescriptions can be deleted' });
+  }
+
+  await prescription.deleteOne();
+  res.json({ message: 'Prescription removed successfully' });
 };

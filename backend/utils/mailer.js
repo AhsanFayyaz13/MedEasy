@@ -15,7 +15,7 @@ exports.sendVerificationEmail = async (recipientEmail, otpCode) => {
   const senderEmail = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
 
   if (!resendApiKey) {
-    console.log(`[Diagnostic Fallback] Resend API Key not set. Code for ${recipientEmail}: ${otpCode}`);
+    if (process.env.NODE_ENV === 'development') console.log(`[Diagnostic Fallback] Resend API Key not set. Code for ${recipientEmail}: ${otpCode}`);
     return;
   }
 
@@ -73,7 +73,7 @@ exports.sendResetPasswordEmail = async (recipientEmail, resetCode) => {
   const senderEmail = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
 
   if (!resendApiKey) {
-    console.log(`[Diagnostic Fallback] Resend API Key not set. Reset code for ${recipientEmail}: ${resetCode}`);
+    if (process.env.NODE_ENV === 'development') console.log(`[Diagnostic Fallback] Resend API Key not set. Reset code for ${recipientEmail}: ${resetCode}`);
     return;
   }
 
@@ -135,7 +135,7 @@ exports.sendContactEmail = async (fromName, fromEmail, phone, subject, message) 
   const recipientEmail = 'medeasy@medeasy.systems';
 
   if (!resendApiKey) {
-    console.log(`[Diagnostic Fallback] Resend API Key not set. Contact Form Message:
+    if (process.env.NODE_ENV === 'development') console.log(`[Diagnostic Fallback] Resend API Key not set. Contact Form Message:
 Name: ${fromName}
 Email: ${fromEmail}
 Phone: ${phone}
