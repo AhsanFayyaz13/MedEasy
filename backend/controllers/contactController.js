@@ -3,7 +3,7 @@ const { sendContactEmail } = require('../utils/mailer');
 
 // @desc    Submit a contact query
 // @route   POST /api/contacts
-// @access  Private
+// @access  Public (signed-in users are linked to their account)
 exports.submitContactMessage = async (req, res) => {
   try {
     const { name, email, phone, subject, message } = req.body;
@@ -14,19 +14,19 @@ exports.submitContactMessage = async (req, res) => {
     }
 
     // Role check: Admin is not allowed to submit contact messages
-    if (req.user.role === 'admin') {
+    if (req.user?.role === 'admin') {
       return res.status(403).json({ message: 'Administrators are not allowed to submit contact requests.' });
     }
 
     // Save submission to MongoDB
     const contact = new Contact({
-      userId: req.user._id,
+      userId: req.user?._id,
       name,
       email,
       phone,
       subject,
       message,
-      role: req.user.role
+      role: req.user?.role || 'guest'
     });
 
     const savedContact = await contact.save();

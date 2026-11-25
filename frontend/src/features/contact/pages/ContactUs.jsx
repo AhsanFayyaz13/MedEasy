@@ -4,7 +4,7 @@ import { FiCheckCircle, FiMail, FiMapPin, FiPhone, FiSend } from 'react-icons/fi
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { submitContactMessage } from '../../../services/api/contactService';
-import { Avatar, Button, Card, Input, PageHeader, Select, Textarea } from '../../../components/ui';
+import { Alert, Avatar, Button, Card, Input, PageHeader, Select, Textarea } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import { BUSINESS } from '../../../lib/business';
 import './ContactUs.css';
@@ -20,8 +20,9 @@ const SUBJECTS = [
 ];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validate({ email, subject, message }) {
+function validate({ name, email, subject, message }, isGuest) {
   const e = {};
+  if (isGuest && name.trim().length < 2) e.name = 'Please tell us your name.';
   if (!email.trim()) e.email = 'We need an email address to reply to you.';
   else if (!EMAIL_RE.test(email.trim())) e.email = 'Please enter a valid email address.';
   if (!subject) e.subject = 'Please choose a topic.';
@@ -29,25 +30,27 @@ function validate({ email, subject, message }) {
   return e;
 }
 
-/** Support form for signed-in users (name/phone come from the account). */
+/** Support form. Signed-in users' name and phone come from their account; visitors type them. */
 export default function ContactUs() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, userRole } = useAuth();
+  const isGuest = !isAuthenticated;
   const { toast } = useToast();
   const accountEmail = user?.email || '';
 
-  const [fields, setFields] = useState({ email: accountEmail, subject: '', message: '' });
+  const blank = { name: '', phone: '', email: accountEmail, subject: '', message: '' };
+  const [fields, setFields] = useState(blank);
   const [touched, setTouched] = useState({});
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const errors = validate(fields);
+  const errors = validate(fields, isGuest);
   const shown = (k) => (touched[k] ? errors[k] : undefined);
   const set = (k) => (e) => setFields((f) => ({ ...f, [k]: e.target.value }));
   const blur = (k) => () => setTouched((t) => ({ ...t, [k]: true }));
 
   const submit = async (e) => {
     e.preventDefault();
-    setTouched({ email: true, subject: true, message: true });
+    setTouched({ name: true, email: true, subject: true, message: true });
     if (Object.keys(errors).length) {
       document.querySelector('.contact-form [aria-invalid="true"]')?.focus();
       return;
@@ -55,9 +58,9 @@ export default function ContactUs() {
     setSending(true);
     try {
       await submitContactMessage({
-        name: user?.name || 'MedEasy user',
+        name: isGuest ? fields.name.trim() : user?.name || 'MedEasy user',
         email: fields.email.trim(),
-        phone: user?.phone || undefined,
+        phone: (isGuest ? fields.phone.trim() : user?.phone) || undefined,
         subject: fields.subject,
         message: fields.message.trim(),
       });
@@ -70,7 +73,7 @@ export default function ContactUs() {
   };
 
   const reset = () => {
-    setFields({ email: accountEmail, subject: '', message: '' });
+    setFields(blank);
     setTouched({});
     setSent(false);
   };
@@ -83,23 +86,36 @@ export default function ContactUs() {
 
         <div className="contact-layout">
           <Card>
-            {sent ? (
+            {userRole === 'admin' ? (
+              <Alert tone="info">Admins can’t send support messages. Messages from users arrive in the support inbox.</Alert>
+            ) : sent ? (
               <div className="contact-sent" role="status">
                 <FiCheckCircle aria-hidden="true" />
                 <h2>Message sent</h2>
-                <p>Thanks, {user?.name?.split(' ')[0] || 'there'} — we’ll reply to <strong>{fields.email}</strong>.</p>
+                <p>Thanks, {(isGuest ? fields.name : user?.name)?.split(' ')[0] || 'there'} — we’ll reply to <strong>{fields.email}</strong>.</p>
                 <Button variant="secondary" onClick={reset}>Send another message</Button>
               </div>
             ) : (
               <form className="contact-form" onSubmit={submit} noValidate>
-                <div className="contact-from">
-                  <Avatar name={user?.name || ''} size={40} />
-                  <div>
-                    <span>Sending as</span>
-                    <strong>{user?.name}</strong>
-                    {user?.phone && <span>{user.phone}</span>}
+                {isGuest ? (
+                  <div className="row g-3">
+                    <div className="col-sm-6">
+                      <Input name="name" label="Your name" required autoComplete="name" value={fields.name} onChange={set('name')} onBlur={blur('name')} error={shown('name')} />
+                    </div>
+                    <div className="col-sm-6">
+                      <Input name="phone" type="tel" label="Phone" hint="Optional, if you’d like a call back." autoComplete="tel" value={fields.phone} onChange={set('phone')} />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="contact-from">
+                    <Avatar name={user?.name || ''} size={40} />
+                    <div>
+                      <span>Sending as</span>
+                      <strong>{user?.name}</strong>
+                      {user?.phone && <span>{user.phone}</span>}
+                    </div>
+                  </div>
+                )}
 
                 <Input
                   name="email"
@@ -110,7 +126,7 @@ export default function ContactUs() {
                   onChange={set('email')}
                   onBlur={blur('email')}
                   readOnly={Boolean(accountEmail)}
-                  hint={accountEmail ? 'From your account.' : 'Your account has no email, so add one for our reply.'}
+                  hint={isGuest ? 'We’ll reply here.' : accountEmail ? 'From your account.' : 'Your account has no email, so add one for our reply.'}
                   error={shown('email')}
                   autoComplete="email"
                 />
@@ -156,8 +172,14 @@ export default function ContactUs() {
             <Card>
               <h2>Quick answers</h2>
               <ul className="contact-aside__links">
-                <li><Link to="/orders">Track or cancel an order</Link></li>
-                <li><Link to="/prescriptions/upload">Check a prescription’s status</Link></li>
+                {isGuest ? (
+                  <li><Link to="/medicines">Browse medicines</Link></li>
+                ) : (
+                  <>
+                    <li><Link to="/orders">Track or cancel an order</Link></li>
+                    <li><Link to="/prescriptions/upload">Check a prescription’s status</Link></li>
+                  </>
+                )}
                 <li><Link to="/refund-policy">Refunds and returns</Link></li>
               </ul>
             </Card>

@@ -7,6 +7,7 @@
   <url><loc>https://medeasy.systems/medicines?category=Vitamins%20%26%20Supplements</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://medeasy.systems/medicines?category=Diabetes</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://medeasy.systems/medicines?category=Cardiology</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://medeasy.systems/contact</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
   <url><loc>https://medeasy.systems/reviews</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
   <url><loc>https://medeasy.systems/register</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://medeasy.systems/login</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>

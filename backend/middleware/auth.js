@@ -39,6 +39,16 @@ const protect = async (req, res, next) => {
 };
 
 /**
+ * Attach req.user when a valid token is sent, but let guests through.
+ * A token that is present but invalid, expired or suspended is still rejected,
+ * so a signed-in user never silently becomes a guest.
+ */
+const optionalAuth = (req, res, next) => {
+  if (!(req.headers.authorization || '').startsWith('Bearer ')) return next();
+  return protect(req, res, next);
+};
+
+/**
  * Allow only the given roles. 'pharmacist' routes also accept pharmacy owners.
  */
 const authorizeRoles = (...roles) => {
@@ -49,4 +59,4 @@ const authorizeRoles = (...roles) => {
   };
 };
 
-module.exports = { protect, authorizeRoles };
+module.exports = { protect, optionalAuth, authorizeRoles };

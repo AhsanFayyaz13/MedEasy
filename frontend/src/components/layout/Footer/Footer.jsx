@@ -47,29 +47,33 @@ export default function AppFooter() {
             )}
           </div>
 
-          <nav aria-label="Quick links">
-            <h2 className="site-footer__heading">Quick links</h2>
+          <nav aria-label="Shop">
+            <h2 className="site-footer__heading">Shop</h2>
             <ul className="site-footer__links">
-              <li><Link to="/">Home</Link></li>
-              <li><Link to="/medicines">Medicines</Link></li>
-              <li><Link to="/appointments/book">Appointments</Link></li>
-              <li><Link to="/cart">Cart</Link></li>
-              <li><Link to="/orders">Order tracking</Link></li>
+              <li><Link to="/medicines">All medicines</Link></li>
+              <li><Link to="/medicines?category=Vitamins%20%26%20Supplements">Vitamins &amp; supplements</Link></li>
+              <li><Link to="/medicines?category=Analgesics">Pain relief</Link></li>
+              <li><Link to="/reviews">Customer reviews</Link></li>
             </ul>
           </nav>
 
-          <nav aria-label="Account">
-            <h2 className="site-footer__heading">Account</h2>
+          <nav aria-label={isAuthenticated ? 'Your account' : 'Get started'}>
+            <h2 className="site-footer__heading">{isAuthenticated ? 'Your account' : 'Get started'}</h2>
             <ul className="site-footer__links">
-              {!isAuthenticated && (
+              {isAuthenticated ? (
                 <>
-                  <li><Link to="/login">Log in</Link></li>
-                  <li><Link to="/register">Create account</Link></li>
+                  <li><Link to="/orders">My orders</Link></li>
+                  <li><Link to="/prescriptions/upload">Prescriptions</Link></li>
+                  <li><Link to="/appointments/book">Book a doctor</Link></li>
+                  <li><Link to="/profile">My profile</Link></li>
+                </>
+              ) : (
+                <>
+                  <li><Link to="/register">Create an account</Link></li>
+                  <li><Link to="/login">Sign in</Link></li>
+                  <li><Link to="/contact">Contact support</Link></li>
                 </>
               )}
-              <li><Link to="/profile">My profile</Link></li>
-              <li><Link to="/prescriptions/upload">Upload prescription</Link></li>
-              <li><Link to="/reviews">Reviews</Link></li>
             </ul>
           </nav>
 

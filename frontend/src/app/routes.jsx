@@ -55,6 +55,7 @@ export default function AppRoutes() {
       <Route path="/reviews" element={<Reviews />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/contact" element={<ContactUs />} />
 
       {/* Legal */}
       <Route path="/privacy" element={<Privacy />} />
@@ -70,7 +71,6 @@ export default function AppRoutes() {
       <Route path="/orders" element={guard(<OrderTracking />, ROLES.patient)} />
       <Route path="/orders/:orderId" element={guard(<OrderTracking />, ROLES.patient)} />
       <Route path="/profile" element={guard(<Profile />)} />
-      <Route path="/contact" element={guard(<ContactUs />, ROLES.nonAdmin)} />
       <Route path="/prescriptions/upload" element={guard(<PrescriptionUpload />, ROLES.patient)} />
       <Route path="/appointments/book" element={guard(<AppointmentBooking />, ROLES.patient)} />
 
