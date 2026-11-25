@@ -88,7 +88,7 @@ refuses to start with a clear message if something required is missing.
 | `PORT` | – | `5000` | HTTP port. |
 | `MONGO_URI` | ✅ | – | MongoDB connection string. |
 | `JWT_SECRET` | ✅ | – | Long random secret (≥ 32 chars recommended). `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-| `JWT_EXPIRES_IN` | – | `30d` | Token lifetime. |
+| `JWT_EXPIRES_IN` | – | `7d` | Session lifetime. Sessions also end when the password changes. |
 | `FRONTEND_ORIGIN` | – | `http://localhost:5173,http://localhost:5174` | Comma-separated CORS allow-list. `https://medeasy.systems` and `www.` are always allowed. |
 | `TRUST_PROXY` | – | `1` | Proxies in front of the API (needed for correct rate-limit IPs on Render). |
 | `MAX_UPLOAD_BYTES` | – | `5242880` | Upload size limit. |
@@ -203,11 +203,21 @@ Status codes: `400` validation / bad id · `401` unauthenticated · `403` forbid
 - Passwords: bcrypt (cost 12). OTP / reset codes: `crypto.randomInt`, stored as SHA-256, constant-time
   compared, max 5 attempts, 15-minute TTL.
 - Suspended users are rejected on every request, not just at login.
+- No account enumeration: login gives one answer ("Incorrect email/phone or password") for unknown accounts
+  and wrong passwords, in the same time (dummy bcrypt compare); forgot-password always gives the same reply.
+  Account-state messages (suspended, pending review) only appear after the password is proven.
+- Sessions: JWTs last 7 days and carry a `tokenVersion`; changing or resetting a password bumps it, which
+  ends every other session immediately. `PUT /api/auth/password` changes the password (current one required).
+- Secrets never leave the server: the `User` model's `toJSON` strips password hashes (including the
+  representative's), reset codes and token versions from every response.
 - helmet security headers, strict CORS allow-list, 100 kB JSON limit, NoSQL operator stripping, regex-escaped
-  search, bounded pagination.
+  search, bounded pagination, gzip compression, `Cache-Control: private, no-store` on signed-in API responses.
 - Rate limits: global (600 / 15 min / IP), auth & OTP (10 / 15 min per IP + identifier), uploads (20 / hour).
 - Uploads: random filenames, extension and MIME type must agree, images-only where appropriate.
 - Orders: prices always from the database; stock reserved atomically (no overselling); idempotent cancel.
+- Frontend hosting headers (`frontend/vercel.json`, `frontend/public/_headers`): a strict Content-Security-Policy
+  (no inline scripts), HSTS, `X-Frame-Options: DENY`, `nosniff`, Referrer- and Permissions-Policy.
+- Tests never call real third-party services (email, Cloudinary keys are blanked in `tests/helpers.js`).
 
 ---
 
@@ -215,7 +225,7 @@ Status codes: `400` validation / bad id · `401` unauthenticated · `403` forbid
 
 ```bash
 npm run lint      # ESLint (0 errors) + Stylelint
-npm test          # 23 backend integration tests (auth, validation, orders, reviews, CORS)
+npm test          # 49 backend integration tests (auth & sessions, validation, orders, reviews, CORS)
 npm run build     # production build
 ```
 
@@ -258,7 +268,7 @@ sequenceDiagram
     C->>A: POST /api/auth/verify-registration
     A->>P: constant-time compare (max 5 attempts)
     A->>U: create user
-    A-->>C: 201 + JWT
+    A-->>C: 201 + JWT (doctors: 201 pendingReview, no JWT until an admin approves)
 ```
 
 ### Tab-isolated sessions
@@ -269,8 +279,9 @@ interact — see *Recommended next steps* in the project report for moving these
 
 ### Commerce
 
-Login-required add-to-cart prompt, cart cleared on logout/expiry, prescription-gated (Rx) medicines,
-server-side pricing and stock reservation, order tracking with status timeline.
+Guest checkout for over-the-counter medicines (tracked at `/track` with order number + phone), sign-in
+required for prescription (Rx) medicines, cart cleared on logout, server-side pricing and stock reservation,
+order tracking with status timeline.
 
 ### Role dashboards
 
@@ -290,12 +301,16 @@ Uploads go to Cloudinary and temporary files are deleted. Seed medicine images a
 **Backend (Render / Railway)**
 - Build: `npm install` · Start: `npm start` (root dir `backend`).
 - Set `NODE_ENV=production`, `MONGO_URI`, `JWT_SECRET`, `FRONTEND_ORIGIN`, `RESEND_API_KEY`, `SENDER_EMAIL`,
-  and the `CLOUDINARY_*` variables. Health check path: `/api/health`.
+  and the `CLOUDINARY_*` variables. Health check path: `/api/health` (returns 503 while the database is
+  unreachable, so the host restarts the service).
 
 **Frontend (Vercel / Netlify)**
 - Root dir `frontend`, build `npm run build`, output `dist`.
 - Set `VITE_API_BASE_URL=https://<your-api>/api` and `VITE_USE_MOCK_API=false`.
-- Configure an SPA fallback (all routes → `/index.html`).
+- SPA fallback, security headers and asset caching are already configured: `frontend/vercel.json` (Vercel) and
+  `frontend/public/_headers` + `_redirects` (Netlify). Keep the two header lists in sync.
+- **If the API moves to another domain**, update `connect-src` and `img-src` in both files (and the
+  `preconnect` link in `index.html`), or the browser will block API calls.
 
 ---
 
