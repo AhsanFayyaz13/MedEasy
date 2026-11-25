@@ -4,16 +4,16 @@
 
 .star-rating {
   display: inline-flex;
-  gap: 2px;
+  gap: var(--space-0-5);
 }
 
 .star-icon {
-  color: #ddd;
-  font-size: 1.25rem;
+  color: var(--color-neutral-200);
+  font-size: var(--text-xl);
 }
 
 .star-icon.filled {
-  color: #ffc107;
+  color: var(--color-warning-400);
 }
 
 .star-icon.interactive {
@@ -26,24 +26,24 @@
 }
 
 .review-summary {
-  border-left: 5px solid #0d6efd;
+  border-left: 5px solid var(--color-primary-600);
 }
 
 .review-form-box {
-  background: #fdfdfd;
+  background: var(--color-neutral-0);
 }
 
 .review-card {
-  background: #fff;
-  border-radius: 4px;
+  background: var(--surface);
+  border-radius: var(--radius-xs);
 }
 
 .review-card .star-rating {
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 .review-comment {
-  font-size: 0.95rem;
-  color: #444;
+  font-size: var(--text-base);
+  color: var(--color-neutral-700);
   line-height: 1.5;
 }

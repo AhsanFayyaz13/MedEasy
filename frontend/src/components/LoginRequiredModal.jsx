@@ -20,7 +20,7 @@ export default function LoginRequiredModal({ show, onHide }) {
     >
       <Modal.Header closeButton>
         <Modal.Title>
-          <FaShoppingCart className="me-2" style={{ color: '#0d1b2a' }} />
+          <FaShoppingCart className="me-2" style={{ color: 'var(--color-neutral-900)' }} />
           Login Required
         </Modal.Title>
       </Modal.Header>
@@ -38,7 +38,7 @@ export default function LoginRequiredModal({ show, onHide }) {
             <Col md={6}>
               <div className="auth-option login-option p-4 rounded border text-center">
                 <div className="auth-icon mb-3">
-                  <FaSignInAlt size={32} style={{ color: '#0284c7' }} />
+                  <FaSignInAlt size={32} style={{ color: 'var(--fg-primary)' }} />
                 </div>
                 <h6 className="mb-3">Already a Member?</h6>
                 <p className="text-muted small mb-3">
@@ -57,7 +57,7 @@ export default function LoginRequiredModal({ show, onHide }) {
             <Col md={6}>
               <div className="auth-option register-option p-4 rounded border text-center">
                 <div className="auth-icon mb-3">
-                  <FaUserPlus size={32} style={{ color: '#059669' }} />
+                  <FaUserPlus size={32} style={{ color: 'var(--fg-accent)' }} />
                 </div>
                 <h6 className="mb-3">New Here?</h6>
                 <p className="text-muted small mb-3">

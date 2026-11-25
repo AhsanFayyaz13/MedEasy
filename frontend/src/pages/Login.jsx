@@ -188,12 +188,12 @@ export default function Login() {
                         <strong>Login failed:</strong> {authError}
                       </div>
                       {authError.toLowerCase().includes('not registered') && (
-                        <div className="mt-1 pt-2 border-top small" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+                        <div className="mt-1 pt-2 border-top small" style={{ borderColor: 'var(--tint-error-200)' }}>
                           New to MedEasy? <Link to="/register" className="alert-link text-decoration-underline" style={{ fontWeight: '700' }} onClick={clearAuthError}>Create a new account here</Link>
                         </div>
                       )}
                       {authError.toLowerCase().includes('incorrect password') && (
-                        <div className="mt-1 pt-2 border-top small" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+                        <div className="mt-1 pt-2 border-top small" style={{ borderColor: 'var(--tint-error-200)' }}>
                           Forgot your credentials? <button type="button" className="alert-link bg-transparent border-0 p-0 text-decoration-underline text-start" style={{ color: 'inherit', fontWeight: '700' }} onClick={() => { clearAuthError(); const forgotBtn = document.querySelector('.forgot-link'); if (forgotBtn) forgotBtn.click(); }}>Reset your password here</button>
                         </div>
                       )}
@@ -297,7 +297,7 @@ export default function Login() {
         <Modal.Header closeButton className="border-0 pb-0">
         </Modal.Header>
         <Modal.Body className="px-4 pb-4 pt-2 text-center">
-          <div className="auth-icon-badge-wrap mb-3 mx-auto" style={{ background: 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)', color: '#7c3aed', boxShadow: '0 8px 20px rgba(124, 58, 237, 0.15)' }}>
+          <div className="auth-icon-badge-wrap mb-3 mx-auto" style={{ background: 'linear-gradient(135deg, var(--color-neutral-200) 0%, var(--tint-violet-200) 100%)', color: 'var(--fg-violet)', boxShadow: '0 8px 20px color-mix(in srgb, var(--color-violet-600) 15%, transparent)' }}>
             <FaKey size={26} />
           </div>
           
@@ -371,7 +371,7 @@ export default function Login() {
               
               <div className="text-center mt-3 small">
                 Didn't receive code?{' '}
-                <button type="button" className="alert-link bg-transparent border-0 p-0 text-decoration-underline" style={{ color: '#0284c7' }} onClick={handleForgotSubmit}>Resend code</button>
+                <button type="button" className="alert-link bg-transparent border-0 p-0 text-decoration-underline" style={{ color: 'var(--fg-primary)' }} onClick={handleForgotSubmit}>Resend code</button>
               </div>
             </Form>
           )}

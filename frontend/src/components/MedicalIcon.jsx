@@ -33,35 +33,35 @@ const ICON_MAP = {
 };
 
 const GRADIENT_MAP = {
-  '💊': 'linear-gradient(135deg, #e0f2fe, #bae6fd)', // Cyan/Blue (Analgesics)
-  '🧪': 'linear-gradient(135deg, #d1fae5, #a7f3d0)', // Emerald (Antibiotics)
-  '🔬': 'linear-gradient(135deg, #ede9fe, #ddd6fe)', // Violet (Gastroenterology)
-  '🌿': 'linear-gradient(135deg, #f0fdf4, #bbf7d0)', // Green (Antihistamines)
-  '🩸': 'linear-gradient(135deg, #fee2e2, #fecaca)', // Red (Diabetes/Blood)
-  '❤️': 'linear-gradient(135deg, #fff5f5, #ffc9c9)', // Soft Red (Cardiology)
-  '☀️': 'linear-gradient(135deg, #fef3c7, #fde68a)', // Amber/Gold (Vitamins)
-  '🫀': 'linear-gradient(135deg, #fff5f5, #ffc9c9)', // Heart statin
-  '💨': 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', // Respiratory
-  '🩹': 'linear-gradient(135deg, #ffedd5, #fed7aa)', // Orange (Pain relief/band-aid)
-  '🌸': 'linear-gradient(135deg, #fdf2f8, #fbcfe8)', // Pink (Dermatology/claritin)
-  '⚡': 'linear-gradient(135deg, #ecfdf5, #a7f3d0)', // Supplements
-  'default': 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', // Slate
+  '💊': 'linear-gradient(135deg, var(--color-neutral-100), var(--color-primary-200))', // Cyan/Blue (Analgesics)
+  '🧪': 'linear-gradient(135deg, var(--color-accent-100), var(--color-accent-200))', // Emerald (Antibiotics)
+  '🔬': 'linear-gradient(135deg, var(--color-neutral-200), var(--color-violet-200))', // Violet (Gastroenterology)
+  '🌿': 'linear-gradient(135deg, var(--color-neutral-50), var(--color-accent-200))', // Green (Antihistamines)
+  '🩸': 'linear-gradient(135deg, var(--color-neutral-200), var(--color-error-200))', // Red (Diabetes/Blood)
+  '❤️': 'linear-gradient(135deg, var(--color-neutral-50), var(--color-error-200))', // Soft Red (Cardiology)
+  '☀️': 'linear-gradient(135deg, var(--color-warning-100), var(--color-warning-200))', // Amber/Gold (Vitamins)
+  '🫀': 'linear-gradient(135deg, var(--color-neutral-50), var(--color-error-200))', // Heart statin
+  '💨': 'linear-gradient(135deg, var(--color-neutral-100), var(--color-neutral-100))', // Respiratory
+  '🩹': 'linear-gradient(135deg, var(--color-orange-100), var(--color-orange-200))', // Orange (Pain relief/band-aid)
+  '🌸': 'linear-gradient(135deg, var(--color-neutral-100), var(--color-rose-200))', // Pink (Dermatology/claritin)
+  '⚡': 'linear-gradient(135deg, var(--color-neutral-50), var(--color-accent-200))', // Supplements
+  'default': 'linear-gradient(135deg, var(--color-neutral-100), var(--color-neutral-200))', // Slate
 };
 
 const COLOR_MAP = {
-  '💊': '#0284c7',
-  '🧪': '#059669',
-  '🔬': '#7c3aed',
-  '🌿': '#16a34a',
-  '🩸': '#dc2626',
-  '❤️': '#e11d48',
-  '☀️': '#d97706',
-  '🫀': '#e11d48',
-  '💨': '#0284c7',
-  '🩹': '#ea580c',
-  '🌸': '#db2777',
-  '⚡': '#059669',
-  'default': '#475569',
+  '💊': 'var(--color-primary-600)',
+  '🧪': 'var(--color-accent-600)',
+  '🔬': 'var(--color-violet-600)',
+  '🌿': 'var(--color-accent-600)',
+  '🩸': 'var(--color-error-600)',
+  '❤️': 'var(--color-rose-600)',
+  '☀️': 'var(--color-warning-600)',
+  '🫀': 'var(--color-rose-600)',
+  '💨': 'var(--color-primary-600)',
+  '🩹': 'var(--color-orange-600)',
+  '🌸': 'var(--color-rose-600)',
+  '⚡': 'var(--color-accent-600)',
+  'default': 'var(--color-secondary-500)',
 };
 
 import api from '../services/api';

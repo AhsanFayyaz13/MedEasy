@@ -1,0 +1,53 @@
+/* ═══════════════════════════════════════════════════════════════
+   Legacy variable aliases
+   Older page styles were written against two ad-hoc variable sets
+   (index.css "--color-*" and the Home page "Material" names).
+   They now point at design tokens so nothing renders off-palette.
+   Prefer the real token names in new code; these get removed as
+   pages are rebuilt.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* old index.css set */
+  --color-primary: var(--color-secondary-900);
+  --color-secondary: var(--color-secondary-700);
+  --color-accent: var(--color-primary-600);
+  --color-accent-light: var(--color-primary-300);
+  --color-bg: var(--bg);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --radius-card: var(--radius-lg);
+  --shadow-card: var(--shadow-md);
+
+  /* old Home page set */
+  --primary: var(--action);
+  --primary-container: var(--color-primary-600);
+  --on-primary: var(--text-on-primary);
+  --on-primary-container: var(--color-primary-100);
+  --secondary: var(--color-accent-700);
+  --secondary-container: var(--color-accent-200);
+  --on-secondary-container: var(--color-accent-800);
+  --on-surface: var(--text-strong);
+  --on-surface-variant: var(--text-muted);
+  --surface-container-low: var(--color-primary-50);
+  --surface-container-high: var(--color-primary-100);
+  --surface-container-highest: var(--color-primary-200);
+  --outline: var(--color-neutral-500);
+  --ui-border: var(--border);
+  --sterile-white: var(--surface);
+  --app-background: var(--bg);
+  --error: var(--color-error-600);
+  --error-red: var(--color-error-500);
+  --error-container: var(--color-error-100);
+  --font-headline: var(--font-display);
+  --font-body: var(--font-sans);
+  --gutter: var(--space-4);
+  --margin-desktop: var(--space-8);
+  --margin-mobile: var(--space-4);
+
+  /* admin role colours */
+  --role-patient: var(--color-primary-600);
+  --role-doctor: var(--color-indigo-500);
+  --role-pharmacist: var(--color-accent-500);
+  --role-admin: var(--color-rose-500);
+}

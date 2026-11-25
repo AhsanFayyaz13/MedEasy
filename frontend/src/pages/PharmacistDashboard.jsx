@@ -234,13 +234,13 @@ function MedicinesPage() {
                       width: '100px', 
                       height: '100px', 
                       borderRadius: '12px', 
-                      border: '1px solid #e2e8f0', 
-                      background: '#f8fafc',
+                      border: '1px solid var(--color-neutral-200)', 
+                      background: 'var(--color-neutral-50)',
                       overflow: 'hidden',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                      boxShadow: '0 2px 8px color-mix(in srgb, var(--color-black) 4%, transparent)'
                     }}
                   >
                     <MedicalIcon emoji={form.image} category={form.category} size={38} />
@@ -473,7 +473,7 @@ function OrdersPage({ mode = 'active' }) {
             size="sm" 
             variant="primary" 
             className="d-flex align-items-center gap-1.5 px-3 py-1.5 font-weight-700 shadow-sm border-0"
-            style={{ borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', background: 'linear-gradient(135deg, #2563eb, #3b82f6)' }}
+            style={{ borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', background: 'linear-gradient(135deg, var(--color-primary-600), var(--color-primary-600))' }}
             onClick={() => handleStatus(order.id, 'dispatched')}
             disabled={isUpdating}
           >
@@ -485,7 +485,7 @@ function OrdersPage({ mode = 'active' }) {
             size="sm" 
             variant="info" 
             className="d-flex align-items-center gap-1.5 px-3 py-1.5 font-weight-700 shadow-sm border-0 text-white"
-            style={{ borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', background: 'linear-gradient(135deg, #0d9488, #14b8a6)' }}
+            style={{ borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', background: 'linear-gradient(135deg, var(--color-accent-600), var(--color-accent-500))' }}
             onClick={() => handleStatus(order.id, 'delivered')}
             disabled={isUpdating}
           >
@@ -497,7 +497,7 @@ function OrdersPage({ mode = 'active' }) {
             size="sm" 
             variant="outline-danger" 
             className="d-flex align-items-center gap-1 px-2.5 py-1.5"
-            style={{ borderRadius: '8px', fontSize: '0.75rem', border: '1px solid #fca5a5', color: '#ef4444' }}
+            style={{ borderRadius: '8px', fontSize: '0.75rem', border: '1px solid var(--tint-error-200)', color: 'var(--color-error-500)' }}
             onClick={() => handleStatus(order.id, 'cancelled')}
             disabled={isUpdating}
           >
@@ -514,7 +514,7 @@ function OrdersPage({ mode = 'active' }) {
     
     if (status === 'cancelled') {
       return (
-        <div className="w-100 p-3 mb-4 rounded-3 border-danger d-flex align-items-center gap-3" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
+        <div className="w-100 p-3 mb-4 rounded-3 border-danger d-flex align-items-center gap-3" style={{ background: 'var(--color-neutral-100)', border: '1px solid var(--tint-error-200)', color: 'var(--fg-error)' }}>
           <FaTimesCircle className="fs-4 flex-shrink-0" />
           <div>
             <strong className="d-block" style={{ fontSize: '0.85rem' }}>This order has been cancelled</strong>
@@ -542,7 +542,7 @@ function OrdersPage({ mode = 'active' }) {
                     height: '36px', 
                     fontSize: '0.9rem',
                     transition: 'all 0.3s ease',
-                    boxShadow: isActive ? '0 0 0 4px rgba(37,99,235,0.18)' : undefined
+                    boxShadow: isActive ? '0 0 0 4px color-mix(in srgb, var(--color-primary-600) 18%, transparent)' : undefined
                   }}
                 >
                   {icons[step]}
@@ -556,7 +556,7 @@ function OrdersPage({ mode = 'active' }) {
                   className="flex-grow-1" 
                   style={{ 
                     height: '3px', 
-                    background: idx < activeIndex ? '#10b981' : '#e2e8f0', 
+                    background: idx < activeIndex ? 'var(--color-accent-500)' : 'var(--color-neutral-200)', 
                     position: 'absolute', 
                     left: '50px', 
                     right: '-30px', 
@@ -580,9 +580,9 @@ function OrdersPage({ mode = 'active' }) {
         {!isHistory ? (
           <>
             <Col sm={6} lg={3}>
-              <Card className="ph-glass-card shadow-sm border-0 h-100" style={{ background: 'linear-gradient(135deg, #0d1b2a 0%, #1e293b 100%)', color: '#fff' }}>
+              <Card className="ph-glass-card shadow-sm border-0 h-100" style={{ background: 'linear-gradient(135deg, var(--color-secondary-900) 0%, var(--color-secondary-800) 100%)', color: 'var(--color-white)' }}>
                 <Card.Body className="d-flex align-items-center gap-3">
-                  <div className="ph-glass-icon bg-white bg-opacity-10 text-white" style={{ background: 'rgba(255,255,255,0.15)' }}><FaClipboardList className="fs-4" /></div>
+                  <div className="ph-glass-icon bg-white bg-opacity-10 text-white" style={{ background: 'color-mix(in srgb, var(--surface) 15%, transparent)' }}><FaClipboardList className="fs-4" /></div>
                   <div>
                     <div className="small text-white text-opacity-70 fw-600">Active Orders</div>
                     <h3 className="mb-0 fw-900">{totalActiveCount}</h3>
@@ -593,7 +593,7 @@ function OrdersPage({ mode = 'active' }) {
             <Col sm={6} lg={3}>
               <Card className="ph-glass-card shadow-sm border-0 h-100">
                 <Card.Body className="d-flex align-items-center gap-3">
-                  <div className="ph-glass-icon bg-warning bg-opacity-10 text-warning" style={{ background: '#fffbeb' }}><FaClock className="fs-4" /></div>
+                  <div className="ph-glass-icon bg-warning bg-opacity-10 text-warning" style={{ background: 'var(--color-neutral-0)' }}><FaClock className="fs-4" /></div>
                   <div>
                     <div className="small text-muted fw-600">Pending Approval</div>
                     <h3 className="mb-0 fw-900 text-warning">{pendingCount}</h3>
@@ -604,7 +604,7 @@ function OrdersPage({ mode = 'active' }) {
             <Col sm={6} lg={3}>
               <Card className="ph-glass-card shadow-sm border-0 h-100">
                 <Card.Body className="d-flex align-items-center gap-3">
-                  <div className="ph-glass-icon bg-primary bg-opacity-10 text-primary" style={{ background: '#eff6ff' }}><FaCheckCircle className="fs-4" /></div>
+                  <div className="ph-glass-icon bg-primary bg-opacity-10 text-primary" style={{ background: 'var(--color-neutral-100)' }}><FaCheckCircle className="fs-4" /></div>
                   <div>
                     <div className="small text-muted fw-600">Confirmed Orders</div>
                     <h3 className="mb-0 fw-900 text-primary">{confirmedCount}</h3>
@@ -615,7 +615,7 @@ function OrdersPage({ mode = 'active' }) {
             <Col sm={6} lg={3}>
               <Card className="ph-glass-card shadow-sm border-0 h-100">
                 <Card.Body className="d-flex align-items-center gap-3">
-                  <div className="ph-glass-icon bg-info bg-opacity-10 text-info" style={{ background: '#ecfeff' }}><FaShippingFast className="fs-4" /></div>
+                  <div className="ph-glass-icon bg-info bg-opacity-10 text-info" style={{ background: 'var(--color-neutral-50)' }}><FaShippingFast className="fs-4" /></div>
                   <div>
                     <div className="small text-muted fw-600">Dispatched Transit</div>
                     <h3 className="mb-0 fw-900 text-info">{dispatchedCount}</h3>
@@ -626,21 +626,21 @@ function OrdersPage({ mode = 'active' }) {
           </>
         ) : (
           <>
-            <Card className="border-0 shadow-sm rounded-4 w-100" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#fff' }}>
+            <Card className="border-0 shadow-sm rounded-4 w-100" style={{ background: 'linear-gradient(135deg, var(--color-secondary-900) 0%, var(--color-secondary-800) 100%)', color: 'var(--color-white)' }}>
               <Card.Body className="p-4 d-flex justify-content-around flex-wrap gap-4 text-center">
                 <div>
                   <div className="text-white text-opacity-70 small fw-600 mb-1">Delivered Fulfillments</div>
-                  <h2 className="mb-0 fw-900 text-success" style={{ textShadow: '0 0 10px rgba(16,185,129,0.2)' }}>{deliveredCount}</h2>
+                  <h2 className="mb-0 fw-900 text-success" style={{ textShadow: '0 0 10px color-mix(in srgb, var(--color-accent-500) 20%, transparent)' }}>{deliveredCount}</h2>
                 </div>
-                <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)' }} />
+                <div style={{ width: '1px', background: 'color-mix(in srgb, var(--surface) 10%, transparent)' }} />
                 <div>
                   <div className="text-white text-opacity-70 small fw-600 mb-1">Cancelled Orders</div>
-                  <h2 className="mb-0 fw-900 text-danger" style={{ textShadow: '0 0 10px rgba(239,68,68,0.2)' }}>{cancelledCount}</h2>
+                  <h2 className="mb-0 fw-900 text-danger" style={{ textShadow: '0 0 10px color-mix(in srgb, var(--color-error-500) 20%, transparent)' }}>{cancelledCount}</h2>
                 </div>
-                <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)' }} />
+                <div style={{ width: '1px', background: 'color-mix(in srgb, var(--surface) 10%, transparent)' }} />
                 <div>
                   <div className="text-white text-opacity-70 small fw-600 mb-1">Total Handled</div>
-                  <h2 className="mb-0 fw-900" style={{ color: '#38bdf8' }}>{deliveredCount + cancelledCount}</h2>
+                  <h2 className="mb-0 fw-900" style={{ color: 'var(--color-primary-400)' }}>{deliveredCount + cancelledCount}</h2>
                 </div>
               </Card.Body>
             </Card>
@@ -678,7 +678,7 @@ function OrdersPage({ mode = 'active' }) {
         <div className="ph-table-wrap border-0 shadow-sm rounded-4 overflow-hidden animate-fade-in">
           <Table hover responsive className="ph-table align-middle">
             <thead>
-              <tr style={{ background: '#f8fafc' }}>
+              <tr style={{ background: 'var(--color-neutral-50)' }}>
                 <th className="py-3 px-4">Order ID</th>
                 <th className="py-3">Customer & Location</th>
                 <th className="py-3">Fulfillment Store</th>
@@ -747,7 +747,7 @@ function OrdersPage({ mode = 'active' }) {
                         size="sm" 
                         variant="light" 
                         className="btn-details shadow-sm rounded-circle d-inline-flex align-items-center justify-content-center" 
-                        style={{ width: '32px', height: '32px', border: '1px solid #e2e8f0', color: '#1e293b' }}
+                        style={{ width: '32px', height: '32px', border: '1px solid var(--color-neutral-200)', color: 'var(--color-neutral-800)' }}
                         onClick={() => setDetail(o)}
                       >
                         <FaEye />
@@ -775,15 +775,15 @@ function OrdersPage({ mode = 'active' }) {
 
             <Row className="g-4">
               <Col md={7}>
-                <div className="detail-section h-100" style={{ border: '1px solid #f1f5f9', background: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-                  <h6 className="detail-title border-bottom pb-2 d-flex align-items-center gap-2" style={{ color: '#0d1b2a', fontSize: '0.95rem' }}>
+                <div className="detail-section h-100" style={{ border: '1px solid var(--color-neutral-100)', background: 'var(--surface)', borderRadius: '16px', boxShadow: '0 4px 15px color-mix(in srgb, var(--color-black) 2%, transparent)' }}>
+                  <h6 className="detail-title border-bottom pb-2 d-flex align-items-center gap-2" style={{ color: 'var(--color-neutral-900)', fontSize: '0.95rem' }}>
                     <FaReceipt className="text-primary" /> Order Items
                   </h6>
                   <div className="pe-1" style={{ maxHeight: '320px', overflowY: 'auto' }}>
                     {detail.items.map(i => (
                       <div key={i.medicineId} className="detail-item-row py-2 border-bottom-dashed d-flex align-items-center justify-content-between">
                         <div className="d-flex align-items-center gap-2">
-                          <span className="med-emoji" style={{ width: '32px', height: '32px', fontSize: '1.1rem', background: '#eff6ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i.image || '💊'}</span>
+                          <span className="med-emoji" style={{ width: '32px', height: '32px', fontSize: '1.1rem', background: 'var(--color-neutral-100)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i.image || '💊'}</span>
                           <div>
                             <div className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>{i.name}</div>
                             <div className="text-muted" style={{ fontSize: '0.72rem' }}>Rs.{Number(i.price).toLocaleString()} each</div>
@@ -795,19 +795,19 @@ function OrdersPage({ mode = 'active' }) {
                       </div>
                     ))}
                   </div>
-                  <div className="detail-item-row fw-900 border-top mt-3 pt-3 d-flex align-items-center justify-content-between" style={{ fontSize: '1.05rem', color: '#0d1b2a' }}>
+                  <div className="detail-item-row fw-900 border-top mt-3 pt-3 d-flex align-items-center justify-content-between" style={{ fontSize: '1.05rem', color: 'var(--color-neutral-900)' }}>
                     <span>Grand Total</span>
-                    <span className="text-primary" style={{ fontSize: '1.25rem', textShadow: '0 0 1px rgba(37,99,235,0.05)' }}>Rs.{detail.totalAmount.toLocaleString()}</span>
+                    <span className="text-primary" style={{ fontSize: '1.25rem', textShadow: '0 0 1px color-mix(in srgb, var(--color-primary-600) 5%, transparent)' }}>Rs.{detail.totalAmount.toLocaleString()}</span>
                   </div>
                 </div>
               </Col>
               
               <Col md={5}>
-                <div className="detail-section h-100" style={{ border: '1px solid #f1f5f9', background: '#fff', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
-                  <h6 className="detail-title border-bottom pb-2 d-flex align-items-center gap-2" style={{ color: '#0d1b2a', fontSize: '0.95rem' }}>
+                <div className="detail-section h-100" style={{ border: '1px solid var(--color-neutral-100)', background: 'var(--surface)', borderRadius: '16px', boxShadow: '0 4px 15px color-mix(in srgb, var(--color-black) 2%, transparent)' }}>
+                  <h6 className="detail-title border-bottom pb-2 d-flex align-items-center gap-2" style={{ color: 'var(--color-neutral-900)', fontSize: '0.95rem' }}>
                     <FaTruck className="text-primary" /> Delivery Information
                   </h6>
-                  <p className="detail-addr leading-relaxed p-2.5 rounded-3 bg-light border-0 mb-4" style={{ fontSize: '0.85rem', color: '#374151' }}>
+                  <p className="detail-addr leading-relaxed p-2.5 rounded-3 bg-light border-0 mb-4" style={{ fontSize: '0.85rem', color: 'var(--color-neutral-700)' }}>
                     <strong className="d-block text-dark mb-1" style={{ fontSize: '0.9rem' }}>
                       {detail.shippingAddress?.firstName} {detail.shippingAddress?.lastName}
                     </strong>
@@ -819,7 +819,7 @@ function OrdersPage({ mode = 'active' }) {
                     </span>
                   </p>
 
-                  <h6 className="detail-title border-bottom pb-2 d-flex align-items-center gap-2" style={{ color: '#0d1b2a', fontSize: '0.95rem' }}>
+                  <h6 className="detail-title border-bottom pb-2 d-flex align-items-center gap-2" style={{ color: 'var(--color-neutral-900)', fontSize: '0.95rem' }}>
                     <FaCoins className="text-primary" /> Payment Method
                   </h6>
                   <div className="d-flex align-items-center justify-content-between p-2.5 mb-3 bg-light rounded-3">
@@ -980,8 +980,8 @@ function PrescriptionsPage() {
                 )}
 
                 {/* 🏪 Non-Confidential Patient Fulfillment Details */}
-                <div className="rx-patient-details-box mt-3 p-3 rounded-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '0.82rem', textAlign: 'left' }}>
-                  <h6 className="fw-bold mb-2 text-dark small" style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '4px' }}>
+                <div className="rx-patient-details-box mt-3 p-3 rounded-3" style={{ background: 'var(--color-neutral-50)', border: '1px solid var(--color-neutral-200)', fontSize: '0.82rem', textAlign: 'left' }}>
+                  <h6 className="fw-bold mb-2 text-dark small" style={{ borderBottom: '1px solid var(--color-neutral-300)', paddingBottom: '4px' }}>
                     🏪 Fulfillment Routing Details
                   </h6>
                   <div className="mb-1"><strong>Patient Name:</strong> {rx.userId?.name || 'Fayyaz Ahmad'}</div>
@@ -991,7 +991,7 @@ function PrescriptionsPage() {
                     <strong>Delivery Address:</strong> {rx.userId?.address || 'House # 42, Block B, DHA Phase 5, Lahore'}
                   </div>
                   <div className="d-flex align-items-center gap-1.5 text-success font-medium" style={{ fontSize: '0.74rem' }}>
-                    <span className="dot-blink" style={{ width: 8, height: 8, background: '#10b981', borderRadius: '50%', display: 'inline-block' }} />
+                    <span className="dot-blink" style={{ width: 8, height: 8, background: 'var(--color-accent-500)', borderRadius: '50%', display: 'inline-block' }} />
                     Broadcasted to Nearest Representative Fulfillers
                   </div>
                 </div>
@@ -1027,7 +1027,7 @@ function PrescriptionsPage() {
           {enlarged?.fileUrl ? (
             enlarged.fileType === 'application/pdf' ? (
               <div className="d-flex flex-column align-items-center justify-content-center p-4">
-                <FaFilePdf style={{ fontSize: '4rem', color: '#ef4444' }} />
+                <FaFilePdf style={{ fontSize: '4rem', color: 'var(--color-error-500)' }} />
                 <p className="mt-3 fw-bold">{enlarged.fileName}</p>
                 <p className="text-muted small">PDF Document ({fmtBytes(enlarged.fileSize)})</p>
                 <Button 
@@ -1514,7 +1514,7 @@ function PharmacistRepPage() {
       <Row className="g-4">
         {/* Representative Card */}
         <Col lg={8}>
-          <Card className={`ph-glass-card shadow-lg border-0 rounded-4 overflow-hidden ${isApproved ? 'rep-card-approved' : ''}`} style={isApproved ? { borderLeft: '5px solid #d97706' } : {}}>
+          <Card className={`ph-glass-card shadow-lg border-0 rounded-4 overflow-hidden ${isApproved ? 'rep-card-approved' : ''}`} style={isApproved ? { borderLeft: '5px solid var(--color-warning-600)' } : {}}>
             <Card.Body className="p-4">
               {/* Incomplete data warning */}
               {(!details.photo || !details.age || !details.degreeName || !details.degreePlace) && (

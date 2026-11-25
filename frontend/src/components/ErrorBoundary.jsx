@@ -49,7 +49,7 @@ class ErrorBoundaryClass extends React.Component {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#6c757d',
+                  color: 'var(--color-neutral-500)',
                   fontSize: '0.75rem',
                   textDecoration: 'underline',
                   padding: 0,
@@ -59,9 +59,9 @@ class ErrorBoundaryClass extends React.Component {
                 {this.state.showDetails ? 'Hide Developer Logs' : 'Show Developer Logs'}
               </button>
               {this.state.showDetails && (
-                <div className="mt-3 p-3 bg-light border rounded overflow-auto text-start" style={{ maxHeight: '200px', fontFamily: 'monospace', fontSize: '0.75rem', color: '#dc3545' }}>
+                <div className="mt-3 p-3 bg-light border rounded overflow-auto text-start" style={{ maxHeight: '200px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--fg-rose)' }}>
                   <strong>Technical Stack Trace:</strong>
-                  <pre className="mt-2 mb-0" style={{ whiteSpace: 'pre-wrap', fontSize: '0.72rem', color: '#dc3545' }}>
+                  <pre className="mt-2 mb-0" style={{ whiteSpace: 'pre-wrap', fontSize: '0.72rem', color: 'var(--fg-rose)' }}>
                     {this.state.error.stack || this.state.error.toString()}
                   </pre>
                 </div>

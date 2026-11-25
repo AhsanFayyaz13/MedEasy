@@ -40,15 +40,15 @@ function validateFile(f) {
 }
 
 const STATUS_CFG = {
-  pending:  { label:'Pending Review', color:'warning', textDark:true,  icon:<FaClock />,       bg:'#fef3c7', border:'#fde68a' },
-  verified: { label:'Verified',       color:'success', textDark:false, icon:<FaCheckCircle />, bg:'#d1fae5', border:'#6ee7b7' },
-  rejected: { label:'Rejected',       color:'danger',  textDark:false, icon:<FaTimesCircle />, bg:'#fee2e2', border:'#fca5a5' },
+  pending:  { label:'Pending Review', color:'warning', textDark:true,  icon:<FaClock />,       bg:'var(--tint-warning-100)', border:'var(--tint-warning-200)' },
+  verified: { label:'Verified',       color:'success', textDark:false, icon:<FaCheckCircle />, bg:'var(--tint-accent-100)', border:'var(--color-accent-300)' },
+  rejected: { label:'Rejected',       color:'danger',  textDark:false, icon:<FaTimesCircle />, bg:'var(--color-neutral-200)', border:'var(--tint-error-200)' },
 };
 
 function FileTypeIcon({ type, size='1.4rem' }) {
   return type === 'application/pdf'
-    ? <FaFilePdf  style={{fontSize:size,color:'#ef4444'}} />
-    : <FaFileImage style={{fontSize:size,color:'#0284c7'}} />;
+    ? <FaFilePdf  style={{fontSize:size,color:'var(--color-error-500)'}} />
+    : <FaFileImage style={{fontSize:size,color:'var(--fg-primary)'}} />;
 }
 
 function DropZone({ file, onFile, error }) {
@@ -296,7 +296,7 @@ export default function PrescriptionUpload() {
               <Card.Body className="p-4">
                 <h5 className="rx-section-title"><FaUpload className="me-2"/>New Prescription</h5>
                 {requiredForMedicine && (
-                  <Alert variant="warning" className="small-warning-alert py-2 mb-3 animate-fade-in" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', fontSize: '0.8rem', textAlign: 'left' }}>
+                  <Alert variant="warning" className="small-warning-alert py-2 mb-3 animate-fade-in" style={{ background: 'var(--color-neutral-0)', border: '1px solid var(--tint-warning-200)', color: 'var(--fg-warning)', fontSize: '0.8rem', textAlign: 'left' }}>
                     <FaInfoCircle className="me-2 fs-5" />
                     A prescription is required for <strong>{requiredForMedicine}</strong>. Upload it below.
                   </Alert>

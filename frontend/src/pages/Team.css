@@ -3,9 +3,9 @@
    ═══════════════════════════════════════════════ */
 
 .team-page-wrapper {
-  background: linear-gradient(180deg, #0b1329 0%, #050a14 100%);
+  background: linear-gradient(180deg, var(--color-secondary-900) 0%, var(--color-secondary-950) 100%);
   min-height: 80vh;
-  color: #fff;
+  color: var(--color-white);
   display: flex;
   align-items: center;
 }
@@ -18,42 +18,42 @@
 .team-subheading {
   display: inline-flex;
   align-items: center;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   letter-spacing: 2px;
-  font-weight: 700;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.08);
-  padding: 0.35rem 0.85rem;
-  border-radius: 50px;
+  font-weight: var(--weight-bold);
+  color: var(--color-primary-400);
+  background: color-mix(in srgb, var(--color-primary-400) 8%, transparent);
+  padding: var(--space-1-5) var(--space-3);
+  border-radius: var(--radius-full);
 }
 .team-title {
-  font-size: 2.5rem;
-  font-weight: 800;
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-extrabold);
   letter-spacing: -0.5px;
 }
 .team-title .text-highlight {
-  color: #38bdf8;
+  color: var(--color-primary-400);
 }
 .team-subtitle {
-  font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.65);
+  font-size: var(--text-base);
+  color: color-mix(in srgb, var(--color-white) 65%, transparent);
   line-height: 1.6;
 }
 
 /* Cards (Glassmorphism) */
 .team-page-card {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: color-mix(in srgb, var(--surface) 2%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--color-white) 6%, transparent) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px !important;
+  border-radius: var(--radius-xl) !important;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px color-mix(in srgb, var(--color-black) 20%, transparent);
 }
 .team-page-card:hover {
   transform: translateY(-8px);
-  border-color: rgba(56, 189, 248, 0.35) !important;
-  box-shadow: 0 20px 50px rgba(56, 189, 248, 0.08);
+  border-color: color-mix(in srgb, var(--color-primary-400) 35%, transparent) !important;
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--color-primary-400) 8%, transparent);
 }
 
 .team-page-avatar-wrapper {
@@ -61,12 +61,12 @@
   height: 120px;
   position: relative;
   border-radius: 50%;
-  padding: 4px;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(56, 189, 248, 0) 100%);
+  padding: var(--space-1);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary-400) 20%, transparent) 0%, color-mix(in srgb, var(--color-primary-400) 0%, transparent) 100%);
   transition: background 0.35s ease;
 }
 .team-page-card:hover .team-page-avatar-wrapper {
-  background: linear-gradient(135deg, #38bdf8 0%, rgba(56, 189, 248, 0) 100%);
+  background: linear-gradient(135deg, var(--color-primary-400) 0%, color-mix(in srgb, var(--color-primary-400) 0%, transparent) 100%);
 }
 
 .team-page-avatar {
@@ -74,35 +74,35 @@
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid color-mix(in srgb, var(--color-white) 10%, transparent);
   transition: border-color 0.35s ease;
 }
 .team-page-card:hover .team-page-avatar {
-  border-color: #38bdf8;
+  border-color: var(--color-primary-400);
 }
 
 .team-page-name {
-  color: #fff;
+  color: var(--color-white);
   font-weight: 750;
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   letter-spacing: -0.2px;
 }
 .team-page-role {
-  color: #38bdf8 !important;
-  font-weight: 600;
+  color: var(--color-primary-400) !important;
+  font-weight: var(--weight-semibold);
   letter-spacing: 0.5px;
 }
 .team-card-divider {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: color-mix(in srgb, var(--color-white) 8%, transparent);
 }
 .team-page-contribution {
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: color-mix(in srgb, var(--color-white) 70%, transparent) !important;
   line-height: 1.6;
 }
 
 /* Social icons layout */
 .team-page-socials {
-  margin-top: 1.5rem;
+  margin-top: var(--space-6);
 }
 .team-page-socials a,
 .team-page-socials span {
@@ -112,42 +112,42 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   text-decoration: none;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .team-social-icon.github {
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--surface) 4%, transparent);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
 }
 .team-social-icon.github:not(.disabled):hover {
-  background: #24292e;
-  color: #fff;
+  background: var(--color-secondary-800);
+  color: var(--color-white);
   transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(36, 41, 46, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-neutral-800) 30%, transparent);
 }
 .team-social-icon.linkedin {
-  background: rgba(56, 189, 248, 0.06);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--color-primary-400) 6%, transparent);
+  color: var(--color-primary-400);
 }
 .team-social-icon.linkedin:not(.disabled):hover {
-  background: #0077b5;
-  color: #fff;
+  background: var(--color-primary-600);
+  color: var(--color-white);
   transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 119, 181, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary-600) 30%, transparent);
 }
 .team-social-icon.disabled {
-  background: rgba(255, 255, 255, 0.01) !important;
-  color: rgba(255, 255, 255, 0.15) !important;
+  background: color-mix(in srgb, var(--surface) 1%, transparent) !important;
+  color: color-mix(in srgb, var(--color-white) 15%, transparent) !important;
   cursor: not-allowed;
 }
 
 /* Mobile responsive padding */
 @media (max-width: 576px) {
   .team-title {
-    font-size: 2rem;
+    font-size: var(--text-3xl);
   }
   .team-page-card {
-    padding: 2rem 1.5rem !important;
+    padding: var(--space-8) var(--space-6) !important;
   }
 }

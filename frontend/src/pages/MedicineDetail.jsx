@@ -200,7 +200,7 @@ export default function MedicineDetail() {
                       display: 'flex', 
                       justifyContent: 'center', 
                       padding: isRealImage ? '0' : '2.5rem 0', 
-                      background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', 
+                      background: 'linear-gradient(135deg, var(--color-neutral-100), var(--color-neutral-100))', 
                       borderRadius: '16px',
                       overflow: 'hidden'
                     }}
@@ -225,7 +225,7 @@ export default function MedicineDetail() {
                       }
                     }}
                     className="btn btn-link p-0 align-baseline text-decoration-underline"
-                    style={{ fontWeight: 600, color: '#b45309' }}
+                    style={{ fontWeight: 600, color: 'var(--fg-warning)' }}
                   >
                     Upload yours →
                   </button>
@@ -330,8 +330,8 @@ export default function MedicineDetail() {
 
             {/* Prescription CTA */}
             {med.requires_prescription && (
-              <div className="rx-cta d-flex flex-column align-items-start gap-3 p-4 rounded-3 mt-3 shadow-sm" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
-                <div className="d-flex align-items-center gap-2" style={{ color: '#b45309' }}>
+              <div className="rx-cta d-flex flex-column align-items-start gap-3 p-4 rounded-3 mt-3 shadow-sm" style={{ background: 'var(--color-neutral-0)', border: '1px solid var(--tint-warning-200)' }}>
+                <div className="d-flex align-items-center gap-2" style={{ color: 'var(--fg-warning)' }}>
                   <FaExclamationTriangle className="fs-5" />
                   <strong className="fs-6">Prescription Required</strong>
                 </div>
@@ -348,7 +348,7 @@ export default function MedicineDetail() {
                       navigate('/prescriptions/upload', { state: { requiredForMedicine: med.name } });
                     }
                   }}
-                  style={{ background: 'linear-gradient(135deg, #d97706, #b45309)', border: 'none', fontWeight: 700 }}
+                  style={{ background: 'linear-gradient(135deg, var(--color-warning-600), var(--color-warning-700))', border: 'none', fontWeight: 700 }}
                 >
                   <FaUpload className="me-2" /> Upload Doctor Prescription
                 </Button>

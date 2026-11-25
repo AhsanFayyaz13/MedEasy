@@ -1,0 +1,304 @@
+/* ═══════════════════════════════════════════════════════════════
+   Bootstrap ↔ MedEasy token bridge
+   Maps Bootstrap 5.3 CSS variables onto our design tokens so every
+   react-bootstrap component (Modal, Dropdown, Table, Form…) inherits
+   the design system — including dark mode — with no per-page CSS.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root,
+[data-bs-theme='light'],
+[data-bs-theme='dark'] {
+  --bs-font-sans-serif: var(--font-sans);
+  --bs-body-font-family: var(--font-sans);
+  --bs-body-font-size: var(--text-base);
+  --bs-body-line-height: var(--leading-normal);
+  --bs-body-color: var(--text);
+  --bs-body-bg: var(--bg);
+  --bs-emphasis-color: var(--text-strong);
+  --bs-secondary-color: var(--text-muted);
+  --bs-tertiary-color: var(--text-subtle);
+  --bs-secondary-bg: var(--surface-sunken);
+  --bs-tertiary-bg: var(--bg-subtle);
+  --bs-heading-color: var(--text-strong);
+
+  --bs-primary: var(--action);
+  --bs-primary-rgb: 3, 105, 161;
+  --bs-success-rgb: 5, 150, 105;
+  --bs-danger-rgb: 220, 38, 38;
+  --bs-warning-rgb: 217, 119, 6;
+  --bs-info-rgb: 2, 132, 199;
+  --bs-primary-text-emphasis: var(--fg-primary);
+  --bs-primary-bg-subtle: var(--tint-primary-50);
+  --bs-primary-border-subtle: var(--tint-primary-200);
+  --bs-success-text-emphasis: var(--fg-accent);
+  --bs-success-bg-subtle: var(--tint-accent-50);
+  --bs-success-border-subtle: var(--tint-accent-200);
+  --bs-danger-text-emphasis: var(--fg-error);
+  --bs-danger-bg-subtle: var(--tint-error-50);
+  --bs-danger-border-subtle: var(--tint-error-200);
+  --bs-warning-text-emphasis: var(--fg-warning);
+  --bs-warning-bg-subtle: var(--tint-warning-50);
+  --bs-warning-border-subtle: var(--tint-warning-200);
+
+  --bs-link-color: var(--link);
+  --bs-link-color-rgb: 3, 105, 161;
+  --bs-link-hover-color: var(--link-hover);
+  --bs-link-hover-color-rgb: 7, 89, 133;
+
+  --bs-border-color: var(--border);
+  --bs-border-color-translucent: var(--border);
+  --bs-border-radius: var(--radius-md);
+  --bs-border-radius-sm: var(--radius-sm);
+  --bs-border-radius-lg: var(--radius-lg);
+  --bs-border-radius-xl: var(--radius-xl);
+  --bs-border-radius-pill: var(--radius-full);
+
+  --bs-box-shadow: var(--shadow-md);
+  --bs-box-shadow-sm: var(--shadow-sm);
+  --bs-box-shadow-lg: var(--shadow-lg);
+  --bs-focus-ring-color: var(--ring);
+  --bs-form-valid-color: var(--color-success-600);
+  --bs-form-valid-border-color: var(--color-success-600);
+  --bs-form-invalid-color: var(--color-error-600);
+  --bs-form-invalid-border-color: var(--color-error-600);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn {
+  --bs-btn-font-weight: var(--weight-semibold);
+  --bs-btn-border-radius: var(--radius-md);
+  --bs-btn-focus-box-shadow: var(--shadow-focus);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-primary,
+.btn-primary-custom {
+  --bs-btn-color: var(--text-on-primary);
+  --bs-btn-bg: var(--action);
+  --bs-btn-border-color: var(--action);
+  --bs-btn-hover-color: var(--text-on-primary);
+  --bs-btn-hover-bg: var(--action-hover);
+  --bs-btn-hover-border-color: var(--action-hover);
+  --bs-btn-active-color: var(--text-on-primary);
+  --bs-btn-active-bg: var(--action-hover);
+  --bs-btn-active-border-color: var(--action-hover);
+  --bs-btn-disabled-color: var(--text-on-primary);
+  --bs-btn-disabled-bg: var(--action);
+  --bs-btn-disabled-border-color: var(--action);
+
+  background-color: var(--bs-btn-bg);
+  border: 1px solid var(--bs-btn-border-color);
+  color: var(--bs-btn-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-primary-custom:hover:not(:disabled) {
+  background-color: var(--bs-btn-hover-bg);
+  color: var(--bs-btn-hover-color);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:disabled,
+.btn-primary-custom:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--action);
+  --bs-btn-border-color: var(--color-primary-300);
+  --bs-btn-hover-color: var(--text-on-primary);
+  --bs-btn-hover-bg: var(--action);
+  --bs-btn-hover-border-color: var(--action);
+  --bs-btn-active-bg: var(--action-hover);
+  --bs-btn-active-border-color: var(--action-hover);
+  --bs-btn-active-color: var(--text-on-primary);
+}
+
+.btn-secondary {
+  --bs-btn-color: var(--text);
+  --bs-btn-bg: var(--surface);
+  --bs-btn-border-color: var(--border-strong);
+  --bs-btn-hover-color: var(--text-strong);
+  --bs-btn-hover-bg: var(--surface-sunken);
+  --bs-btn-hover-border-color: var(--border-strong);
+  --bs-btn-active-bg: var(--surface-sunken);
+  --bs-btn-active-color: var(--text-strong);
+}
+
+.btn-success {
+  --bs-btn-bg: var(--color-success-600);
+  --bs-btn-border-color: var(--color-success-600);
+  --bs-btn-hover-bg: var(--color-accent-700);
+  --bs-btn-hover-border-color: var(--color-accent-700);
+}
+
+.btn-danger {
+  --bs-btn-bg: var(--color-error-600);
+  --bs-btn-border-color: var(--color-error-600);
+  --bs-btn-hover-bg: var(--color-error-700);
+  --bs-btn-hover-border-color: var(--color-error-700);
+}
+
+/* ── Forms ───────────────────────────────────────────────────── */
+.form-control,
+.form-select {
+  background-color: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-control::placeholder {
+  color: var(--text-subtle);
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: var(--shadow-focus);
+  outline: none;
+}
+
+.form-check-input:checked {
+  background-color: var(--action);
+  border-color: var(--action);
+}
+
+.form-label {
+  font-weight: var(--weight-medium);
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+}
+
+/* ── Surfaces ────────────────────────────────────────────────── */
+.card {
+  --bs-card-bg: var(--surface);
+  --bs-card-border-color: var(--border);
+  --bs-card-border-radius: var(--radius-lg);
+  --bs-card-cap-bg: var(--surface-sunken);
+  color: var(--text);
+}
+
+.modal {
+  --bs-modal-bg: var(--surface);
+  --bs-modal-border-color: var(--border);
+  --bs-modal-border-radius: var(--radius-xl);
+  --bs-modal-box-shadow: var(--shadow-xl);
+  --bs-modal-header-border-color: var(--border);
+  --bs-modal-footer-border-color: var(--border);
+  --bs-modal-color: var(--text);
+}
+
+.modal-backdrop {
+  --bs-backdrop-bg: var(--color-secondary-950);
+  --bs-backdrop-opacity: 0.55;
+}
+
+.dropdown-menu {
+  --bs-dropdown-bg: var(--surface-raised);
+  --bs-dropdown-border-color: var(--border);
+  --bs-dropdown-border-radius: var(--radius-md);
+  --bs-dropdown-box-shadow: var(--shadow-lg);
+  --bs-dropdown-link-color: var(--text);
+  --bs-dropdown-link-hover-bg: var(--surface-sunken);
+  --bs-dropdown-link-hover-color: var(--text-strong);
+  --bs-dropdown-link-active-bg: var(--action);
+}
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text);
+  --bs-table-border-color: var(--border);
+  --bs-table-striped-bg: var(--surface-sunken);
+  --bs-table-hover-bg: var(--surface-sunken);
+  --bs-table-hover-color: var(--text-strong);
+}
+
+.nav-tabs,
+.nav-pills {
+  --bs-nav-link-color: var(--text-muted);
+  --bs-nav-link-hover-color: var(--text-strong);
+  --bs-nav-tabs-border-color: var(--border);
+  --bs-nav-tabs-link-active-color: var(--action);
+  --bs-nav-tabs-link-active-bg: var(--surface);
+  --bs-nav-tabs-link-active-border-color: var(--border) var(--border) var(--surface);
+  --bs-nav-pills-link-active-bg: var(--action);
+}
+
+.badge {
+  --bs-badge-font-weight: var(--weight-semibold);
+  --bs-badge-border-radius: var(--radius-full);
+}
+
+.alert {
+  --bs-alert-border-radius: var(--radius-md);
+}
+
+.text-primary {
+  color: var(--fg-primary) !important;
+}
+
+.bg-primary {
+  background-color: var(--action) !important;
+}
+
+/* ── Utility classes: keep Bootstrap helpers theme-aware ─────── */
+.text-dark,
+.text-black,
+.text-body {
+  color: var(--text-strong) !important;
+}
+
+.text-muted,
+.text-secondary,
+.text-body-secondary {
+  color: var(--text-muted) !important;
+}
+
+.bg-white,
+.bg-body {
+  background-color: var(--surface) !important;
+}
+
+.bg-light,
+.bg-body-tertiary,
+.bg-body-secondary {
+  background-color: var(--surface-sunken) !important;
+}
+
+.border,
+.border-top,
+.border-bottom,
+.border-start,
+.border-end {
+  border-color: var(--border) !important;
+}
+
+.text-success {
+  color: var(--fg-success) !important;
+}
+
+.text-danger {
+  color: var(--fg-error) !important;
+}
+
+.text-warning {
+  color: var(--fg-warning) !important;
+}
+
+.text-info {
+  color: var(--fg-info) !important;
+}

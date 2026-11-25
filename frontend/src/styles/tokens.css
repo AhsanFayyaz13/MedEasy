@@ -1,0 +1,339 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   MedEasy Design Tokens — the single source of truth for every colour,
+   font, size, space, radius, shadow and motion value in the app.
+
+   Rules:
+   • Raw hex values live ONLY in this file (enforced by stylelint).
+   • Components should prefer the SEMANTIC tokens (--bg, --surface, --text…)
+     and the brand scales (--color-primary-600…). Never invent new shades.
+   • Dark mode is handled here: neutrals and light tints are re-mapped so
+     every component that uses tokens adapts automatically.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Brand: Primary (sky — matches the MedEasy capsule logo) ───────── */
+  --color-primary-50: #f0f9ff;
+  --color-primary-100: #e0f2fe;
+  --color-primary-200: #bae6fd;
+  --color-primary-300: #7dd3fc;
+  --color-primary-400: #38bdf8; /* logo colour — decorative use */
+  --color-primary-500: #0ea5e9;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1; /* AA on white — buttons, links */
+  --color-primary-800: #075985;
+  --color-primary-900: #0c4a6e;
+
+  /* ── Brand: Secondary (deep clinical navy) — constant in both themes ─ */
+  --color-secondary-500: #3b5579;
+  --color-secondary-600: #2b4466;
+  --color-secondary-700: #1e3a5c;
+  --color-secondary-800: #172338;
+  --color-secondary-900: #0f172a;
+  --color-secondary-950: #0b1220;
+
+  /* ── Brand: Accent (healing emerald) ─────────────────────────────── */
+  --color-accent-50: #ecfdf5;
+  --color-accent-100: #d1fae5;
+  --color-accent-200: #a7f3d0;
+  --color-accent-300: #6ee7b7;
+  --color-accent-400: #34d399;
+  --color-accent-500: #10b981;
+  --color-accent-600: #059669;
+  --color-accent-700: #047857;
+  --color-accent-800: #065f46;
+
+  /* ── Neutral (slate). Inverted in dark mode. ─────────────────────── */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  --color-neutral-950: #020617;
+
+  /* ── Constants (never flip) ─────────────────────────────────────── */
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* ── Status ─────────────────────────────────────────────────────── */
+  --color-success-50: var(--color-accent-50);
+  --color-success-100: var(--color-accent-100);
+  --color-success-500: var(--color-accent-500);
+  --color-success-600: var(--color-accent-600);
+  --color-success-700: var(--color-accent-700);
+
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+  --color-warning-800: #92400e;
+
+  --color-error-50: #fef2f2;
+  --color-error-100: #fee2e2;
+  --color-error-200: #fecaca;
+  --color-error-400: #f87171;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
+  --color-error-800: #991b1b;
+
+  --color-info-50: var(--color-primary-50);
+  --color-info-100: var(--color-primary-100);
+  --color-info-500: var(--color-primary-500);
+  --color-info-600: var(--color-primary-600);
+  --color-info-700: var(--color-primary-700);
+
+  /* ── Categorical (medicine categories, roles, charts only) ─────── */
+  --color-violet-50: #f5f3ff;
+  --color-violet-100: #ede9fe;
+  --color-violet-200: #ddd6fe;
+  --color-violet-400: #a78bfa;
+  --color-violet-500: #8b5cf6;
+  --color-violet-600: #7c3aed;
+  --color-violet-700: #6d28d9;
+
+  --color-indigo-50: #eef2ff;
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  --color-indigo-700: #4338ca;
+
+  --color-rose-50: #fff1f2;
+  --color-rose-100: #ffe4e6;
+  --color-rose-200: #fecdd3;
+  --color-rose-400: #fb7185;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+  --color-rose-700: #be123c;
+
+  --color-orange-50: #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-200: #fed7aa;
+  --color-orange-400: #fb923c;
+  --color-orange-500: #f97316;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #c2410c;
+
+  /* ── Theme-aware hue roles: tints for backgrounds/borders, fg for coloured text ── */
+  --tint-primary-50: #f0f9ff;
+  --tint-primary-100: #e0f2fe;
+  --tint-primary-200: #bae6fd;
+  --fg-primary: #0369a1;
+  --tint-accent-50: #ecfdf5;
+  --tint-accent-100: #d1fae5;
+  --tint-accent-200: #a7f3d0;
+  --fg-accent: #047857;
+  --tint-warning-50: #fffbeb;
+  --tint-warning-100: #fef3c7;
+  --tint-warning-200: #fde68a;
+  --fg-warning: #b45309;
+  --tint-error-50: #fef2f2;
+  --tint-error-100: #fee2e2;
+  --tint-error-200: #fecaca;
+  --fg-error: #b91c1c;
+  --tint-violet-50: #f5f3ff;
+  --tint-violet-100: #ede9fe;
+  --tint-violet-200: #ddd6fe;
+  --fg-violet: #6d28d9;
+  --tint-indigo-50: #eef2ff;
+  --tint-indigo-100: #e0e7ff;
+  --tint-indigo-200: #c7d2fe;
+  --fg-indigo: #4338ca;
+  --tint-rose-50: #fff1f2;
+  --tint-rose-100: #ffe4e6;
+  --tint-rose-200: #fecdd3;
+  --fg-rose: #be123c;
+  --tint-orange-50: #fff7ed;
+  --tint-orange-100: #ffedd5;
+  --tint-orange-200: #fed7aa;
+  --fg-orange: #c2410c;
+  --fg-success: var(--fg-accent);
+  --fg-info: var(--fg-primary);
+
+  /* ── Semantic aliases (use these first) ─────────────────────────── */
+  --bg: var(--color-neutral-50);
+  --bg-subtle: var(--color-neutral-100);
+  --surface: var(--color-neutral-0);
+  --surface-raised: var(--color-neutral-0);
+  --surface-sunken: var(--color-neutral-100);
+  --surface-inverse: var(--color-secondary-900);
+  --text: var(--color-neutral-800);
+  --text-strong: var(--color-neutral-900);
+  --text-muted: var(--color-neutral-500);
+  --text-subtle: var(--color-neutral-400);
+  --text-on-primary: var(--color-white);
+  --text-on-inverse: var(--color-neutral-100);
+  --border: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
+  --link: var(--fg-primary);
+  --link-hover: var(--color-primary-800);
+  --action: var(--color-primary-700);
+  --action-hover: var(--color-primary-800);
+  --action-subtle: var(--tint-primary-50);
+  --ring: color-mix(in srgb, var(--color-primary-500) 45%, transparent);
+  --overlay: color-mix(in srgb, var(--color-secondary-950) 55%, transparent);
+
+  /* ── Typography ─────────────────────────────────────────────────── */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', var(--font-sans);
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem;    /* 12 */
+  --text-sm: 0.875rem;   /* 14 */
+  --text-base: 1rem;     /* 16 */
+  --text-lg: 1.125rem;   /* 18 */
+  --text-xl: 1.25rem;    /* 20 */
+  --text-2xl: 1.5rem;    /* 24 */
+  --text-3xl: 1.875rem;  /* 30 */
+  --text-4xl: clamp(1.875rem, 1.4rem + 1.8vw, 2.25rem);  /* 30→36 */
+  --text-5xl: clamp(2.25rem, 1.6rem + 2.6vw, 3rem);      /* 36→48 */
+  --text-6xl: clamp(2.5rem, 1.6rem + 3.6vw, 3.75rem);    /* 40→60 */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.55;
+  --leading-relaxed: 1.7;
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.04em;
+
+  /* ── Spacing (4px base) ─────────────────────────────────────────── */
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0-5: 0.125rem; /* 2 */
+  --space-1: 0.25rem;    /* 4 */
+  --space-1-5: 0.375rem; /* 6 */
+  --space-2: 0.5rem;     /* 8 */
+  --space-3: 0.75rem;    /* 12 */
+  --space-4: 1rem;       /* 16 */
+  --space-5: 1.25rem;    /* 20 */
+  --space-6: 1.5rem;     /* 24 */
+  --space-8: 2rem;       /* 32 */
+  --space-10: 2.5rem;    /* 40 */
+  --space-12: 3rem;      /* 48 */
+  --space-16: 4rem;      /* 64 */
+  --space-20: 5rem;      /* 80 */
+  --space-24: 6rem;      /* 96 */
+
+  /* ── Radius ─────────────────────────────────────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
+
+  /* ── Shadows (navy-tinted, soft) ────────────────────────────────── */
+  --shadow-color: 222 47% 11%;
+  --shadow-xs: 0 1px 2px hsl(var(--shadow-color) / 0.06);
+  --shadow-sm: 0 1px 3px hsl(var(--shadow-color) / 0.08), 0 1px 2px hsl(var(--shadow-color) / 0.04);
+  --shadow-md: 0 4px 12px -2px hsl(var(--shadow-color) / 0.08), 0 2px 4px -2px hsl(var(--shadow-color) / 0.05);
+  --shadow-lg: 0 12px 28px -6px hsl(var(--shadow-color) / 0.12), 0 4px 8px -4px hsl(var(--shadow-color) / 0.06);
+  --shadow-xl: 0 24px 48px -12px hsl(var(--shadow-color) / 0.18);
+  --shadow-focus: 0 0 0 3px var(--ring);
+
+  /* ── Layout ─────────────────────────────────────────────────────── */
+  --container-max: 1240px;
+  --nav-height: 68px;
+  /* Breakpoints (reference only — CSS vars can't be used in @media):
+     sm 576px · md 768px · lg 992px · xl 1200px · 2xl 1400px (Bootstrap-aligned) */
+
+  /* ── Z-index ────────────────────────────────────────────────────── */
+  --z-base: 1;
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-overlay: 1040;
+  --z-modal: 1055;
+  --z-toast: 1090;
+
+  /* ── Motion ─────────────────────────────────────────────────────── */
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 320ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --transition-fast: var(--duration-fast) var(--ease-out);
+  --transition-base: var(--duration-base) var(--ease-out);
+}
+
+/* ═════════════════════════════ DARK MODE ═══════════════════════════════ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Neutral scale inverted so surfaces/text adapt automatically */
+  --color-neutral-0: #0f1626;
+  --color-neutral-50: #0b1220;
+  --color-neutral-100: #172036;
+  --color-neutral-200: #243049;
+  --color-neutral-300: #34415c;
+  --color-neutral-400: #64748b;
+  --color-neutral-500: #94a3b8;
+  --color-neutral-600: #b4c0d0;
+  --color-neutral-700: #cbd5e1;
+  --color-neutral-800: #e2e8f0;
+  --color-neutral-900: #f1f5f9;
+  --color-neutral-950: #f8fafc;
+
+  /* Hue roles (scales above stay constant; only these adapt) */
+  --tint-primary-50: #0c2236;
+  --tint-primary-100: #0e2c46;
+  --tint-primary-200: #12405f;
+  --fg-primary: #7dd3fc;
+  --tint-accent-50: #0a2a22;
+  --tint-accent-100: #0d3529;
+  --tint-accent-200: #11513e;
+  --fg-accent: #6ee7b7;
+  --tint-warning-50: #2b2008;
+  --tint-warning-100: #3a2a0a;
+  --tint-warning-200: #5a420f;
+  --fg-warning: #fbbf24;
+  --tint-error-50: #2e1215;
+  --tint-error-100: #3d1519;
+  --tint-error-200: #5c1d22;
+  --fg-error: #fca5a5;
+  --tint-violet-50: #1e1736;
+  --tint-violet-100: #271d47;
+  --tint-violet-200: #362866;
+  --fg-violet: #c4b5fd;
+  --tint-indigo-50: #191b3d;
+  --tint-indigo-100: #20234f;
+  --tint-indigo-200: #2e3370;
+  --fg-indigo: #a5b4fc;
+  --tint-rose-50: #2f1119;
+  --tint-rose-100: #3e1520;
+  --tint-rose-200: #5c1c2d;
+  --fg-rose: #fda4af;
+  --tint-orange-50: #2e1a0c;
+  --tint-orange-100: #3d220e;
+  --tint-orange-200: #5c3313;
+  --fg-orange: #fdba74;
+
+  --bg: var(--color-neutral-50);
+  --surface: var(--color-neutral-0);
+  --surface-raised: var(--color-neutral-100);
+  --surface-inverse: var(--color-secondary-950);
+  --link: var(--color-primary-300);
+  --link-hover: #bae6fd;
+  --action: #0369a1;
+  --action-hover: #0284c7;
+
+  --shadow-color: 222 60% 2%;
+}

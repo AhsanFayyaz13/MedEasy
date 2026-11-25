@@ -25,9 +25,9 @@ export default function AppFooter() {
           {/* Brand/Tagline Column */}
           <div className="medeasy-footer-brand-col">
             <Link to="/" className="medeasy-footer-brand">
-              <FaPills style={{ fontSize: '24px', color: '#003d9b' }} />
+              <FaPills style={{ fontSize: '24px', color: 'var(--fg-primary)' }} />
               <span>
-                Med<span style={{ color: '#003d9b' }}>Easy</span>
+                Med<span style={{ color: 'var(--fg-primary)' }}>Easy</span>
               </span>
             </Link>
             <p className="medeasy-footer-tagline">

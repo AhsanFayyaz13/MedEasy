@@ -184,8 +184,8 @@ export default function ReviewSection({ targetType, targetId, initialReviews = [
           <span className="ms-2 text-muted small">Verifying credentials...</span>
         </div>
       ) : !hasCompletedCheckup ? (
-        <Alert variant="warning" className="mb-5 border-0 shadow-sm p-4 rounded-4" style={{ background: '#fffbeb', borderLeft: '4px solid #f59e0b' }}>
-          <h6 className="fw-bold mb-2 d-flex align-items-center gap-2" style={{ color: '#b45309', fontSize: '1rem' }}>
+        <Alert variant="warning" className="mb-5 border-0 shadow-sm p-4 rounded-4" style={{ background: 'var(--color-neutral-0)', borderLeft: '4px solid var(--color-warning-500)' }}>
+          <h6 className="fw-bold mb-2 d-flex align-items-center gap-2" style={{ color: 'var(--fg-warning)', fontSize: '1rem' }}>
             🔒 Verified Consultation Required
           </h6>
           <p className="mb-0 text-muted small" style={{ lineHeight: '1.5' }}>

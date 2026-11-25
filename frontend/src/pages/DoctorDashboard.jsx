@@ -119,9 +119,9 @@ function OverviewTab({ apts, loading, setActive, openComplete }) {
       {/* Metrics Cards */}
       <Row className="g-3 mb-4">
         {[
-          { label: "Today's Appointments", value: todayCount, color: '#0284c7', icon: <FaCalendarCheck />, tab: 'schedule' },
-          { label: 'Pending Consultations', value: pendingCount, color: '#6366f1', icon: <FaClock />, tab: 'schedule' },
-          { label: 'Completed Cases', value: completedCount, color: '#10b981', icon: <FaCheckCircle />, tab: 'schedule' },
+          { label: "Today's Appointments", value: todayCount, color: 'var(--fg-primary)', icon: <FaCalendarCheck />, tab: 'schedule' },
+          { label: 'Pending Consultations', value: pendingCount, color: 'var(--color-violet-500)', icon: <FaClock />, tab: 'schedule' },
+          { label: 'Completed Cases', value: completedCount, color: 'var(--color-accent-500)', icon: <FaCheckCircle />, tab: 'schedule' },
         ].map(s => (
           <Col md={4} key={s.label}>
             <Card className="doc-stat-card clickable shadow-sm" onClick={() => setActive(s.tab)} style={{ '--doc-accent': s.color }}>
@@ -502,7 +502,7 @@ function PatientsTab({ apts }) {
                     {h.prescription && (
                       <div className="ehr-prescription p-2 bg-white rounded border">
                         <span className="text-success extra-small d-block fw-bold"><FaFilePrescription /> Issued Prescription</span>
-                        <pre className="mb-0 text-muted extra-small lh-base" style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{h.prescription}</pre>
+                        <pre className="mb-0 text-muted extra-small lh-base" style={{ fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap' }}>{h.prescription}</pre>
                       </div>
                     )}
                   </div>
@@ -921,11 +921,11 @@ export default function DoctorDashboard() {
                         maxWidth: '85%',
                         fontSize: '0.88rem',
                         lineHeight: '1.4',
-                        background: isMe ? '#2563eb' : '#fff',
-                        color: isMe ? '#fff' : '#1f2937',
-                        border: isMe ? 'none' : '1px solid #e5e7eb',
+                        background: isMe ? 'var(--color-primary-600)' : 'var(--color-white)',
+                        color: isMe ? 'var(--color-white)' : 'var(--color-neutral-800)',
+                        border: isMe ? 'none' : '1px solid var(--color-neutral-200)',
                         borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        boxShadow: '0 1px 2px color-mix(in srgb, var(--color-black) 5%, transparent)'
                       }}
                     >
                       {m.text}

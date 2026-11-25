@@ -411,11 +411,11 @@ export default function AppointmentBooking() {
 
                   {/* Doctor card */}
                   {selectedDoc && (
-                    <Card className="doc-profile-card border-0 shadow-sm mb-4 rounded-4 animate-fade-in" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <Card className="doc-profile-card border-0 shadow-sm mb-4 rounded-4 animate-fade-in" style={{ background: 'var(--color-neutral-50)', border: '1px solid var(--color-neutral-200)' }}>
                       <Card.Body className="p-3">
                         <div className="d-flex align-items-start gap-3">
                           {/* Avatar block */}
-                          <div className="doc-avatar-circle d-flex align-items-center justify-content-center shadow-sm" style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', color: '#0284c7' }}>
+                          <div className="doc-avatar-circle d-flex align-items-center justify-content-center shadow-sm" style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-neutral-100), var(--tint-primary-200))', color: 'var(--fg-primary)' }}>
                             <FaUserMd size={28} />
                           </div>
 
@@ -444,7 +444,7 @@ export default function AppointmentBooking() {
                         </div>
 
                         {/* Consultation Price alert block */}
-                        <div className="consultation-fee-badge mt-3 p-3 rounded-3 d-flex align-items-center justify-content-between" style={{ background: '#ecfdf5', border: '1px solid #a7f3d0' }}>
+                        <div className="consultation-fee-badge mt-3 p-3 rounded-3 d-flex align-items-center justify-content-between" style={{ background: 'var(--color-neutral-50)', border: '1px solid var(--tint-accent-200)' }}>
                           <span className="small text-success-dark fw-600 d-flex align-items-center gap-1">
                             <FaMoneyBillWave /> Consultation Checkup Fee
                           </span>
@@ -625,11 +625,11 @@ export default function AppointmentBooking() {
                           maxWidth: '85%',
                           fontSize: '0.88rem',
                           lineHeight: '1.4',
-                          background: isMe ? '#2563eb' : '#fff',
-                          color: isMe ? '#fff' : '#1f2937',
-                          border: isMe ? 'none' : '1px solid #e5e7eb',
+                          background: isMe ? 'var(--color-primary-600)' : 'var(--color-white)',
+                          color: isMe ? 'var(--color-white)' : 'var(--color-neutral-800)',
+                          border: isMe ? 'none' : '1px solid var(--color-neutral-200)',
                           borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          boxShadow: '0 1px 2px color-mix(in srgb, var(--color-black) 5%, transparent)'
                         }}
                       >
                         {m.text}

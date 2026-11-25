@@ -10,6 +10,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import ThemeToggle from './ui/ThemeToggle';
 import './Navbar.css';
 
 // ─── Notification Icon Mapping component ─────────────────────────────────────
@@ -223,7 +224,7 @@ export default function AppNavbar() {
             src="/MedEasy_withoutBG.png"
           />
           <span>
-            Med<span style={{ color: '#003d9b' }}>Easy</span>
+            Med<span style={{ color: 'var(--fg-primary)' }}>Easy</span>
           </span>
         </Link>
 
@@ -283,6 +284,7 @@ export default function AppNavbar() {
 
         {/* Actions & Dropdown trigger */}
         <div className="medeasy-actions">
+          <ThemeToggle />
           {/* Cart Icon */}
           {isPatientOrGuest && (
             <Link to="/cart" className="medeasy-icon-btn" onClick={closeNav}>
@@ -333,8 +335,8 @@ export default function AppNavbar() {
                           <NotificationIcon type={n.emoji} />
                         </div>
                         <div className="flex-grow-1" style={{ textAlign: 'left' }}>
-                          <p className="mb-0 text-dark fw-500" style={{ fontSize: '0.8rem', lineHeight: '1.4', color: '#1e293b' }}>{n.text}</p>
-                          <span className="text-muted d-block mt-1" style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                          <p className="mb-0 text-dark fw-500" style={{ fontSize: '0.8rem', lineHeight: '1.4', color: 'var(--color-neutral-800)' }}>{n.text}</p>
+                          <span className="text-muted d-block mt-1" style={{ fontSize: '0.68rem', color: 'var(--fg-primary)' }}>
                             {new Date(n.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>

@@ -37,37 +37,37 @@ const FEATURES = [
     materialIcon: 'verified_user',
     title: 'Verified Medicines',
     desc:  'All medicines sourced exclusively from licensed pharmaceutical suppliers and distributors with 100% authenticity tracking.',
-    color: '#38bdf8',
+    color: 'var(--color-primary-400)',
   },
   {
     materialIcon: 'rocket_launch',
     title: 'Lightning Delivery',
     desc:  'Order before 2 PM and receive your medicines the same day in Mailsi, Karachi, Lahore & Islamabad.',
-    color: '#34d399',
+    color: 'var(--color-accent-400)',
   },
   {
     materialIcon: 'support_agent',
     title: '24/7 Pharmacist Support',
     desc:  'Our licensed pharmacists are available around the clock to answer your health queries.',
-    color: '#a78bfa',
+    color: 'var(--color-violet-400)',
   },
   {
     materialIcon: 'upload_file',
     title: 'Prescription Upload',
     desc:  'Snap a photo of your prescription. Our team of licensed pharmacists verifies it within 30 minutes.',
-    color: '#f59e0b',
+    color: 'var(--color-warning-500)',
   },
   {
     materialIcon: 'calendar_month',
     title: 'Doctor Appointments',
     desc:  'Book online consultations and physical appointments with verified doctors across multiple specialties.',
-    color: '#f472b6',
+    color: 'var(--color-rose-400)',
   },
   {
     materialIcon: 'public',
     title: 'Nationwide Reach',
     desc:  'Delivering to 30+ cities across Pakistan with real-time order tracking and secure shipping.',
-    color: '#fb923c',
+    color: 'var(--color-orange-400)',
   },
 ];
 
@@ -264,14 +264,14 @@ export default function Home() {
           <h2 className="font-headline-lg text-headline-lg text-on-surface mb-12 text-center">Shop by Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
             {[
-              { name: 'Pain Relief', linkTo: 'Analgesics', bg: '#FFEEDB', textClass: 'text-orange-600', icon: 'pill' },
-              { name: 'Antibiotics', linkTo: 'Antibiotics', bg: '#E4F9F1', textClass: 'text-green-600', icon: 'vaccines' },
-              { name: 'Vitamins', linkTo: 'Vitamins & Supplements', bg: '#E7EEFF', textClass: 'text-primary', icon: 'eco' },
-              { name: 'Diabetes', linkTo: 'Diabetes', bg: '#FFEBF0', textClass: 'text-pink-600', icon: 'bloodtype' },
-              { name: 'Cardiology', linkTo: 'Cardiology', bg: '#F3E8FF', textClass: 'text-purple-600', icon: 'favorite' },
-              { name: 'Dermatology', linkTo: 'Dermatology', bg: '#EDF2F7', textClass: 'text-slate-600', icon: 'spa' },
-              { name: 'Eye Care', linkTo: 'Eye Care', bg: '#E2FAFC', textClass: 'text-cyan-600', icon: 'visibility' },
-              { name: 'Pediatrics', linkTo: 'Child Health', bg: '#FFF8E1', textClass: 'text-amber-600', icon: 'child_care' }
+              { name: 'Pain Relief', linkTo: 'Analgesics', bg: 'var(--color-neutral-100)', textClass: 'text-orange-600', icon: 'pill' },
+              { name: 'Antibiotics', linkTo: 'Antibiotics', bg: 'var(--color-neutral-100)', textClass: 'text-green-600', icon: 'vaccines' },
+              { name: 'Vitamins', linkTo: 'Vitamins & Supplements', bg: 'var(--color-neutral-200)', textClass: 'text-primary', icon: 'eco' },
+              { name: 'Diabetes', linkTo: 'Diabetes', bg: 'var(--color-neutral-100)', textClass: 'text-pink-600', icon: 'bloodtype' },
+              { name: 'Cardiology', linkTo: 'Cardiology', bg: 'var(--color-neutral-200)', textClass: 'text-purple-600', icon: 'favorite' },
+              { name: 'Dermatology', linkTo: 'Dermatology', bg: 'var(--color-neutral-100)', textClass: 'text-slate-600', icon: 'spa' },
+              { name: 'Eye Care', linkTo: 'Eye Care', bg: 'var(--color-neutral-100)', textClass: 'text-cyan-600', icon: 'visibility' },
+              { name: 'Pediatrics', linkTo: 'Child Health', bg: 'var(--color-neutral-50)', textClass: 'text-amber-600', icon: 'child_care' }
             ].map((cat) => (
               <Link
                 key={cat.name}
@@ -303,7 +303,7 @@ export default function Home() {
               <div key={f.title} className="bg-sterile-white p-8 rounded-2xl border border-ui-border bento-card">
                 <div 
                   className="w-12 h-12 rounded-xl flex items-center justify-center mb-6"
-                  style={{ backgroundColor: `${f.color}15`, color: f.color }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${f.color} 10%, transparent)`, color: f.color }}
                 >
                   <span className="material-symbols-outlined">{f.materialIcon}</span>
                 </div>

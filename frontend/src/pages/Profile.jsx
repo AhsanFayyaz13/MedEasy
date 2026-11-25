@@ -417,7 +417,7 @@ export default function Profile() {
                     </h4>
 
                     {/* Managed-by-sponsor notice */}
-                    <div className="d-flex align-items-start gap-3 p-3 mb-4 rounded-3 border" style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', borderColor: '#f59e0b !important' }}>
+                    <div className="d-flex align-items-start gap-3 p-3 mb-4 rounded-3 border" style={{ background: 'linear-gradient(135deg, var(--tint-warning-50) 0%, var(--tint-warning-100) 100%)', borderColor: 'var(--color-warning-500)' }}>
                       <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>🔒</span>
                       <div>
                         <div className="fw-bold text-dark mb-1" style={{ fontSize: '0.9rem' }}>Credentials Managed by Sponsoring Pharmacy</div>
@@ -455,7 +455,7 @@ export default function Profile() {
                       </ListGroup.Item>
                     </ListGroup>
 
-                    <div className="mt-3 p-2 rounded-2 bg-light border d-flex align-items-center gap-2" style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+                    <div className="mt-3 p-2 rounded-2 bg-light border d-flex align-items-center gap-2" style={{ fontSize: '0.78rem', color: 'var(--color-neutral-500)' }}>
                       <span>⚠️</span>
                       <span>If your details are removed from our system by your employer, your account access will be revoked and you will no longer be able to log in.</span>
                     </div>

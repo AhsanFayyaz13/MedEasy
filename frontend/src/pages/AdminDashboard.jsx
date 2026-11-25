@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../services/api';
+import { tokenColor } from '../lib/theme';
 import {
   Container, Row, Col, Card, Table, Badge,
   Button, Form, Nav, ProgressBar, Alert, Modal,
@@ -61,11 +62,14 @@ const safeFmtJoined = (t) => {
 const pdfPlaceholder = (label) => alert(`PDF download for "${label}" will be available once backend is connected.`);
 const serverUrl = api.defaults.baseURL ? api.defaults.baseURL.replace('/api', '') : 'https://medeasy-backend-a5yi.onrender.com';
 
-const CHART_OPTS = {
+const chartOpts = () => ({
   responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { position:'top' }, title: { display: false } },
-  scales: { y: { beginAtZero: true, grid: { color:'#f1f5f9' } }, x: { grid:{ display:false } } },
-};
+  plugins: { legend: { position:'top', labels: { color: tokenColor('--color-neutral-600') } }, title: { display: false } },
+  scales: {
+    y: { beginAtZero: true, grid: { color: tokenColor('--color-neutral-100') }, ticks: { color: tokenColor('--color-neutral-500') } },
+    x: { grid: { display: false }, ticks: { color: tokenColor('--color-neutral-500') } },
+  },
+});
 
 /* ─── KPI card ───────────────────────────────────────────────── */
 function KpiCard({ label, value, icon, color, sub }) {
@@ -103,19 +107,19 @@ function OverviewTab({ setActive, stats, orders }) {
     return {
       labels,
       datasets: [
-        { label: 'Revenue (Rs.)', data: revenue,      backgroundColor: 'rgba(167, 139, 250, 0.7)', borderRadius: 8, borderSkipped: false },
-        { label: 'Orders',        data: orderCounts,  backgroundColor: 'rgba(56, 189, 248, 0.7)',  borderRadius: 8, borderSkipped: false },
+        { label: 'Revenue (Rs.)', data: revenue,      backgroundColor: tokenColor('--color-violet-400', 0.7), borderRadius: 8, borderSkipped: false },
+        { label: 'Orders',        data: orderCounts,  backgroundColor: tokenColor('--color-primary-400', 0.7),  borderRadius: 8, borderSkipped: false },
       ],
     };
   }, [orders]);
 
   const shortcuts = [
-    { label: 'User Management', tab: 'users', icon: <FaUsers size={24} />, bg: '#e0f2fe', color: '#0369a1', desc: 'Manage patients, doctors & roles' },
-    { label: 'Medicine Catalog', tab: 'medicines', icon: <FaBoxes size={24} />, bg: '#f0fdf4', color: '#15803d', desc: 'Pricing controls & inventory stock' },
-    { label: 'Appointments', tab: 'appointments', icon: <FaCalendarCheck size={24} />, bg: '#ecfeff', color: '#0891b2', desc: 'Hospital-wide doctor schedules' },
-    { label: 'Order Tracking', tab: 'orders', icon: <FaShoppingCart size={24} />, bg: '#fffbeb', color: '#b45309', desc: 'Logistics tracking & refunds' },
-    { label: 'Sales Reports', tab: 'reports', icon: <FaChartBar size={24} />, bg: '#faf5ff', color: '#7e22ce', desc: 'Sales trend graphs & leaderboards' },
-    { label: 'System Settings', tab: 'settings', icon: <FaSlidersH size={24} />, bg: '#f8fafc', color: '#475569', desc: 'Commission, courier selection' },
+    { label: 'User Management', tab: 'users', icon: <FaUsers size={24} />, bg: 'var(--color-neutral-100)', color: 'var(--fg-primary)', desc: 'Manage patients, doctors & roles' },
+    { label: 'Medicine Catalog', tab: 'medicines', icon: <FaBoxes size={24} />, bg: 'var(--color-neutral-50)', color: 'var(--fg-accent)', desc: 'Pricing controls & inventory stock' },
+    { label: 'Appointments', tab: 'appointments', icon: <FaCalendarCheck size={24} />, bg: 'var(--color-neutral-50)', color: 'var(--fg-primary)', desc: 'Hospital-wide doctor schedules' },
+    { label: 'Order Tracking', tab: 'orders', icon: <FaShoppingCart size={24} />, bg: 'var(--color-neutral-0)', color: 'var(--fg-warning)', desc: 'Logistics tracking & refunds' },
+    { label: 'Sales Reports', tab: 'reports', icon: <FaChartBar size={24} />, bg: 'var(--tint-violet-50)', color: 'var(--fg-violet)', desc: 'Sales trend graphs & leaderboards' },
+    { label: 'System Settings', tab: 'settings', icon: <FaSlidersH size={24} />, bg: 'var(--color-neutral-50)', color: 'var(--color-secondary-500)', desc: 'Commission, courier selection' },
   ];
 
   return (
@@ -128,10 +132,10 @@ function OverviewTab({ setActive, stats, orders }) {
 
       {/* KPI Cards Grid */}
       <Row className="g-3 mb-4">
-        <Col sm={6} xl={3}><KpiCard label="Total Platform Users" value={stats.usersCount} icon={<FaUsers />} color="#818cf8" sub="Registered Accounts" /></Col>
-        <Col sm={6} xl={3}><KpiCard label="Orders Today" value={stats.ordersCount} icon={<FaShoppingCart />} color="#38bdf8" sub="Total active/processed" /></Col>
-        <Col sm={6} xl={3}><KpiCard label="Revenue MTD" value={fmtRs(stats.revenueMtd)} icon={<FaMoneyBillWave />} color="#10b981" sub="Month to Date" /></Col>
-        <Col sm={6} xl={3}><KpiCard label="Platform Appointments" value={stats.aptsCount} icon={<FaCalendarCheck />} color="#f59e0b" sub="Active hospital bookings" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Total Platform Users" value={stats.usersCount} icon={<FaUsers />} color="var(--color-violet-400)" sub="Registered Accounts" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Orders Today" value={stats.ordersCount} icon={<FaShoppingCart />} color="var(--color-primary-400)" sub="Total active/processed" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Revenue MTD" value={fmtRs(stats.revenueMtd)} icon={<FaMoneyBillWave />} color="var(--color-accent-500)" sub="Month to Date" /></Col>
+        <Col sm={6} xl={3}><KpiCard label="Platform Appointments" value={stats.aptsCount} icon={<FaCalendarCheck />} color="var(--color-warning-500)" sub="Active hospital bookings" /></Col>
       </Row>
 
       {/* Tactile Shortcut Grid */}
@@ -159,7 +163,7 @@ function OverviewTab({ setActive, stats, orders }) {
         <Card.Body>
           <h6 className="adm-chart-title"><FaChartBar className="me-2 text-primary" />MedEasy Sales & Logistics Trend</h6>
           <div style={{ height: 250 }}>
-            <Bar data={barData} options={CHART_OPTS} />
+            <Bar data={barData} options={chartOpts()} />
           </div>
         </Card.Body>
       </Card>
@@ -561,7 +565,7 @@ function VerificationsTab({ users, setUsers }) {
                 <td className="text-muted small">#U-{u.id}</td>
                 <td>
                   <div className="adm-user-cell">
-                    <div className="adm-user-av" style={{background: u.role === 'doctor' ? '#6366f1' : '#10b981'}}>
+                    <div className="adm-user-av" style={{background: u.role === 'doctor' ? 'var(--color-violet-500)' : 'var(--color-accent-500)'}}>
                       {u.name[0]}
                     </div>
                     <div>
@@ -617,7 +621,7 @@ function VerificationsTab({ users, setUsers }) {
             <div>
               {/* Profile Card Header */}
               <div className="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
-                <div className="adm-user-av" style={{ width: 64, height: 64, fontSize: '1.75rem', background: selectedUser.role === 'doctor' ? '#6366f1' : '#10b981' }}>
+                <div className="adm-user-av" style={{ width: 64, height: 64, fontSize: '1.75rem', background: selectedUser.role === 'doctor' ? 'var(--color-violet-500)' : 'var(--color-accent-500)' }}>
                   {selectedUser.name[0]}
                 </div>
                 <div>
@@ -1070,8 +1074,8 @@ function ReportsTab({ orders, medicines, apts }) {
   const barData = {
     labels: monthlyData.labels,
     datasets: [
-      { label: 'Revenue (Rs.)', data: monthlyData.revenue,     backgroundColor: 'rgba(56,189,248,0.7)', borderRadius: 8, borderSkipped: false },
-      { label: 'Orders',        data: monthlyData.orderCounts, backgroundColor: 'rgba(129,140,248,0.7)', borderRadius: 8, borderSkipped: false },
+      { label: 'Revenue (Rs.)', data: monthlyData.revenue,     backgroundColor: tokenColor('--color-primary-400', 0.7), borderRadius: 8, borderSkipped: false },
+      { label: 'Orders',        data: monthlyData.orderCounts, backgroundColor: tokenColor('--color-violet-400', 0.7), borderRadius: 8, borderSkipped: false },
     ],
   };
 
@@ -1093,7 +1097,7 @@ function ReportsTab({ orders, medicines, apts }) {
           <h6 className="adm-chart-title">Monthly Revenue &amp; Orders</h6>
           {hasOrders ? (
             <div style={{height: 285}}>
-              <Bar data={barData} options={CHART_OPTS} />
+              <Bar data={barData} options={chartOpts()} />
             </div>
           ) : (
             <div className="text-center text-muted py-5">

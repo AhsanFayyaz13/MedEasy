@@ -65,11 +65,11 @@ export function useToast() {
 
 // ─── Toast Container (renders toasts fixed bottom-right) ──────────────────────
 const VARIANT_STYLES = {
-  success: { bg: '#059669', text: '#fff' },
-  danger:  { bg: '#dc2626', text: '#fff' },
-  warning: { bg: '#d97706', text: '#fff' },
-  info:    { bg: '#0284c7', text: '#fff' },
-  cart:    { bg: '#0d1b2a', text: '#fff' },
+  success: { bg: 'var(--color-accent-600)', text: 'var(--color-white)' },
+  danger:  { bg: 'var(--color-error-600)', text: 'var(--color-white)' },
+  warning: { bg: 'var(--color-warning-600)', text: 'var(--color-white)' },
+  info:    { bg: 'var(--color-primary-600)', text: 'var(--color-white)' },
+  cart:    { bg: 'var(--color-secondary-900)', text: 'var(--color-white)' },
 };
 
 function ToastContainer({ toasts, onDismiss }) {

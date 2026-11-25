@@ -398,11 +398,11 @@ export default function Register() {
     const isEmailChannel = fields.verificationChannel === 'email';
 
     return (
-      <div className="auth-page" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)' }}>
+      <div className="auth-page" style={{ background: 'linear-gradient(135deg, var(--color-neutral-50) 0%, var(--color-neutral-200) 100%)' }}>
         <Container>
           <Row className="justify-content-center align-items-center min-vh-auth">
             <Col xs={12} sm={10} md={8} lg={6}>
-              <Card className="auth-card border-0" style={{ borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.08)' }}>
+              <Card className="auth-card border-0" style={{ borderRadius: '24px', boxShadow: '0 25px 50px -12px color-mix(in srgb, var(--color-black) 8%, transparent)' }}>
                 <Card.Body className="p-4 p-md-5">
 
                   {/* Header with floating animated icon */}
@@ -414,7 +414,7 @@ export default function Register() {
                         <FaMobileAlt size={32} />
                       )}
                     </div>
-                    <h2 className="auth-title font-extrabold fs-2 tracking-tight" style={{ color: '#0f172a' }}>
+                    <h2 className="auth-title font-extrabold fs-2 tracking-tight" style={{ color: 'var(--color-neutral-900)' }}>
                       {isEmailChannel ? 'Verify Your Email' : 'Verify Your Phone'}
                     </h2>
                     
@@ -445,14 +445,14 @@ export default function Register() {
 
                   {/* API error */}
                   {authError && (
-                    <Alert variant="danger" className="auth-alert border-0 shadow-sm" dismissible onClose={clearAuthError} style={{ background: '#fef2f2', color: '#b91c1c' }}>
+                    <Alert variant="danger" className="auth-alert border-0 shadow-sm" dismissible onClose={clearAuthError} style={{ background: 'var(--color-neutral-100)', color: 'var(--fg-error)' }}>
                       <strong>Verification failed:</strong> {authError}
                     </Alert>
                   )}
 
                   {/* Success */}
                   {success && (
-                    <Alert variant="success" className="auth-alert border-0 shadow-sm" style={{ background: '#ecfdf5', color: '#047857' }}>
+                    <Alert variant="success" className="auth-alert border-0 shadow-sm" style={{ background: 'var(--color-neutral-50)', color: 'var(--fg-accent)' }}>
                       ✨ Verification successful! Opening your dashboard…
                     </Alert>
                   )}
@@ -467,7 +467,7 @@ export default function Register() {
                         placeholder="••••••"
                         maxLength={6}
                         className="text-center font-monospace fs-3 border-0 py-3 shadow-inner"
-                        style={{ letterSpacing: '0.35em', background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}
+                        style={{ letterSpacing: '0.35em', background: 'var(--color-neutral-50)', borderRadius: '14px', border: '1px solid var(--color-neutral-200)' }}
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                         isInvalid={!!errors.code}
