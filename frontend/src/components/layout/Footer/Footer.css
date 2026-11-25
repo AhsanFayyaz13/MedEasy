@@ -284,13 +284,7 @@
 
 @media (min-width: 768px) {
   .site-footer__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 992px) {
-  .site-footer__grid {
-    grid-template-columns: 1.6fr repeat(3, 1fr);
+    grid-template-columns: 1.4fr 1fr 1fr;
     gap: var(--space-10);
   }
 

@@ -31,14 +31,6 @@ const SHOP = [
   { to: '/reviews', label: 'Customer reviews' },
 ];
 
-const HELP = [
-  { to: '/track', label: 'Track an order', guestOnly: true },
-  { to: '/orders', label: 'My orders', userOnly: true },
-  { to: '/refund-policy', label: 'Refunds & returns' },
-  { to: '/medical-disclaimer', label: 'Medical disclaimer' },
-  { to: '/contact', label: 'Contact support' },
-];
-
 const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
 function LegalRow() {
@@ -87,7 +79,6 @@ export default function AppFooter() {
   if (isAuthenticated && STAFF_ROLES.includes(userRole)) return <StaffFooter />;
 
   const socials = SOCIAL_LINKS.filter((s) => s.href);
-  const help = HELP.filter((l) => !(l.guestOnly && isAuthenticated) && !(l.userOnly && !isAuthenticated));
 
   return (
     <footer className="site-footer">
@@ -115,7 +106,7 @@ export default function AppFooter() {
                 Med<span className="site-footer__accent">Easy</span>
               </span>
             </Link>
-            <p className="site-footer__tagline">Genuine medicines, pharmacist-checked prescriptions and verified doctors, delivered to your door.</p>
+            <p className="site-footer__tagline">Your online pharmacy and doctor bookings, in one place.</p>
             <ul className="site-footer__promises">
               {PROMISES.map((p) => (
                 <li key={p}><FiCheck aria-hidden="true" /> {p}</li>
@@ -141,13 +132,6 @@ export default function AppFooter() {
             </ul>
           </nav>
 
-          <nav aria-labelledby="footer-help">
-            <h2 id="footer-help" className="site-footer__heading">Help</h2>
-            <ul className="site-footer__links">
-              {help.map((l) => <li key={l.to}><Link to={l.to}>{l.label}</Link></li>)}
-            </ul>
-          </nav>
-
           <nav aria-labelledby="footer-account">
             <h2 id="footer-account" className="site-footer__heading">{isAuthenticated ? 'Your account' : 'Account'}</h2>
             <ul className="site-footer__links">
@@ -157,12 +141,14 @@ export default function AppFooter() {
                   <li><Link to="/appointments/book">Book a doctor</Link></li>
                   <li><Link to="/cart">Cart</Link></li>
                   <li><Link to="/profile">Profile &amp; settings</Link></li>
+                  <li><Link to="/contact">Contact support</Link></li>
                 </>
               ) : (
                 <>
                   <li><Link to="/register">Create an account</Link></li>
                   <li><Link to="/login">Sign in</Link></li>
                   <li><Link to="/cart">Cart</Link></li>
+                  <li><Link to="/contact">Contact support</Link></li>
                 </>
               )}
             </ul>
@@ -172,7 +158,7 @@ export default function AppFooter() {
         <p className="site-footer__note">
           <FiAlertCircle aria-hidden="true" />
           <span>
-            Medicines are dispensed by licensed pharmacists. Always follow your doctor’s advice. In an emergency, call{' '}
+            Always follow your doctor’s advice. In an emergency, call{' '}
             <a href="tel:1122">1122</a>.
           </span>
         </p>
