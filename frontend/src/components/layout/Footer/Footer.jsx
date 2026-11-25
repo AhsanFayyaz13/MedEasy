@@ -27,7 +27,7 @@ export default function AppFooter() {
         <div className="site-footer__grid">
           <div className="site-footer__brand-col">
             <Link to="/" className="site-footer__brand">
-              <img src="/MedEasy_withoutBG.png" alt="" width="32" height="32" loading="lazy" />
+              <img src="/logo-96.png" alt="" width="32" height="32" loading="lazy" />
               <span>
                 Med<span className="site-footer__accent">Easy</span>
               </span>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://medeasy.systems/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://medeasy.systems/medicines</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://medeasy.systems/medicines?category=Analgesics</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://medeasy.systems/medicines?category=Antibiotics</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://medeasy.systems/medicines?category=Vitamins%20%26%20Supplements</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://medeasy.systems/medicines?category=Diabetes</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://medeasy.systems/medicines?category=Cardiology</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://medeasy.systems/reviews</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://medeasy.systems/team</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://medeasy.systems/register</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://medeasy.systems/login</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+</urlset>

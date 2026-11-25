@@ -328,6 +328,7 @@ export default function Register() {
   if (roleStep) {
     return (
       <div className="auth-page">
+        <PageMeta title="Create your account" />
         <Container>
           <Row className="justify-content-center align-items-center min-vh-auth">
             <Col xs={12} sm={10} md={8} lg={6}>
@@ -337,7 +338,7 @@ export default function Register() {
                     <div className="auth-icon-badge-wrap mb-3 mx-auto">
                       <FaUserPlus size={30} />
                     </div>
-                    <h2 className="auth-title">Welcome to MedEasy</h2>
+                    <h1 className="auth-title">Welcome to MedEasy</h1>
                     <p className="auth-subtitle">Let&apos;s get started. Please choose your role:</p>
                   </div>
 
@@ -397,6 +398,7 @@ export default function Register() {
 
     return (
       <div className="auth-page" style={{ background: 'linear-gradient(135deg, var(--color-neutral-50) 0%, var(--color-neutral-200) 100%)' }}>
+        <PageMeta title="Create your account" />
         <Container>
           <Row className="justify-content-center align-items-center min-vh-auth">
             <Col xs={12} sm={10} md={8} lg={6}>
@@ -412,9 +414,9 @@ export default function Register() {
                         <FaMobileAlt size={32} />
                       )}
                     </div>
-                    <h2 className="auth-title font-extrabold fs-2 tracking-tight" style={{ color: 'var(--color-neutral-900)' }}>
+                    <h1 className="auth-title font-extrabold fs-2 tracking-tight" style={{ color: 'var(--color-neutral-900)' }}>
                       {isEmailChannel ? 'Verify Your Email' : 'Verify Your Phone'}
-                    </h2>
+                    </h1>
                     
                     <p className="auth-subtitle px-2 mt-3 text-muted">
                       {isEmailChannel ? (
@@ -557,7 +559,7 @@ export default function Register() {
                     {fields.role === 'doctor' && <FaStethoscope size={28} />}
                     {fields.role === 'pharmacy' && <FaHospital size={28} />}
                   </div>
-                  <h2 className="auth-title">Complete Registration</h2>
+                  <h1 className="auth-title">Complete Registration</h1>
                   <p className="auth-subtitle">Create your new account details</p>
                 </div>
 

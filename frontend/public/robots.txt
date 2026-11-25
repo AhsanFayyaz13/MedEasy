@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Private, per-user areas
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /profile
+Disallow: /admin
+Disallow: /doctor
+Disallow: /pharmacist
+Disallow: /prescriptions/
+Disallow: /appointments/
+
+Sitemap: https://medeasy.systems/sitemap.xml

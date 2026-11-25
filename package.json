@@ -5,12 +5,13 @@
         "install-all": "npm install --prefix frontend && npm install --prefix backend",
         "start-frontend": "npm run dev --prefix frontend",
         "start-backend": "npm run dev --prefix backend",
-        "start": "concurrently \"npm run start-backend\" \"npm run start-frontend\""
+        "start": "concurrently \"npm run start-backend\" \"npm run start-frontend\"",
+        "lint": "npm run lint --prefix frontend && npm run lint:css --prefix frontend && npm run lint --prefix backend",
+        "test": "npm test --prefix backend",
+        "build": "npm run build --prefix frontend",
+        "dev:memory": "concurrently \"npm run dev:memory --prefix backend\" \"npm run start-frontend\""
     },
     "devDependencies": {
         "concurrently": "^8.2.2"
-    },
-    "dependencies": {
-        "mongodb": "^7.2.0"
     }
 }

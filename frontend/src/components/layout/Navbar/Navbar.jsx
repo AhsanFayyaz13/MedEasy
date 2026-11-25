@@ -105,7 +105,7 @@ export default function AppNavbar() {
     <header className={`site-nav${scrolled ? ' is-scrolled' : ''}`}>
       <div className="site-nav__inner">
         <Link to={homePath} className="site-nav__brand" aria-label="MedEasy home">
-          <img src="/MedEasy_withoutBG.png" alt="" width="34" height="34" />
+          <img src="/logo-96.png" alt="" width="34" height="34" />
           <span>
             Med<span className="site-nav__brand-accent">Easy</span>
           </span>

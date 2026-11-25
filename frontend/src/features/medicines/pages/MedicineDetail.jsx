@@ -376,10 +376,10 @@ export default function MedicineDetail() {
           ].map((tab) => (
             <Col md={4} key={tab.title} className="mb-3">
               <div className="info-card">
-                <h6 className="info-card-title d-flex align-items-center">
+                <h2 className="info-card-title d-flex align-items-center">
                   {tab.icon}
                   <span>{tab.title}</span>
-                </h6>
+                </h2>
                 <p className="info-card-body">{tab.content}</p>
               </div>
             </Col>

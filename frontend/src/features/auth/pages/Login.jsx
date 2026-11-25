@@ -178,7 +178,7 @@ export default function Login() {
                   <div className="auth-icon-badge-wrap mb-3 mx-auto">
                     <FaUserLock size={30} />
                   </div>
-                  <h2 className="auth-title">Welcome Back</h2>
+                  <h1 className="auth-title">Welcome back</h1>
                   <p className="auth-subtitle">Sign in to your MedEasy account</p>
                 </div>
 
@@ -303,7 +303,7 @@ export default function Login() {
             <FaKey size={26} />
           </div>
           
-          <h3 className="auth-title mb-1">Recover Account</h3>
+          <h2 className="auth-title mb-1">Recover account</h2>
           <p className="auth-subtitle mb-4">Reset your password to regain access</p>
 
           {forgotErr && <Alert variant="danger" className="py-2 small text-start">{forgotErr}</Alert>}

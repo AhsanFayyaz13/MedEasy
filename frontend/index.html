@@ -2,9 +2,85 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/MedEasy_withoutBG.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MedEasy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>MedEasy — Online Pharmacy &amp; Doctor Appointments in Pakistan</title>
+    <meta
+      name="description"
+      content="Order authentic medicines online, upload prescriptions and book verified doctors across Pakistan — fast delivery with MedEasy."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://medeasy.systems/" />
+
+    <!-- Icons & PWA -->
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0369a1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)" />
+
+    <!-- Open Graph / social (crawlers don't run JS, so defaults live here) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MedEasy" />
+    <meta property="og:locale" content="en_PK" />
+    <meta property="og:title" content="MedEasy — Online Pharmacy & Doctor Appointments in Pakistan" />
+    <meta
+      property="og:description"
+      content="Order authentic medicines online, upload prescriptions and book verified doctors across Pakistan — fast delivery with MedEasy."
+    />
+    <meta property="og:url" content="https://medeasy.systems/" />
+    <meta property="og:image" content="https://medeasy.systems/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="MedEasy — Your health, delivered fast." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MedEasy — Online Pharmacy & Doctor Appointments in Pakistan" />
+    <meta
+      name="twitter:description"
+      content="Order authentic medicines online, upload prescriptions and book verified doctors across Pakistan."
+    />
+    <meta name="twitter:image" content="https://medeasy.systems/og-image.png" />
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["Pharmacy", "MedicalOrganization"],
+            "@id": "https://medeasy.systems/#organization",
+            "name": "MedEasy",
+            "url": "https://medeasy.systems/",
+            "logo": "https://medeasy.systems/icon-512.png",
+            "image": "https://medeasy.systems/og-image.png",
+            "description": "Online pharmacy, prescription upload and doctor appointments in Pakistan.",
+            "email": "support@medeasy.systems",
+            "telephone": "+92-301-9476165",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Islamabad",
+              "addressRegion": "Islamabad Capital Territory",
+              "streetAddress": "Sector H-10",
+              "addressCountry": "PK"
+            },
+            "areaServed": "PK"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://medeasy.systems/#website",
+            "url": "https://medeasy.systems/",
+            "name": "MedEasy",
+            "publisher": { "@id": "https://medeasy.systems/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://medeasy.systems/medicines?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
+
     <script>
       // Apply saved/OS theme before first paint to avoid a light→dark flash.
       (function () {
@@ -18,6 +94,7 @@
     </script>
   </head>
   <body>
+    <noscript>MedEasy needs JavaScript enabled to run. Please enable it in your browser settings.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

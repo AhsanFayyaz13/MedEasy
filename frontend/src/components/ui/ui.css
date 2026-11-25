@@ -261,7 +261,7 @@
 }
 
 .ui-control::placeholder {
-  color: var(--text-subtle);
+  color: var(--text-muted);
 }
 
 .ui-control:hover {

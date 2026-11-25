@@ -251,6 +251,7 @@
   border-top: 3px solid var(--color-primary-400);
 }
 .info-card-title {
+  font-size: var(--text-base);
   font-weight: var(--weight-bold);
   color: var(--color-neutral-900);
   margin-bottom: var(--space-2);

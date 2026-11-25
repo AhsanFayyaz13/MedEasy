@@ -101,9 +101,9 @@ export default function MedicineCard({ medicine }) {
       </Link>
 
       <div className="med-card__body">
-        <h3 className="med-card__title">
+        <h2 className="med-card__title">
           <Link to={href}>{title}</Link>
-        </h3>
+        </h2>
         <p className="med-card__subtitle">{subtitle}</p>
 
         <StarRating value={rating} count={reviews_count} />
