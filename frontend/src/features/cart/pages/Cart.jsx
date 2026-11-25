@@ -23,9 +23,15 @@ export default function Cart() {
         <div className="container">
           <EmptyState
             icon={<FiShoppingBag />}
+            titleAs="h1"
             title="Your cart is empty"
-            description="Browse our medicines and add items to get started."
-            action={<Button to="/medicines" rightIcon={<FiArrowRight aria-hidden="true" />}>Shop medicines</Button>}
+            description="Find what you need in our catalogue, or upload a prescription and a pharmacist will help."
+            action={
+              <div className="d-flex flex-wrap justify-content-center gap-2">
+                <Button to="/medicines" rightIcon={<FiArrowRight aria-hidden="true" />}>Shop medicines</Button>
+                <Button to="/prescriptions/upload" variant="secondary">Upload a prescription</Button>
+              </div>
+            }
           />
         </div>
       </div>
@@ -34,7 +40,7 @@ export default function Cart() {
 
   const remove = (item) => {
     removeFromCart(item.medicineId);
-    toast.info(`${item.name} removed from cart`, { duration: 2200 });
+    toast.info(`${item.brand || item.name} removed from cart`, { duration: 2200 });
   };
 
   return (

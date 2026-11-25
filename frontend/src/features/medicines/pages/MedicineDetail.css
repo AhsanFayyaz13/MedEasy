@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .mdd-page {
-  padding: var(--space-6) 0 var(--space-16);
+  padding: var(--space-8) 0 var(--space-16);
 }
 
 .mdd-back {
@@ -217,5 +217,12 @@
     position: sticky;
     top: calc(var(--space-16) + var(--space-6));
     min-height: 380px;
+  }
+}
+
+/* Same page rhythm as the other content pages */
+@media (min-width: 992px) {
+  .mdd-page {
+    padding-top: var(--space-12);
   }
 }

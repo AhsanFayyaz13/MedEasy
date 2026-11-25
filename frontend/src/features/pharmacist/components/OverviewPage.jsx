@@ -37,16 +37,28 @@ export default function OverviewPage({ setActiveSection }) {
   const lowStock = meds.filter((m) => Number(m.stock) < LOW_STOCK).sort((a, b) => a.stock - b.stock);
   const recent = [...orders].sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)).slice(0, 5);
   const isOwner = user?.role === 'pharmacy';
+  // Owners are greeted by their own name (the account name is the store's); reps by theirs.
+  const firstName = ((isOwner ? user?.ownerName : user?.name) || '').trim().split(' ')[0];
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const waiting = [
+    activeOrders.length > 0 && `${plural(activeOrders.length, 'order')} to process`,
+    rx.length > 0 && `${plural(rx.length, 'prescription')} to verify`,
+    lowStock.length > 0 && `${plural(lowStock.length, 'item')} running low`,
+  ].filter(Boolean);
+  const summary = loading
+    ? 'Loading today’s work…'
+    : waiting.length
+      ? `${waiting.join(' · ')}.`
+      : 'You’re all caught up — nothing is waiting.';
 
   return (
     <>
-      <WelcomeBanner
-        title={`Welcome back, ${user?.name?.split(' ')[0] || (isOwner ? 'Pharmacy' : 'Pharmacist')}`}
-        text={isOwner ? `${user?.pharmacyName || 'Your pharmacy'} — today’s operations at a glance.` : 'Today’s pharmacy operations at a glance.'}
-      >
-        <Button size="sm" onClick={() => setActiveSection('orders')}>
-          Process orders
-        </Button>
+      <WelcomeBanner title={firstName ? `Welcome back, ${firstName}` : 'Welcome back'} text={summary}>
+        {activeOrders.length > 0 ? (
+          <Button size="sm" onClick={() => setActiveSection('orders')}>Process orders</Button>
+        ) : rx.length > 0 ? (
+          <Button size="sm" onClick={() => setActiveSection('prescriptions')}>Verify prescriptions</Button>
+        ) : null}
       </WelcomeBanner>
 
       {error ? (
@@ -56,7 +68,7 @@ export default function OverviewPage({ setActiveSection }) {
           <StatGrid
             loading={loading}
             stats={[
-              { label: 'Orders to process', value: activeOrders.length, icon: <FiClipboard />, tone: 'warning', hint: 'Pending to dispatched' },
+              { label: 'Orders to process', value: activeOrders.length, icon: <FiClipboard />, tone: 'warning', hint: 'Not yet delivered' },
               { label: 'Prescriptions to verify', value: rx.length, icon: <FiFileText />, tone: 'primary', hint: 'Awaiting review' },
               { label: 'Low-stock items', value: lowStock.length, icon: <FiAlertTriangle />, tone: lowStock.length ? 'error' : 'success', hint: `Below ${LOW_STOCK} units` },
               { label: 'Catalogue size', value: meds.length, icon: <FiPackage />, tone: 'violet', hint: 'Listed medicines' },

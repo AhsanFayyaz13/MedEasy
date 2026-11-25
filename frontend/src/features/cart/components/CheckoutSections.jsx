@@ -81,7 +81,7 @@ export function OrderSummary({ items, count, subtotal, delivery, total, needsRx,
           <li key={item.medicineId}>
             <MedicalIcon emoji={item.image} category={item.category} alt="" size={16} />
             <div className="chk-items__info">
-              <strong>{item.name}</strong>
+              <strong>{item.brand || item.name}</strong>
               <span>
                 × {item.quantity}
                 {item.requires_prescription && <Badge tone="warning">Rx</Badge>}

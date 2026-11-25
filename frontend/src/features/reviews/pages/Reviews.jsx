@@ -103,7 +103,8 @@ export default function Reviews() {
         <div className="rv-page__layout">
           <section aria-label="Reviews">{list}</section>
           <aside className="rv-page__aside">
-            {!loading && !error && (
+            {/* The list already says "No reviews yet"; an empty score card would only repeat it. */}
+            {!loading && !error && reviews.length > 0 && (
               <Card>
                 <RatingSummary reviews={reviews} />
               </Card>

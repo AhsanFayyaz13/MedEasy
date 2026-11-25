@@ -6,6 +6,7 @@ import { Badge, Button, Card, EmptyState, ErrorState, Modal, SkeletonCard, Texta
 import { assetUrl } from '../../../lib/media';
 import { sendNotification } from '../../../lib/notifications';
 import { fmtDate } from './pharmacistShared';
+import { formatPhone, phoneHref } from '../../../lib/format';
 
 const shortRx = (id) => String(id || '').slice(-6).toUpperCase();
 const REJECT_PRESETS = ['Signature or stamp missing', 'Prescription is older than 30 days', 'Image is unclear', 'Name doesn’t match the account'];
@@ -106,7 +107,7 @@ export default function PrescriptionsPage() {
                   <div className="ph-rx__patient">
                     <strong>{p.name || 'Patient'}</strong>
                     <ul>
-                      <Field icon={<FiPhone aria-hidden="true" />} value={p.phone} href={p.phone && `tel:${p.phone}`} />
+                      <Field icon={<FiPhone aria-hidden="true" />} value={formatPhone(p.phone)} href={p.phone && `tel:${phoneHref(p.phone)}`} />
                       <Field icon={<FiMail aria-hidden="true" />} value={p.email} href={p.email && `mailto:${p.email}`} />
                       <Field icon={<FiMapPin aria-hidden="true" />} value={p.address} />
                     </ul>

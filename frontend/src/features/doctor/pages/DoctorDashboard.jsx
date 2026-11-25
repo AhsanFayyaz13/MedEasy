@@ -19,10 +19,10 @@ import PatientsTab from '../components/PatientsTab';
 import './DoctorDashboard.css';
 
 const SECTIONS = [
-  { key: 'overview', label: 'Overview', icon: <FiActivity /> },
-  { key: 'schedule', label: 'My schedule', icon: <FiCalendar /> },
-  { key: 'prescribe', label: 'Issue prescription', icon: <FiFileText /> },
-  { key: 'patients', label: 'My patients', icon: <FiUsers /> },
+  { key: 'overview', label: 'Overview', icon: <FiActivity /> }, // the banner greets and summarises the day
+  { key: 'schedule', label: 'My schedule', icon: <FiCalendar />, subtitle: 'Upcoming and past consultations. Complete, cancel or message a patient.' },
+  { key: 'prescribe', label: 'Issue prescription', icon: <FiFileText />, subtitle: 'Write an e-prescription for an open consultation.' },
+  { key: 'patients', label: 'My patients', icon: <FiUsers />, subtitle: 'Everyone you’ve seen, with their visit history.' },
 ];
 
 const RESCHEDULE_TEMPLATE =
@@ -121,7 +121,7 @@ export default function DoctorDashboard() {
         active={active}
         onSelect={setActive}
         identity={{ avatar: <FaUserMd />, name: `Dr. ${doctorName.replace(/^Dr\.?\s*/i, '')}`, role: user?.specialty || 'Consultant' }}
-        subtitle={`Hello Dr. ${doctorName.replace(/^Dr\.?\s*/i, '').split(' ')[0]} — here’s your practice today.`}
+        subtitle={SECTIONS.find((s) => s.key === active)?.subtitle}
       >
         {active === 'overview' && <OverviewTab apts={apts} loading={loading} setActive={setActive} openComplete={setCompleting} />}
         {active === 'schedule' && (

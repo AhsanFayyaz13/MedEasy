@@ -7,7 +7,7 @@ import { useToast } from '../../../context/ToastContext';
 import { uploadPrescription, placeOrder } from '../../../services/api/orderService';
 import { Alert, Button, EmptyState, PageHeader, Steps } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
-import { formatPrice } from '../../../lib/format';
+import { formatPhone, formatPrice } from '../../../lib/format';
 import { notifySelf, sendNotification } from '../../../lib/notifications';
 import { DELIVERY_FEE, FREE_THRESHOLD, validateAddress, validateFile } from '../components/checkoutShared';
 import { AddressSection, OrderSummary, PaymentSection, PrescriptionSection } from '../components/CheckoutSections';
@@ -29,7 +29,7 @@ export default function Checkout() {
     address: user?.address || '',
     city: '',
     postalCode: '',
-    phone: user?.phone || '',
+    phone: formatPhone(user?.phone).replace(' ', ''), // 03001234567, like the placeholder
     notes: '',
     email: '',
   }));

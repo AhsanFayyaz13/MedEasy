@@ -11,7 +11,7 @@ import PharmacistRepPage from '../components/PharmacistRepPage';
 import './PharmacistDashboard.css';
 
 const SECTIONS = [
-  { key: 'overview', label: 'Overview', icon: <FiActivity />, subtitle: 'Today’s orders, prescriptions and stock at a glance.' },
+  { key: 'overview', label: 'Overview', icon: <FiActivity /> }, // the banner says what's waiting
   { key: 'orders', label: 'Active orders', icon: <FiClipboard />, subtitle: 'Confirm, pack and dispatch customer orders.' },
   { key: 'prescriptions', label: 'Verify prescriptions', icon: <FiFileText />, subtitle: 'Approve or decline uploaded prescriptions.' },
   { key: 'medicines', label: 'Inventory', icon: <FiPackage />, subtitle: 'Manage catalogue, prices and stock levels.' },
@@ -36,7 +36,7 @@ export default function PharmacistDashboard() {
         identity={{
           avatar: (user?.name || 'P')[0].toUpperCase(),
           name: user?.name || 'Pharmacy',
-          role: isPharmacyOwner ? user?.pharmacyName || 'Pharmacy store' : 'Licensed pharmacist',
+          role: isPharmacyOwner ? 'Pharmacy account' : `Pharmacist${user?.pharmacyName ? ` · ${user.pharmacyName}` : ''}`,
         }}
         subtitle={current?.subtitle}
       >

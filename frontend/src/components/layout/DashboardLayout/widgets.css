@@ -39,6 +39,51 @@
   margin-bottom: var(--space-6);
 }
 
+/* Phones: two compact KPI tiles per row so the work below is reachable without a long scroll. */
+@media (max-width: 575.98px) {
+  .dw-welcome {
+    padding: var(--space-5);
+  }
+
+  .dw-welcome__title {
+    font-size: var(--text-xl);
+  }
+
+  .dw-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .dw-stats .ui-stat {
+    padding: var(--space-4);
+  }
+
+  /* An odd last tile (e.g. the doctor's three) fills the row instead of leaving a gap. */
+  .dw-stats .ui-stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .dw-stats .ui-stat__top {
+    align-items: flex-start;
+  }
+
+  .dw-stats .ui-stat__label {
+    font-size: var(--text-xs);
+    line-height: 1.35;
+  }
+
+  .dw-stats .ui-stat__icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    font-size: var(--text-base);
+  }
+
+  .dw-stats .ui-stat__value {
+    font-size: var(--text-2xl);
+  }
+}
+
 .dw-section {
   margin-bottom: var(--space-6);
 }
@@ -48,10 +93,23 @@
   font-size: var(--text-lg);
 }
 
+/* 1 → 2 → 4 columns, so four shortcuts never wrap as 3 + 1. */
 .dw-shortcuts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  grid-template-columns: 1fr;
   gap: var(--space-3);
+}
+
+@media (min-width: 576px) {
+  .dw-shortcuts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .dw-shortcuts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .dw-shortcut {

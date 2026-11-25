@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .rxu-page {
-  padding: var(--space-6) 0 var(--space-16);
+  padding: var(--space-8) 0 var(--space-16);
 }
 
 .rxu-layout {
@@ -175,5 +175,12 @@
   .rxu-layout {
     grid-template-columns: 400px minmax(0, 1fr);
     gap: var(--space-8);
+  }
+}
+
+/* Same page rhythm as the other content pages */
+@media (min-width: 992px) {
+  .rxu-page {
+    padding-top: var(--space-12);
   }
 }

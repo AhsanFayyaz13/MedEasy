@@ -1,6 +1,6 @@
 import { FiCreditCard, FiExternalLink, FiFileText, FiMapPin, FiPhone, FiShoppingBag } from 'react-icons/fi';
 import { Badge, Button, Modal } from '../../../../components/ui';
-import { formatPrice } from '../../../../lib/format';
+import { formatPhone, formatPrice, phoneHref } from '../../../../lib/format';
 import OrderTimeline from '../../../orders/components/OrderTimeline';
 import { PAYMENT_LABELS, fmtDate, serverUrl } from '../pharmacistShared';
 
@@ -50,7 +50,7 @@ export default function OrderDetailModal({ order, onClose }) {
               <address>
                 <strong>{addr.firstName} {addr.lastName}</strong>
                 <span>{addr.address}{addr.city ? `, ${addr.city}` : ''}</span>
-                {addr.phone && <span><FiPhone aria-hidden="true" /> {addr.phone}</span>}
+                {addr.phone && <span><FiPhone aria-hidden="true" /> <a href={`tel:${phoneHref(addr.phone)}`}>{formatPhone(addr.phone)}</a></span>}
               </address>
 
               <h3><FiCreditCard aria-hidden="true" /> Payment</h3>

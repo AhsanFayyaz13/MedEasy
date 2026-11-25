@@ -4,7 +4,7 @@ import api from '../../../services/api/client';
 import { useToast } from '../../../context/ToastContext';
 import { Avatar, Badge, Button, EmptyState, Input, Modal, SearchInput, Select, Table, Tabs } from '../../../components/ui';
 import { downloadCsv } from '../../../lib/csv';
-import { formatDate } from '../../../lib/format';
+import { formatDate, formatPhone } from '../../../lib/format';
 import PasswordField from '../../auth/components/PasswordField';
 import { MIN_PASSWORD } from '../../auth/lib/validation';
 import { ROLES, ROLE_TONE } from './adminShared';
@@ -145,7 +145,7 @@ export default function UsersTab({ users, setUsers }) {
           <Avatar name={u.name} size={34} />
           <div>
             <strong>{u.name}</strong>
-            <span>{u.email || u.phone}</span>
+            <span>{u.email || formatPhone(u.phone)}</span>
           </div>
         </div>
       ),

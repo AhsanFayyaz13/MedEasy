@@ -1,6 +1,6 @@
 import { FiCreditCard, FiMapPin, FiPhone, FiShoppingBag } from 'react-icons/fi';
 import { Badge, Modal } from '../../../components/ui';
-import { formatDate, formatPrice } from '../../../lib/format';
+import { formatDate, formatPhone, formatPrice } from '../../../lib/format';
 import MedicalIcon from '../../medicines/components/MedicalIcon';
 import { PAYMENT_LABELS } from '../lib/orderStatus';
 import { shortOrderId } from '../lib/orderFeedback';
@@ -53,7 +53,7 @@ export default function PatientOrderDetail({ order, onClose }) {
                 <strong>{addr.firstName} {addr.lastName}</strong>
                 <span>{addr.address}</span>
                 <span>{addr.city}{addr.postalCode ? `, ${addr.postalCode}` : ''}</span>
-                {addr.phone && <span><FiPhone aria-hidden="true" /> {addr.phone}</span>}
+                {addr.phone && <span><FiPhone aria-hidden="true" /> {formatPhone(addr.phone)}</span>}
               </address>
 
               <h3 className="pord-detail__title"><FiCreditCard aria-hidden="true" /> Payment</h3>

@@ -59,11 +59,15 @@ export function SkeletonGrid({ count = 6, media = true, className }) {
   );
 }
 
-export function EmptyState({ icon = <FiInbox />, title = 'Nothing here yet', description, action, className }) {
+/**
+ * Friendly empty state. `titleAs` sets the heading level so the outline never skips a level:
+ * 'h1' when the empty state is the whole page (empty cart, 404), 'h2' (default) under a page title.
+ */
+export function EmptyState({ icon = <FiInbox />, title = 'Nothing here yet', description, action, className, titleAs: Title = 'h2' }) {
   return (
     <div className={cx('ui-state', className)}>
       <div className="ui-state__icon" aria-hidden="true">{icon}</div>
-      <h3 className="ui-state__title">{title}</h3>
+      <Title className="ui-state__title">{title}</Title>
       {description && <p className="ui-state__text">{description}</p>}
       {action && <div className="ui-state__action">{action}</div>}
     </div>
@@ -75,11 +79,12 @@ export function ErrorState({
   message = 'We couldn’t load this content. Please check your connection and try again.',
   onRetry,
   className,
+  titleAs: Title = 'h2',
 }) {
   return (
     <div className={cx('ui-state ui-state--error', className)} role="alert">
       <div className="ui-state__icon" aria-hidden="true"><FiAlertTriangle /></div>
-      <h3 className="ui-state__title">{title}</h3>
+      <Title className="ui-state__title">{title}</Title>
       {message && <p className="ui-state__text">{message}</p>}
       {onRetry && (
         <div className="ui-state__action">

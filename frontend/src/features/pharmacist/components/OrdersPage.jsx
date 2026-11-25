@@ -5,7 +5,7 @@ import { fetchAllOrders, updateOrderStatus } from '../../../services/api/pharmac
 import { Button, EmptyState, ErrorState, SearchInput, Skeleton, Table, Tabs } from '../../../components/ui';
 import { StatGrid } from '../../../components/layout/DashboardLayout/widgets';
 import { sendNotification } from '../../../lib/notifications';
-import { formatPrice } from '../../../lib/format';
+import { formatPhone, formatPrice } from '../../../lib/format';
 import { OrderStatusBadge } from '../../orders/components/OrderTimeline';
 import OrderActions, { CancelOrderModal } from './orders/OrderActions';
 import OrderDetailModal from './orders/OrderDetailModal';
@@ -114,7 +114,7 @@ export default function OrdersPage({ mode = 'active' }) {
       render: (o) => (
         <div className="ph-cell-stack">
           <strong>{o.shippingAddress?.firstName} {o.shippingAddress?.lastName}</strong>
-          <span>{o.shippingAddress?.city} · {o.shippingAddress?.phone}</span>
+          <span>{o.shippingAddress?.city} · {formatPhone(o.shippingAddress?.phone)}</span>
         </div>
       ),
     },

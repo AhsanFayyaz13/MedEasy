@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { FaHospital, FaUserMd } from 'react-icons/fa';
+import { FaClinicMedical, FaHospital, FaUserMd } from 'react-icons/fa';
 import { FiMail, FiMapPin, FiPhone, FiUser } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import { Alert, Card, Input, PageHeader, Textarea } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import { DoctorFields } from '../../auth/components/ProfessionalFields';
 import { EMAIL_RE } from '../../auth/lib/validation';
-import { DetailList, DoctorDetails, PharmacistDetails, ProfileSummary } from '../components/ProfileSections';
+import { formatPhone } from '../../../lib/format';
+import { DetailList, DoctorDetails, PharmacistDetails, PharmacyDetails, ProfileSummary } from '../components/ProfileSections';
+import SecuritySection from '../components/SecuritySection';
 import './Profile.css';
 
 const fromUser = (u = {}) => ({
@@ -37,6 +39,14 @@ function validate(f, role) {
   }
   return e;
 }
+
+const SUBTITLE = {
+  patient: 'Your contact details, delivery address and sign-in security.',
+  doctor: 'Your details, consultation credentials and sign-in security.',
+  pharmacy: 'Your store details and sign-in security.',
+  pharmacist: 'Your details and the credentials your pharmacy manages.',
+  admin: 'Your account details and sign-in security.',
+};
 
 export default function Profile() {
   const { user, updateProfile, uploadProfilePhoto, loading, authError, clearAuthError } = useAuth();
@@ -108,7 +118,7 @@ export default function Profile() {
     <div className="profile-page">
       <PageMeta title="My profile" noindex />
       <div className="container">
-        <PageHeader eyebrow="Account" title="My profile" subtitle="Manage your personal details and professional information." />
+        <PageHeader eyebrow="Account" title="My profile" subtitle={SUBTITLE[role] || SUBTITLE.patient} />
 
         {success && <Alert tone="success" onClose={() => setSuccess('')}>{success}</Alert>}
         {authError && <Alert tone="error" title="Something went wrong" onClose={clearAuthError}>{authError}</Alert>}
@@ -127,63 +137,74 @@ export default function Profile() {
             />
           </Card>
 
-          <form id="profile-form" onSubmit={submit} noValidate className="profile-main">
-            <Card as="section" aria-labelledby="account-title">
-              <h2 id="account-title" className="profile-section-title"><FiUser aria-hidden="true" /> Account information</h2>
-              {editing ? (
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <Input name="name" label={role === 'pharmacy' ? 'Pharmacy name' : 'Full name'} required value={form.name} onChange={onChange} error={errors.name} autoComplete="name" />
-                  </div>
-                  <div className="col-md-6">
-                    <Input name="phone" label="Phone number" leftIcon={<FiPhone />} value={form.phone} disabled hint="Your verified number can’t be changed." />
-                  </div>
-                  <div className="col-12">
-                    <Input name="email" type="email" label="Email" leftIcon={<FiMail />} placeholder="you@example.com" value={form.email} onChange={onChange} error={errors.email} autoComplete="email" />
-                  </div>
-                  <div className="col-12">
-                    <Textarea name="address" label="Address" rows={2} placeholder="House, street, sector, city" value={form.address} onChange={onChange} autoComplete="street-address" />
-                  </div>
-                </div>
-              ) : (
-                <DetailList
-                  items={[
-                    { label: role === 'pharmacy' ? 'Pharmacy name' : 'Full name', value: user?.name },
-                    { label: 'Email', value: user?.email, mono: true },
-                    { label: 'Phone', value: user?.phone, mono: true },
-                    { label: <><FiMapPin aria-hidden="true" /> Address</>, value: user?.address },
-                  ]}
-                />
-              )}
-            </Card>
-
-            {role === 'doctor' && (
-              <Card as="section" aria-labelledby="doctor-title">
-                <h2 id="doctor-title" className="profile-section-title"><FaUserMd aria-hidden="true" /> Consultation credentials</h2>
+          <div className="profile-main">
+            <form id="profile-form" onSubmit={submit} noValidate className="profile-main">
+              <Card as="section" aria-labelledby="account-title">
+                <h2 id="account-title" className="profile-section-title"><FiUser aria-hidden="true" /> Account information</h2>
                 {editing ? (
-                  <>
-                    <DoctorFields
-                      fields={form}
-                      errors={errors}
-                      onChange={onChange}
-                      onBlur={() => {}}
-                      onDays={(days) => setForm((f) => ({ ...f, availableDays: days }))}
-                    />
-                    <p className="ui-field__hint">Changing your PMC/PMDC number sends your profile back for verification.</p>
-                  </>
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <Input name="name" label={role === 'pharmacy' ? 'Pharmacy name' : 'Full name'} required value={form.name} onChange={onChange} error={errors.name} autoComplete="name" />
+                    </div>
+                    <div className="col-md-6">
+                      <Input name="phone" label="Phone number" leftIcon={<FiPhone />} value={formatPhone(form.phone)} disabled hint="Your verified number can’t be changed." />
+                    </div>
+                    <div className="col-12">
+                      <Input name="email" type="email" label="Email" leftIcon={<FiMail />} placeholder="you@example.com" value={form.email} onChange={onChange} error={errors.email} autoComplete="email" />
+                    </div>
+                    <div className="col-12">
+                      <Textarea name="address" label="Address" rows={2} placeholder="House, street, sector, city" value={form.address} onChange={onChange} autoComplete="street-address" />
+                    </div>
+                  </div>
                 ) : (
-                  <DoctorDetails user={user} />
+                  <DetailList
+                    items={[
+                      { label: role === 'pharmacy' ? 'Pharmacy name' : 'Full name', value: user?.name },
+                      { label: 'Email', value: user?.email },
+                      { label: 'Phone', value: formatPhone(user?.phone) },
+                      { label: <><FiMapPin aria-hidden="true" /> Address</>, value: user?.address },
+                    ]}
+                  />
                 )}
               </Card>
-            )}
 
-            {role === 'pharmacist' && (
-              <Card as="section" aria-labelledby="pharmacist-title">
-                <h2 id="pharmacist-title" className="profile-section-title"><FaHospital aria-hidden="true" /> Professional credentials</h2>
-                <PharmacistDetails user={user} />
-              </Card>
-            )}
-          </form>
+              {role === 'doctor' && (
+                <Card as="section" aria-labelledby="doctor-title">
+                  <h2 id="doctor-title" className="profile-section-title"><FaUserMd aria-hidden="true" /> Consultation credentials</h2>
+                  {editing ? (
+                    <>
+                      <DoctorFields
+                        fields={form}
+                        errors={errors}
+                        onChange={onChange}
+                        onBlur={() => {}}
+                        onDays={(days) => setForm((f) => ({ ...f, availableDays: days }))}
+                      />
+                      <p className="ui-field__hint">Changing your PMC/PMDC number sends your profile back for verification.</p>
+                    </>
+                  ) : (
+                    <DoctorDetails user={user} />
+                  )}
+                </Card>
+              )}
+
+              {role === 'pharmacist' && (
+                <Card as="section" aria-labelledby="pharmacist-title">
+                  <h2 id="pharmacist-title" className="profile-section-title"><FaHospital aria-hidden="true" /> Professional credentials</h2>
+                  <PharmacistDetails user={user} />
+                </Card>
+              )}
+
+              {role === 'pharmacy' && (
+                <Card as="section" aria-labelledby="pharmacy-title">
+                  <h2 id="pharmacy-title" className="profile-section-title"><FaClinicMedical aria-hidden="true" /> Store details</h2>
+                  <PharmacyDetails user={user} />
+                </Card>
+              )}
+            </form>
+
+            <SecuritySection managed={role === 'pharmacist'} />
+          </div>
         </div>
       </div>
     </div>

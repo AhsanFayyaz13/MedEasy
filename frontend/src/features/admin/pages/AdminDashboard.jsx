@@ -17,7 +17,6 @@ import DashboardLayout from '../../../components/layout/DashboardLayout/Dashboar
 import useDashboardTab from '../../../components/layout/DashboardLayout/useDashboardTab';
 import { Alert, Button, SkeletonGrid } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
-import { fmtRs } from '../components/adminShared';
 import OverviewTab from '../components/OverviewTab';
 import UsersTab from '../components/UsersTab';
 import VerificationsTab from '../components/VerificationsTab';
@@ -44,7 +43,7 @@ const SECTIONS = [
 ];
 
 const SUBTITLES = {
-  overview: 'Platform health at a glance.',
+  overview: undefined, // the overview banner says what needs attention
   users: 'Manage accounts, roles and access.',
   verifications: 'Review doctor and pharmacist credentials.',
   medicines: 'Catalogue, pricing and stock.',
@@ -67,7 +66,7 @@ export default function AdminDashboard() {
   } = useData();
 
   const pendingVerifications = users.filter(
-    (u) => (u.role === 'doctor' && !u.isVerifiedProfile) || (u.role === 'pharmacy' && u.pharmacistDetails?.status === 'pending')
+    (u) => (u.role === 'doctor' && !u.isVerifiedProfile && !u.verificationDeclinedAt) || (u.role === 'pharmacy' && u.pharmacistDetails?.status === 'pending')
   ).length;
   const sections = SECTIONS.map((s) => (s.key === 'verifications' && pendingVerifications ? { ...s, badge: pendingVerifications } : s));
 
@@ -99,18 +98,6 @@ export default function AdminDashboard() {
         active={active}
         onSelect={setActive}
         identity={{ avatar: <FiShield />, name: 'Admin portal', role: 'Platform control center' }}
-        sidebarExtra={
-          <div className="dash-kpis">
-            <div className="dash-kpi">
-              <span className="dash-kpi__value">{loading ? '…' : globalStats.usersCount}</span>
-              <span className="dash-kpi__label">Accounts</span>
-            </div>
-            <div className="dash-kpi">
-              <span className="dash-kpi__value">{loading ? '…' : fmtRs(globalStats.revenueMtd)}</span>
-              <span className="dash-kpi__label">Sales MTD</span>
-            </div>
-          </div>
-        }
         sidebarFooter={refreshButton}
         subtitle={SUBTITLES[active]}
         actions={<div className="d-lg-none">{refreshButton}</div>}
@@ -128,7 +115,7 @@ export default function AdminDashboard() {
           <SkeletonGrid count={4} media={false} />
         ) : (
           <>
-            {active === 'overview' && <OverviewTab setActive={setActive} stats={globalStats} orders={orders} />}
+            {active === 'overview' && <OverviewTab setActive={setActive} stats={globalStats} orders={orders} pendingVerifications={pendingVerifications} />}
             {active === 'verifications' && <VerificationsTab users={users} setUsers={setUsers} />}
             {active === 'users' && <UsersTab users={users} setUsers={setUsers} />}
             {active === 'medicines' && <MedicinesTab />}

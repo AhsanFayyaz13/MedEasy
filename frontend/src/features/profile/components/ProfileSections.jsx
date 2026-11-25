@@ -1,7 +1,7 @@
 import { FiAlertTriangle, FiCamera, FiCheckCircle, FiEdit2, FiLock } from 'react-icons/fi';
 import { Alert, Avatar, Badge, Button, Spinner } from '../../../components/ui';
 import { assetUrl } from '../../../lib/media';
-import { formatDate, formatPrice } from '../../../lib/format';
+import { formatDate, formatPhone, formatPrice } from '../../../lib/format';
 
 const ROLE_LABEL = { patient: 'Patient', doctor: 'Doctor', pharmacist: 'Pharmacist', pharmacy: 'Pharmacy', admin: 'Administrator' };
 
@@ -23,7 +23,7 @@ export function DetailList({ items }) {
 
 /** Left column: avatar (with upload), role, status and edit controls. */
 export function ProfileSummary({ user, editing, saving, uploading, photoError, onPhoto, onEdit, onCancel }) {
-  const isProfessional = user?.role === 'doctor' || user?.role === 'pharmacist';
+  const isProfessional = ['doctor', 'pharmacist', 'pharmacy'].includes(user?.role);
   return (
     <aside className="profile-summary">
       <div className="profile-summary__avatar">
@@ -38,13 +38,13 @@ export function ProfileSummary({ user, editing, saving, uploading, photoError, o
 
       <h2 className="profile-summary__name">{user?.name}</h2>
       <Badge tone="primary">{ROLE_LABEL[user?.role] || user?.role}</Badge>
-      <p className="profile-summary__meta">{user?.phone}</p>
+      {user?.phone && <p className="profile-summary__meta">{formatPhone(user.phone)}</p>}
       {user?.createdAt && <p className="profile-summary__meta">Member since {formatDate(user.createdAt, { month: 'long', year: 'numeric' })}</p>}
 
       {isProfessional && (
         <div className="profile-summary__status">
           {user.isVerifiedProfile ? (
-            <Badge tone="success" icon={<FiCheckCircle />}>Verified professional</Badge>
+            <Badge tone="success" icon={<FiCheckCircle />}>{user.role === 'pharmacy' ? 'Verified pharmacy' : 'Verified professional'}</Badge>
           ) : (
             <Badge tone="warning" icon={<FiAlertTriangle />}>Verification pending</Badge>
           )}
@@ -123,6 +123,22 @@ export function PharmacistDetails({ user }) {
           { label: 'Login email', value: d.email || user.email, mono: true },
         ]}
       />
+    </>
+  );
+}
+
+/** Read-only store details for a pharmacy account. */
+export function PharmacyDetails({ user }) {
+  return (
+    <>
+      <DetailList
+        items={[
+          { label: 'Store name', value: user.pharmacyName || user.name },
+          { label: 'Owner', value: user.ownerName },
+          { label: 'Store location', value: user.pharmacyLocation || user.address },
+        ]}
+      />
+      <p className="ui-field__hint mt-3 mb-0">To change your store’s registered details, contact our team so we can re-verify them.</p>
     </>
   );
 }

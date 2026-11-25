@@ -2,18 +2,21 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import Dropdown from 'react-bootstrap/Dropdown';
 import {
+  FiCalendar,
   FiChevronDown,
   FiFileText,
-  FiList,
+  FiGrid,
   FiLogOut,
   FiMenu,
   FiMessageSquare,
+  FiPackage,
   FiShoppingCart,
   FiUser,
   FiX,
 } from 'react-icons/fi';
 import { useCart } from '../../../context/CartContext';
 import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/ToastContext';
 import { assetUrl } from '../../../lib/media';
 import { Avatar, Button, ThemeToggle } from '../../ui';
 import NotificationsMenu from './NotificationsMenu';
@@ -38,19 +41,36 @@ function useNavItems({ isAuthenticated, isPatientOrGuest, userRole, roleMeta }) 
       items.push(
         { to: '/appointments/book', label: 'Appointments' },
         { to: '/prescriptions/upload', label: 'Prescriptions' },
-        { to: '/orders', label: 'My Orders' }
+        { to: '/orders', label: 'My orders' }
       );
     }
   } else if (roleMeta.dashPath) {
-    items.push({ to: roleMeta.dashPath, label: `${roleMeta.label} Dashboard` });
+    items.push({ to: roleMeta.dashPath, label: 'Dashboard' });
   }
-  if (userRole !== 'admin') items.push({ to: '/contact', label: 'Contact' });
+  if (userRole !== 'admin') items.push({ to: '/contact', label: isPatientOrGuest ? 'Contact' : 'Support' });
   return items;
+}
+
+/** Account links for the user menu and the mobile drawer (main nav links aren't repeated). */
+function accountLinks(isPatient, dashPath) {
+  if (isPatient) {
+    return [
+      { to: '/profile', label: 'My profile', icon: FiUser },
+      { to: '/orders', label: 'My orders', icon: FiPackage },
+      { to: '/appointments/book', label: 'My appointments', icon: FiCalendar },
+      { to: '/prescriptions/upload', label: 'My prescriptions', icon: FiFileText },
+    ];
+  }
+  return [
+    ...(dashPath ? [{ to: dashPath, label: 'Dashboard', icon: FiGrid }] : []),
+    { to: '/profile', label: 'My profile', icon: FiUser },
+  ];
 }
 
 export default function AppNavbar() {
   const { totalItems, clearCart } = useCart();
   const { isAuthenticated, logout, user, userRole } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -63,6 +83,10 @@ export default function AppNavbar() {
   const navItems = useNavItems({ isAuthenticated, isPatientOrGuest, userRole, roleMeta });
   const notif = useNotifications(user, isAuthenticated);
   const homePath = isPatientOrGuest ? '/' : roleMeta.dashPath;
+  const account = accountLinks(isPatientOrGuest, roleMeta.dashPath);
+  const drawerAccount = account.filter((a) => !navItems.some((n) => n.to === a.to));
+  const onLogin = location.pathname === '/login';
+  const onRegister = location.pathname === '/register';
 
   // Close the drawer whenever the route changes.
   const [lastPath, setLastPath] = useState(location.pathname);
@@ -91,10 +115,13 @@ export default function AppNavbar() {
   }, [drawerOpen]);
 
   const handleLogout = () => {
+    const wasPatient = userRole === 'patient';
     logout();
     clearCart();
     setDrawerOpen(false);
-    navigate('/login');
+    toast.success('You’ve been signed out.');
+    // Shoppers carry on browsing; staff can only use the sign-in page.
+    navigate(wasPatient ? '/' : '/login');
   };
 
   const linkClass = ({ isActive }) => `nav-link-item${isActive ? ' is-active' : ''}`;
@@ -150,21 +177,15 @@ export default function AppNavbar() {
                   {user?.email && <span>{user.email}</span>}
                 </div>
                 <Dropdown.Divider />
-                <Dropdown.Item as={Link} to="/profile">
-                  <FiUser aria-hidden="true" /> My profile
-                </Dropdown.Item>
+                {account.map(({ to, label, icon: Icon }) => (
+                  <Dropdown.Item key={to} as={Link} to={to}>
+                    <Icon aria-hidden="true" /> {label}
+                  </Dropdown.Item>
+                ))}
                 {isPatientOrGuest && (
-                  <>
-                    <Dropdown.Item as={Link} to="/orders">
-                      <FiList aria-hidden="true" /> Order history
-                    </Dropdown.Item>
-                    <Dropdown.Item as={Link} to="/prescriptions/upload">
-                      <FiFileText aria-hidden="true" /> Upload prescription
-                    </Dropdown.Item>
-                    <Dropdown.Item as="button" onClick={() => setFeedbackOpen(true)}>
-                      <FiMessageSquare aria-hidden="true" /> Send feedback
-                    </Dropdown.Item>
-                  </>
+                  <Dropdown.Item as="button" onClick={() => setFeedbackOpen(true)}>
+                    <FiMessageSquare aria-hidden="true" /> Send feedback
+                  </Dropdown.Item>
                 )}
                 <Dropdown.Divider />
                 <Dropdown.Item as="button" onClick={handleLogout} className="nav-menu__danger">
@@ -174,12 +195,16 @@ export default function AppNavbar() {
             </Dropdown>
           ) : (
             <div className="site-nav__auth">
-              <Button to="/login" variant="ghost" size="sm">
-                Log in
-              </Button>
-              <Button to="/register" size="sm">
-                Get started
-              </Button>
+              {!onLogin && (
+                <Button to="/login" variant={onRegister ? 'secondary' : 'ghost'} size="sm">
+                  Log in
+                </Button>
+              )}
+              {!onRegister && (
+                <Button to="/register" size="sm">
+                  {onLogin ? 'Create account' : 'Get started'}
+                </Button>
+              )}
             </div>
           )}
 
@@ -214,6 +239,25 @@ export default function AppNavbar() {
             {item.label}
           </NavLink>
         ))}
+        {isAuthenticated && (
+          <div className="site-nav__drawer-account">
+            <div className="site-nav__drawer-who">
+              <Avatar src={assetUrl(user?.profileImage)} name={user?.name} size={36} />
+              <div>
+                <strong>{user?.name || 'Account'}</strong>
+                <span className="site-nav__drawer-role">{roleMeta.label}</span>
+              </div>
+            </div>
+            {drawerAccount.map(({ to, label, icon: Icon }) => (
+              <NavLink key={to} to={to} className={linkClass}>
+                <Icon aria-hidden="true" /> {label}
+              </NavLink>
+            ))}
+            <button type="button" className="site-nav__drawer-logout" onClick={handleLogout}>
+              <FiLogOut aria-hidden="true" /> Log out
+            </button>
+          </div>
+        )}
         <div className="site-nav__drawer-foot">
           <div className="d-flex align-items-center justify-content-between">
             <span className="text-muted small">Appearance</span>

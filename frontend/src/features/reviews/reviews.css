@@ -161,7 +161,7 @@
 
 /* Site reviews page */
 .rv-page {
-  padding: var(--space-6) 0 var(--space-16);
+  padding: var(--space-8) 0 var(--space-16);
 }
 
 .rv-page__layout {
@@ -198,5 +198,12 @@
   .rv-page__aside {
     position: sticky;
     top: calc(var(--space-16) + var(--space-6));
+  }
+}
+
+/* Same page rhythm as the other content pages */
+@media (min-width: 992px) {
+  .rv-page {
+    padding-top: var(--space-12);
   }
 }

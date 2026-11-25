@@ -7,6 +7,7 @@ import { submitContactMessage } from '../../../services/api/contactService';
 import { Alert, Avatar, Button, Card, Input, PageHeader, Select, Textarea } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import { BUSINESS } from '../../../lib/business';
+import { formatPhone } from '../../../lib/format';
 import './ContactUs.css';
 
 const SUBJECTS = [
@@ -18,6 +19,12 @@ const SUBJECTS = [
   'Partnership',
   'Something else',
 ];
+/** Doctors and pharmacies contact us about running their account, not about shopping. */
+const STAFF_SUBJECTS = {
+  doctor: ['Account & verification', 'Appointments & patients', 'Technical problem', 'Feedback & suggestions', 'Something else'],
+  pharmacy: ['Account & verification', 'Orders & inventory', 'Pharmacist representative', 'Technical problem', 'Feedback & suggestions', 'Something else'],
+  pharmacist: ['Orders & inventory', 'Prescriptions', 'Technical problem', 'Feedback & suggestions', 'Something else'],
+};
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validate({ name, email, subject, message }, isGuest) {
@@ -112,7 +119,7 @@ export default function ContactUs() {
                     <div>
                       <span>Sending as</span>
                       <strong>{user?.name}</strong>
-                      {user?.phone && <span>{user.phone}</span>}
+                      {user?.phone && <span>{formatPhone(user.phone)}</span>}
                     </div>
                   </div>
                 )}
@@ -135,7 +142,7 @@ export default function ContactUs() {
                   label="Topic"
                   required
                   placeholder="Choose a topic"
-                  options={SUBJECTS}
+                  options={STAFF_SUBJECTS[userRole] || SUBJECTS}
                   value={fields.subject}
                   onChange={set('subject')}
                   onBlur={blur('subject')}
@@ -172,15 +179,28 @@ export default function ContactUs() {
             <Card>
               <h2>Quick answers</h2>
               <ul className="contact-aside__links">
-                {isGuest ? (
-                  <li><Link to="/medicines">Browse medicines</Link></li>
-                ) : (
+                {isGuest && (
+                  <>
+                    <li><Link to="/track">Track an order</Link></li>
+                    <li><Link to="/medicines">Browse medicines</Link></li>
+                    <li><Link to="/refund-policy">Refunds and returns</Link></li>
+                  </>
+                )}
+                {userRole === 'patient' && (
                   <>
                     <li><Link to="/orders">Track or cancel an order</Link></li>
                     <li><Link to="/prescriptions/upload">Check a prescription’s status</Link></li>
+                    <li><Link to="/appointments/book">Manage an appointment</Link></li>
+                    <li><Link to="/refund-policy">Refunds and returns</Link></li>
                   </>
                 )}
-                <li><Link to="/refund-policy">Refunds and returns</Link></li>
+                {!isGuest && userRole !== 'patient' && (
+                  <>
+                    <li><Link to="/profile">Update your profile</Link></li>
+                    <li><Link to="/terms">Terms of Service</Link></li>
+                    <li><Link to="/privacy">Privacy Policy</Link></li>
+                  </>
+                )}
               </ul>
             </Card>
           </aside>

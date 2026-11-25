@@ -3,6 +3,7 @@ import { FiFileText, FiMail, FiPhone, FiUsers } from 'react-icons/fi';
 import { Avatar, Badge, Card, EmptyState, SearchInput } from '../../../components/ui';
 import { APPOINTMENT_TONE } from '../../appointments/lib/appointmentUtils';
 import { fmtDate } from './doctorShared';
+import { formatPhone, phoneHref } from '../../../lib/format';
 
 const keyOf = (a) => String(a.patientId || a.patientEmail || a.patientName);
 
@@ -64,7 +65,7 @@ export default function PatientsTab({ apts }) {
             <div>
               <h2>{active.name}</h2>
               <p>
-                {active.phone && <span><FiPhone aria-hidden="true" /> <a href={`tel:${active.phone}`}>{active.phone}</a></span>}
+                {active.phone && <span><FiPhone aria-hidden="true" /> <a href={`tel:${phoneHref(active.phone)}`}>{formatPhone(active.phone)}</a></span>}
                 {active.email && <span><FiMail aria-hidden="true" /> <a href={`mailto:${active.email}`}>{active.email}</a></span>}
               </p>
             </div>

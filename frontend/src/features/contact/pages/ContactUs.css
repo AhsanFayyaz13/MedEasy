@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .contact-page {
-  padding: var(--space-6) 0 var(--space-16);
+  padding: var(--space-8) 0 var(--space-16);
 }
 
 .contact-layout {
@@ -118,5 +118,12 @@
 @media (min-width: 992px) {
   .contact-layout {
     grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+/* Same page rhythm as the other content pages */
+@media (min-width: 992px) {
+  .contact-page {
+    padding-top: var(--space-12);
   }
 }

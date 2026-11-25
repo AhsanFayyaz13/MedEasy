@@ -4,7 +4,7 @@ import api from '../../../services/api/client';
 import { useToast } from '../../../context/ToastContext';
 import { Avatar, Badge, Button, Card, EmptyState, Modal, SearchInput, Tabs, Textarea } from '../../../components/ui';
 import { assetUrl } from '../../../lib/media';
-import { formatDate, formatPrice } from '../../../lib/format';
+import { formatDate, formatPhone, formatPrice } from '../../../lib/format';
 import { sendNotification } from '../../../lib/notifications';
 
 /** A doctor awaiting review, or a pharmacy whose pharmacist is awaiting review. */
@@ -164,7 +164,7 @@ export default function VerificationsTab({ users, setUsers }) {
         onClose={() => setViewing(null)}
         size="lg"
         title={viewing ? (viewing.role === 'pharmacy' ? viewing.pharmacistDetails?.name : viewing.name) : ''}
-        description={viewing ? `${viewing.email || ''}${viewing.phone ? ` · ${viewing.phone}` : ''} · registered ${formatDate(viewing.createdAt)}` : undefined}
+        description={viewing ? `${viewing.email || ''}${viewing.phone ? ` · ${formatPhone(viewing.phone)}` : ''} · registered ${formatDate(viewing.createdAt)}` : undefined}
         footer={
           viewing && (
             <>

@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .chk-page {
-  padding: var(--space-6) 0 var(--space-16);
+  padding: var(--space-8) 0 var(--space-16);
 }
 
 .chk-back {
@@ -280,7 +280,7 @@
 
 @media (min-width: 992px) {
   .chk-page {
-    padding-top: var(--space-10);
+    padding-top: var(--space-12);
   }
 
   .chk-layout {

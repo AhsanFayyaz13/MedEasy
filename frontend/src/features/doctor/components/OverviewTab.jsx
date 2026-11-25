@@ -20,10 +20,20 @@ export default function OverviewTab({ apts, loading, setActive, openComplete }) 
     .sort((a, b) => dayOf(a.date).localeCompare(dayOf(b.date)) || String(a.time).localeCompare(String(b.time)))[0];
 
   const firstName = (user?.name || 'Doctor').replace(/^Dr\.?\s*/i, '').split(' ')[0];
+  const todayOpen = todayList.filter((a) => a.status === 'scheduled').length;
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const nextToday = next && dayOf(next.date) === today && next.time ? ` — the next is at ${next.time}` : '';
+  const summary = loading
+    ? 'Loading your day…'
+    : todayOpen
+      ? `You have ${plural(todayOpen, 'consultation')} today${nextToday}.`
+      : pending.length
+        ? `Nothing booked today. ${plural(pending.length, 'upcoming consultation')} on your schedule.`
+        : 'No upcoming consultations yet. Patients can book you on your available days.';
 
   return (
     <>
-      <WelcomeBanner title={`Good to see you, Dr. ${firstName}`} text="Your consultations, prescriptions and patients in one place.">
+      <WelcomeBanner title={`Good to see you, Dr. ${firstName}`} text={summary}>
         <Button size="sm" variant="secondary" onClick={() => setActive('schedule')}>
           Open schedule
         </Button>

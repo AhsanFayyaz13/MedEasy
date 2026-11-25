@@ -14,3 +14,21 @@ export function formatDate(value, options = { day: 'numeric', month: 'short', ye
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB', options);
 }
+
+/**
+ * Pakistani numbers for display/editing.
+ * formatPhone('923004444444') → "0300 4444444"; anything unrecognised is returned unchanged.
+ */
+export function formatPhone(value) {
+  if (!value) return '';
+  const digits = String(value).replace(/\D/g, '');
+  const local = digits.startsWith('92') && digits.length === 12 ? `0${digits.slice(2)}` : digits;
+  return /^03\d{9}$/.test(local) ? `${local.slice(0, 4)} ${local.slice(4)}` : String(value);
+}
+
+/** tel: link target in international form: "+923004444444". */
+export function phoneHref(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (/^03\d{9}$/.test(digits)) return `+92${digits.slice(1)}`;
+  return digits ? `+${digits}` : '';
+}

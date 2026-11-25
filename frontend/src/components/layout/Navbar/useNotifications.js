@@ -2,10 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 const keyFor = (user) => 'medeasy_notifications_' + (user?._id || user?.id || user?.role || 'guest');
 
-const DEFAULTS = () => [
-  { id: 'n1', text: 'Welcome to MedEasy! Your health portal is active.', time: Date.now() - 3600000, emoji: 'welcome', unread: true },
-  { id: 'n2', text: 'Your appointments and orders can be managed in real time.', time: Date.now() - 7200000, emoji: 'system', unread: false },
-];
+// Placeholder items written by older versions; they described nothing real, so drop them.
+const LEGACY_PLACEHOLDER_IDS = new Set(['n1', 'n2']);
 
 /**
  * In-browser notification feed (localStorage-backed, polled every 2s).
@@ -39,10 +37,7 @@ export default function useNotifications(user, enabled) {
         }
       }
 
-      if (!items) {
-        items = DEFAULTS();
-        localStorage.setItem(primaryKey, JSON.stringify(items));
-      }
+      items = (items || []).filter((n) => !LEGACY_PLACEHOLDER_IDS.has(n.id));
       setNotifications(items);
     } catch (e) {
       console.error(e);

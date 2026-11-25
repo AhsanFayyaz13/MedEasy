@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .pord-page {
-  padding: var(--space-6) 0 var(--space-16);
+  padding: var(--space-8) 0 var(--space-16);
 }
 
 .pord-layout {
@@ -306,5 +306,12 @@
 
   .track-form > .ui-btn {
     margin-top: 1.75rem;
+  }
+}
+
+/* Same page rhythm as the other content pages */
+@media (min-width: 992px) {
+  .pord-page {
+    padding-top: var(--space-12);
   }
 }
