@@ -118,29 +118,6 @@
   border-radius: var(--radius-full);
 }
 
-/* True, checkable promises under the hero buttons */
-.home-points {
-  display: grid;
-  gap: var(--space-2);
-  margin: var(--space-8) 0 0;
-  padding: var(--space-6) 0 0;
-  border-top: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  list-style: none;
-}
-
-.home-points li {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.home-points svg {
-  flex-shrink: 0;
-  color: var(--fg-accent);
-}
-
 /* Recent reviews */
 .home-reviews {
   display: grid;

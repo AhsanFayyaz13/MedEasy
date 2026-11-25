@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   FiArrowRight,
   FiCalendar,
-  FiCheckCircle,
   FiDollarSign,
   FiEye,
   FiHeadphones,
@@ -29,8 +28,6 @@ import useMedicines from '../../medicines/hooks/useMedicines';
 import { ReviewCard } from '../../reviews/components/ReviewParts';
 import './Home.css';
 
-// Only claims the business can stand behind (see checkout and the refund policy).
-const HERO_POINTS = ['Licensed pharmacists check every prescription', 'Cash on delivery', `Free delivery over ${formatPrice(FREE_THRESHOLD)}`];
 
 const TRUST = [
   { icon: FiShield, label: 'Licensed suppliers only' },
@@ -185,11 +182,6 @@ export default function Home() {
                 Book a doctor
               </Button>
             </div>
-            <ul className="home-points">
-              {HERO_POINTS.map((p) => (
-                <li key={p}><FiCheckCircle aria-hidden="true" /> {p}</li>
-              ))}
-            </ul>
           </div>
 
           <div className="home-hero__art" aria-hidden="true">
