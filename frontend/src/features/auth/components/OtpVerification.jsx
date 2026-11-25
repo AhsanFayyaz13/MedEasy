@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
-import { FiArrowLeft, FiMail, FiSmartphone } from 'react-icons/fi';
+import { FiArrowLeft, FiMail } from 'react-icons/fi';
 import { Alert, Button, Input } from '../../../components/ui';
 import AuthShell from './AuthShell';
 
 const RESEND_SECONDS = 60;
 
 /** Step 3 of registration: enter the 6-digit code. */
-export default function OtpVerification({ channel, destination, loading, authError, onClearError, onVerify, onResend, onBack }) {
+export default function OtpVerification({ destination, loading, authError, onClearError, onVerify, onResend, onBack }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [verified, setVerified] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
-  const isEmail = channel === 'email';
 
   useEffect(() => {
     if (secondsLeft <= 0) return undefined;
@@ -47,8 +46,8 @@ export default function OtpVerification({ channel, destination, loading, authErr
 
   return (
     <AuthShell
-      icon={isEmail ? <FiMail /> : <FiSmartphone />}
-      title={isEmail ? 'Check your email' : 'Verify your phone'}
+      icon={<FiMail />}
+      title="Check your email"
       subtitle={
         <>
           We sent a 6-digit code to <strong className="auth-destination">{destination}</strong>. It expires in 15 minutes.

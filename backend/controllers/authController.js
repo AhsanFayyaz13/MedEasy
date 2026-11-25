@@ -65,16 +65,17 @@ const verifyFirebaseToken = (idToken, apiKey) => {
 
 exports.register = async (req, res) => {
   const { 
-    name, email, password, role, phone, address, verificationChannel,
+    name, email, password, role, phone, address,
     pharmacyName, pharmacyLocation, pharmacyOutsidePicture, pharmacistName,
     degreeName, degreePlace, licenseNumber, ownerName,
     specialty, pmcRegistration, degree, experience, clinicAddress, availableDays, consultationFee
   } = req.body;
 
-  // Validate input - name, password, phone, and verificationChannel are required
-  if (!name || !password || !phone || !verificationChannel) {
-    return res.status(400).json({ message: 'Missing required fields: name, password, phone, or verificationChannel' });
+  // Accounts are verified by email; the phone number is kept as a contact number.
+  if (!name || !password || !phone || !email) {
+    return res.status(400).json({ message: 'Name, email, phone number and password are required.' });
   }
+  const verificationChannel = 'email';
 
   if (role === 'pharmacy') {
     if (!pharmacyName || !pharmacyLocation || !pharmacyOutsidePicture) {
@@ -86,14 +87,6 @@ exports.register = async (req, res) => {
     if (!specialty || !pmcRegistration || !degree || experience === undefined || !clinicAddress || !availableDays || availableDays.length === 0 || consultationFee === undefined) {
       return res.status(400).json({ message: 'Missing professional doctor registration details.' });
     }
-  }
-
-  if (!['email', 'phone'].includes(verificationChannel)) {
-    return res.status(400).json({ message: 'Verification channel must be email or phone' });
-  }
-
-  if (verificationChannel === 'email' && !email) {
-    return res.status(400).json({ message: 'Email address is required to receive verification code on email' });
   }
 
   // Normalize phone number
@@ -109,11 +102,9 @@ exports.register = async (req, res) => {
   }
 
   // Check if email already registered in verified User collection
-  if (email) {
-    const emailExists = await User.findOne({ email: email.toLowerCase() });
-    if (emailExists) {
-      return res.status(400).json({ message: 'User with this email already exists' });
-    }
+  const emailExists = await User.findOne({ email: email.toLowerCase() });
+  if (emailExists) {
+    return res.status(400).json({ message: 'User with this email already exists' });
   }
 
   // Delete any existing pending registrations for this phone number to avoid duplication/bloat
@@ -128,7 +119,7 @@ exports.register = async (req, res) => {
   // Save registration details to PendingUser
   await PendingUser.create({
     name,
-    email: email ? email.toLowerCase() : undefined,
+    email: email.toLowerCase(),
     phone: normalizedPhone,
     password: passwordHash,
     role: ['patient', 'doctor', 'pharmacy'].includes(role) ? role : 'patient',
@@ -156,22 +147,16 @@ exports.register = async (req, res) => {
   });
 
   // Log the verification code for temporary local testing in terminal
-  logVerificationCode({
-    method: verificationChannel,
-    identifier: verificationChannel === 'email' ? email : normalizedPhone,
-    code: verificationCode
-  });
+  logVerificationCode({ method: 'email', identifier: email, code: verificationCode });
 
-  // Send actual SMTP verification email in the background to avoid blocking the HTTP response
-  if (verificationChannel === 'email' && email) {
-    sendVerificationEmail(email.toLowerCase(), verificationCode)
-      .catch((err) => console.error('Failed to send verification email via SMTP in background:', err.message));
-  }
+  // Send the verification email in the background to avoid blocking the HTTP response
+  sendVerificationEmail(email.toLowerCase(), verificationCode)
+    .catch((err) => console.error('Failed to send verification email via SMTP in background:', err.message));
 
   res.status(200).json({
     message: 'Verification code sent successfully',
     phone: normalizedPhone,
-    email: email ? email.toLowerCase() : null,
+    email: email.toLowerCase(),
     channel: verificationChannel
   });
 };
@@ -347,23 +332,20 @@ exports.resendVerificationCode = async (req, res) => {
   await pending.save();
 
   // Log the code again for testing
-  logVerificationCode({
-    method: pending.verificationChannel,
-    identifier: pending.verificationChannel === 'email' ? pending.email : pending.phone,
-    code: newCode
-  });
-
-  // Send actual SMTP verification email in the background to avoid blocking the HTTP response
-  if (pending.verificationChannel === 'email' && pending.email) {
-    sendVerificationEmail(pending.email.toLowerCase(), newCode)
-      .catch((err) => console.error('Failed to send verification email via SMTP in background:', err.message));
+  if (!pending.email) {
+    return res.status(400).json({ message: 'This sign-up has no email address. Please register again with an email.' });
   }
+  logVerificationCode({ method: 'email', identifier: pending.email, code: newCode });
+
+  // Send the verification email in the background to avoid blocking the HTTP response
+  sendVerificationEmail(pending.email.toLowerCase(), newCode)
+    .catch((err) => console.error('Failed to send verification email via SMTP in background:', err.message));
 
   res.status(200).json({
     message: 'Verification code resent successfully',
     phone: pending.phone,
     email: pending.email,
-    channel: pending.verificationChannel
+    channel: 'email'
   });
 };
 
@@ -712,6 +694,9 @@ exports.uploadPharmacistPhoto = async (req, res) => {
   }
 };
 
+/** j***@gmail.com — shows where the code went without revealing the address. */
+const maskEmail = (email) => email.replace(/^(.)[^@]*(@.*)$/, '$1***$2');
+
 exports.forgotPassword = async (req, res) => {
   const { identifier } = req.body;
 
@@ -720,10 +705,8 @@ exports.forgotPassword = async (req, res) => {
   }
 
   let query;
-  let isEmail = false;
   if (identifier.includes('@')) {
     query = { email: identifier.toLowerCase().trim() };
-    isEmail = true;
   } else {
     const normalizedPhone = normalizePhone(identifier);
     if (!normalizedPhone) {
@@ -737,6 +720,11 @@ exports.forgotPassword = async (req, res) => {
     return res.status(404).json({ message: 'This email or phone number is not registered. Please create an account.' });
   }
 
+  // Codes are only sent by email; phone-only (older) accounts need support to add an email.
+  if (!user.email) {
+    return res.status(400).json({ message: 'This account has no email address, so we can’t send a code. Please contact support to recover it.' });
+  }
+
   // Generate 6-digit OTP reset code and set 15-minute expiration
   const resetCode = generateVerificationCode();
   user.resetPasswordCode = hashCode(resetCode);
@@ -745,22 +733,16 @@ exports.forgotPassword = async (req, res) => {
   await user.save();
 
   // Log the code for local dev testing
-  logVerificationCode({
-    method: isEmail ? 'email' : 'phone',
-    identifier: isEmail ? user.email : user.phone,
-    code: resetCode
-  });
+  logVerificationCode({ method: 'email', identifier: user.email, code: resetCode });
 
-  // Send actual SMTP recovery email in the background to avoid blocking the HTTP response
-  if (isEmail && user.email) {
-    sendResetPasswordEmail(user.email.toLowerCase(), resetCode)
-      .catch((err) => console.error('Failed to send password reset email via SMTP in background:', err.message));
-  }
+  // Send the recovery email in the background to avoid blocking the HTTP response
+  sendResetPasswordEmail(user.email.toLowerCase(), resetCode)
+    .catch((err) => console.error('Failed to send password reset email via SMTP in background:', err.message));
 
   res.status(200).json({
-    message: 'Password reset code sent successfully.',
-    identifier: isEmail ? user.email : user.phone,
-    channel: isEmail ? 'email' : 'phone'
+    message: `We’ve emailed a reset code to ${maskEmail(user.email)}.`,
+    sentTo: maskEmail(user.email),
+    channel: 'email'
   });
 };
 

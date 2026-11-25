@@ -46,7 +46,7 @@ const privacy = {
       heading: 'How we use your information',
       body: (
         <ul>
-          <li>To create and secure your account, including one-time verification codes sent by SMS or email.</li>
+          <li>To create and secure your account, including one-time verification codes sent to your email address.</li>
           <li>To process, verify, dispense and deliver orders — including checking that prescription medicines are backed by a valid prescription.</li>
           <li>To book and manage doctor appointments and let you and your doctor communicate.</li>
           <li>To send service messages about your orders, appointments and account (we do not send marketing without your consent).</li>

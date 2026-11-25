@@ -347,56 +347,12 @@
   color: var(--text-on-primary);
 }
 
-/* Verification channel */
-.auth-channel {
-  margin: 0 0 var(--space-4);
-  padding: 0;
-  border: none;
-}
 
-.auth-channel__options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-}
 
-.auth-channel__option {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: 44px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  cursor: pointer;
-}
 
-.auth-channel__option input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
 
-.auth-channel__option:focus-within {
-  box-shadow: var(--shadow-focus);
-}
 
-.auth-channel__option.is-selected {
-  border-color: var(--action);
-  background: var(--tint-primary-50);
-  color: var(--fg-primary);
-}
 
-.auth-channel__option.is-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 /* OTP */
 .auth-otp {

@@ -18,6 +18,7 @@ export default function ForgotPasswordModal({ show, onClose, initialIdentifier =
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [sentTo, setSentTo] = useState('');
 
   const requestCode = async (e) => {
     e?.preventDefault();
@@ -30,7 +31,8 @@ export default function ForgotPasswordModal({ show, onClose, initialIdentifier =
     setBusy(true);
     try {
       const data = await forgotPassword(identifier.trim());
-      setMessage(data?.message || 'Verification code sent.');
+      setSentTo(data?.sentTo || '');
+      setMessage(data?.message || 'We’ve emailed you a reset code.');
       setStep(2);
     } catch (err) {
       setError(err.message || 'Failed to send a recovery code.');
@@ -65,7 +67,7 @@ export default function ForgotPasswordModal({ show, onClose, initialIdentifier =
       show={show}
       onClose={onClose}
       title={<><FiKey aria-hidden="true" /> Recover your account</>}
-      description={step === 1 ? 'We’ll send a 6-digit code to verify it’s you.' : `Enter the code sent to ${identifier}.`}
+      description={step === 1 ? 'Enter your email or phone number and we’ll email a 6-digit code to the address on your account.' : `Enter the code we emailed to ${sentTo || 'you'}. Check your spam folder if it’s not there.`}
     >
       {error && <Alert tone="error">{error}</Alert>}
       {message && <Alert tone="success">{message}</Alert>}

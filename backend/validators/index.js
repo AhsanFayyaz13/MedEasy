@@ -31,12 +31,13 @@ const SELF_REGISTER_ROLES = ['patient', 'doctor', 'pharmacy'];
 const register = z
   .object({
     name: trimmed(120).min(2, 'Please enter your full name'),
-    email: emptyToUndefined(email.optional()),
+    // Accounts are verified by email (SMS is not available yet); phone is a contact number.
+    email: emptyToUndefined(email.optional()).refine(Boolean, { message: 'An email address is required to verify your account' }),
     phone,
     password,
     role: emptyToUndefined(z.enum(SELF_REGISTER_ROLES, { message: 'Invalid account type' }).default('patient')),
     address: optionalText(300),
-    verificationChannel: z.enum(['email', 'phone']),
+    verificationChannel: z.literal('email', { message: 'Verification by SMS is not available yet. Please use email.' }).default('email'),
     acceptTerms: z.literal(true, { message: 'You must accept the Terms of Service and Privacy Policy' }),
     // pharmacy
     pharmacyName: optionalText(150),
@@ -57,9 +58,6 @@ const register = z
     consultationFee: emptyToUndefined(money.optional()),
   })
   .superRefine((d, ctx) => {
-    if (d.verificationChannel === 'email' && !d.email) {
-      ctx.addIssue({ code: 'custom', path: ['email'], message: 'Email address is required to receive the code by email' });
-    }
     if (d.role === 'pharmacy' && (!d.pharmacyName || !d.pharmacyLocation || !d.pharmacyOutsidePicture)) {
       ctx.addIssue({ code: 'custom', path: ['pharmacyName'], message: 'Missing pharmacy registration details: name, location, or outside picture.' });
     }

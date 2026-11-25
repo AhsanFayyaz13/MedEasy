@@ -26,7 +26,6 @@ export const REGISTER_INITIAL = {
   role: '',
   password: '',
   confirmPassword: '',
-  verificationChannel: 'phone',
   ownerName: '',
   pharmacyLocation: '',
   pharmacyOutsidePicture: '',
@@ -57,8 +56,8 @@ export function validateRegister(f) {
   if (blank(f.name)) errors.name = isPharmacy ? 'Pharmacy name is required.' : 'Full name is required.';
   else if (f.name.trim().length < 2) errors.name = 'Must be at least 2 characters.';
 
-  if (f.verificationChannel === 'email' && blank(f.email)) errors.email = 'An email address is required to receive the code by email.';
-  else if (!blank(f.email) && !EMAIL_RE.test(f.email)) errors.email = 'Please enter a valid email address.';
+  if (blank(f.email)) errors.email = 'Email address is required — we’ll send your verification code there.';
+  else if (!EMAIL_RE.test(f.email)) errors.email = 'Please enter a valid email address.';
 
   if (blank(f.phone)) errors.phone = 'Phone number is required.';
   else if (!PHONE_RE.test(f.phone)) errors.phone = 'Please enter a valid phone number.';
@@ -116,11 +115,11 @@ export function passwordStrength(pwd) {
 export function toRegisterPayload(f) {
   const payload = {
     name: f.name.trim(),
-    email: f.email.trim() || undefined,
+    email: f.email.trim(),
     phone: f.phone.trim(),
     role: f.role,
     password: f.password,
-    verificationChannel: f.verificationChannel,
+    verificationChannel: 'email',
     acceptTerms: f.acceptTerms === true,
   };
   if (f.role === 'pharmacy') {

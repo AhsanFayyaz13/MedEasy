@@ -40,7 +40,7 @@ describe('health & errors', () => {
 });
 
 describe('registration security', () => {
-  const base = { name: 'Eve Attacker', phone: '03001112222', password: 'Password123!', verificationChannel: 'phone', acceptTerms: true };
+  const base = { name: 'Eve Attacker', email: 'eve@example.com', phone: '03001112222', password: 'Password123!', verificationChannel: 'email', acceptTerms: true };
 
   it('refuses self-registration as admin', async () => {
     const res = await request(app).post('/api/auth/register').send({ ...base, role: 'admin' });
@@ -51,6 +51,26 @@ describe('registration security', () => {
   it('refuses self-registration as staff pharmacist', async () => {
     const res = await request(app).post('/api/auth/register').send({ ...base, role: 'pharmacist' });
     assert.equal(res.status, 400);
+  });
+
+  it('requires an email address and email verification', async () => {
+    const { email, ...noEmail } = base; // eslint-disable-line no-unused-vars
+    const missing = await request(app).post('/api/auth/register').send(noEmail);
+    assert.equal(missing.status, 400);
+    assert.match(missing.body.message, /email/i);
+    const sms = await request(app).post('/api/auth/register').send({ ...base, verificationChannel: 'phone' });
+    assert.equal(sms.status, 400);
+    const ok = await request(app).post('/api/auth/register').send({ ...base, verificationChannel: undefined });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.body.channel, 'email');
+  });
+
+  it('emails password reset codes, even when asked by phone number', async () => {
+    await createUser({ email: 'pat@example.com', phone: '923001234567' });
+    const res = await request(app).post('/api/auth/forgot-password').send({ identifier: '03001234567' });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.channel, 'email');
+    assert.equal(res.body.sentTo, 'p***@example.com');
   });
 
   it('requires acceptance of the terms', async () => {

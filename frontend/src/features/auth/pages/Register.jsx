@@ -35,11 +35,7 @@ export default function Register() {
   const roleMeta = ROLES.find((r) => r.value === fields.role);
 
   const setField = (name, value) => {
-    setFields((prev) => {
-      const next = { ...prev, [name]: value };
-      if (name === 'email' && !String(value).trim() && prev.verificationChannel === 'email') next.verificationChannel = 'phone';
-      return next;
-    });
+    setFields((prev) => ({ ...prev, [name]: value }));
     if (authError) clearAuthError();
   };
   const onChange = (e) => setField(e.target.name, e.target.value);
@@ -98,8 +94,7 @@ export default function Register() {
       <>
         <PageMeta title="Verify your account" />
         <OtpVerification
-          channel={fields.verificationChannel}
-          destination={fields.verificationChannel === 'email' ? fields.email : pendingPhone}
+          destination={fields.email.trim()}
           loading={loading}
           authError={authError}
           onClearError={clearAuthError}
@@ -143,10 +138,10 @@ export default function Register() {
           />
           <div className="row g-3">
             <div className="col-sm-6">
-              <Input name="phone" type="tel" label="Phone number" required placeholder="03001234567" leftIcon={<FiPhone />} value={fields.phone} onChange={onChange} onBlur={onBlur} error={shown('phone')} autoComplete="tel" />
+              <Input name="phone" type="tel" label="Phone number" required hint="For delivery and appointment updates." placeholder="03001234567" leftIcon={<FiPhone />} value={fields.phone} onChange={onChange} onBlur={onBlur} error={shown('phone')} autoComplete="tel" />
             </div>
             <div className="col-sm-6">
-              <Input name="email" type="email" label="Email" hint="Optional" placeholder="you@example.com" leftIcon={<FiMail />} value={fields.email} onChange={onChange} onBlur={onBlur} error={shown('email')} autoComplete="email" />
+              <Input name="email" type="email" label="Email" required hint="We’ll send your verification code here." placeholder="you@example.com" leftIcon={<FiMail />} value={fields.email} onChange={onChange} onBlur={onBlur} error={shown('email')} autoComplete="email" />
             </div>
           </div>
 
@@ -164,21 +159,6 @@ export default function Register() {
             />
           )}
 
-          <fieldset className="auth-channel">
-            <legend className="ui-field__label">Send my verification code by</legend>
-            <div className="auth-channel__options">
-              {[
-                { value: 'phone', label: 'SMS', icon: <FiPhone /> },
-                { value: 'email', label: 'Email', icon: <FiMail />, disabled: !fields.email.trim() },
-              ].map((opt) => (
-                <label key={opt.value} className={`auth-channel__option${fields.verificationChannel === opt.value ? ' is-selected' : ''}${opt.disabled ? ' is-disabled' : ''}`}>
-                  <input type="radio" name="verificationChannel" value={opt.value} checked={fields.verificationChannel === opt.value} disabled={opt.disabled} onChange={onChange} />
-                  <span aria-hidden="true">{opt.icon}</span> {opt.label}
-                </label>
-              ))}
-            </div>
-            {!fields.email.trim() && <p className="ui-field__hint">Add an email above to receive the code by email.</p>}
-          </fieldset>
 
           <div className="row g-3">
             <div className="col-sm-6">
