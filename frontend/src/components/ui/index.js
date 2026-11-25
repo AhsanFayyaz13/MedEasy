@@ -15,3 +15,5 @@ export { Table, Tabs, StatCard, PageHeader, Avatar } from './Data';
 export { default as ThemeToggle } from './ThemeToggle';
 export { default as Reveal } from './Reveal';
 export { default as SearchInput } from './SearchInput';
+export { default as FileDropzone } from './FileDropzone';
+export { default as Steps } from './Steps';

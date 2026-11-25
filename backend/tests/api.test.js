@@ -194,6 +194,48 @@ describe('orders', () => {
   });
 });
 
+describe('prescription orders', () => {
+  it('accepts a pending prescription but blocks confirmation until it is verified', async () => {
+    const Prescription = require('../models/Prescription');
+    const patient = await createUser();
+    const pharmacist = await createUser({ role: 'pharmacist' });
+    const med = await createMedicine({ requiresPrescription: true, stock: 5 });
+    const rx = await Prescription.create({ userId: patient._id, fileUrl: 'https://example.com/rx.jpg', status: 'pending' });
+
+    const order = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${tokenFor(patient)}`)
+      .send({ items: [{ medicineId: med._id.toString(), quantity: 1 }], prescriptionId: rx._id.toString(), shippingAddress: validAddress });
+    assert.equal(order.status, 201);
+
+    const staff = { Authorization: `Bearer ${tokenFor(pharmacist)}` };
+    const blocked = await request(app).put(`/api/orders/${order.body._id}/status`).set(staff).send({ status: 'confirmed' });
+    assert.equal(blocked.status, 400);
+
+    rx.status = 'verified';
+    await rx.save();
+    const ok = await request(app).put(`/api/orders/${order.body._id}/status`).set(staff).send({ status: 'confirmed' });
+    assert.equal(ok.status, 200);
+  });
+
+  it('restocks when staff cancel an order, and cannot reopen it', async () => {
+    const patient = await createUser();
+    const pharmacist = await createUser({ role: 'pharmacist' });
+    const med = await createMedicine({ stock: 5 });
+    const order = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${tokenFor(patient)}`)
+      .send({ items: [{ medicineId: med._id.toString(), quantity: 2 }], shippingAddress: validAddress });
+    const staff = { Authorization: `Bearer ${tokenFor(pharmacist)}` };
+    const res = await request(app).put(`/api/orders/${order.body._id}/status`).set(staff).send({ status: 'cancelled', reason: 'Out of stock' });
+    assert.equal(res.body.cancellationReason, 'Out of stock');
+    const Medicine = require('../models/Medicine');
+    assert.equal((await Medicine.findById(med._id)).stock, 5);
+    const reopen = await request(app).put(`/api/orders/${order.body._id}/status`).set(staff).send({ status: 'pending' });
+    assert.equal(reopen.status, 400);
+  });
+});
+
 describe('reviews', () => {
   it('allows one review per user per target and computes the average', async () => {
     const user = await createUser();

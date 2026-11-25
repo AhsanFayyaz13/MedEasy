@@ -30,8 +30,10 @@ exports.placeOrder = async (req, res) => {
     if (prescription.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Prescription does not belong to user' });
     }
-    if (prescription.status !== 'verified') {
-      return res.status(400).json({ message: 'Prescription is not verified yet' });
+    // A freshly uploaded (pending) prescription is fine — the pharmacy must verify it
+    // before the order can be confirmed (enforced in updateOrderStatus).
+    if (prescription.status === 'rejected') {
+      return res.status(400).json({ message: 'This prescription was rejected. Please upload a valid prescription.' });
     }
   }
 
@@ -114,17 +116,34 @@ exports.getOrderById = async (req, res) => {
 // @route   PUT /api/orders/:id/status
 // @access  Private (Pharmacist/Admin)
 exports.updateOrderStatus = async (req, res) => {
-  const { status } = req.body;
-  const order = await Order.findById(req.params.id);
+  const { status, reason } = req.body; // status validated against the enum
+  const order = await Order.findById(req.params.id).populate('prescriptionId', 'status');
 
   if (!order) {
     return res.status(404).json({ message: 'Order not found' });
   }
+  if (order.status === 'cancelled' && status !== 'cancelled') {
+    return res.status(400).json({ message: 'Cancelled orders cannot be reopened. Ask the patient to place a new order.' });
+  }
+  if (['confirmed', 'processing', 'dispatched', 'delivered'].includes(status) && order.prescriptionId && order.prescriptionId.status !== 'verified') {
+    return res.status(400).json({ message: 'Verify the attached prescription before confirming this order.' });
+  }
 
-  // status is validated against the enum by validators.orders.status
+  if (status === 'cancelled') {
+    // Flip atomically so stock is restored exactly once, even if staff and patient cancel together.
+    const cancelled = await Order.findOneAndUpdate(
+      { _id: order._id, status: { $ne: 'cancelled' } },
+      { $set: { status: 'cancelled', ...(reason ? { cancellationReason: reason } : {}) } },
+      { returnDocument: 'after' }
+    );
+    if (cancelled) {
+      await Promise.all(order.items.map((i) => Medicine.updateOne({ _id: i.medicineId }, { $inc: { stock: i.quantity } })));
+      return res.json(cancelled);
+    }
+    return res.json(await Order.findById(order._id));
+  }
 
   order.status = status;
-  if (status === 'cancelled' && req.body.reason) order.cancellationReason = req.body.reason;
   const updatedOrder = await order.save();
   res.json(updatedOrder);
 };

@@ -1,30 +1,28 @@
-import { Link } from 'react-router-dom';
-import { Button } from 'react-bootstrap';
-import { FaCheckCircle, FaArrowRight } from 'react-icons/fa';
+import { FiArrowRight, FiCheckCircle } from 'react-icons/fi';
+import { Button, Card } from '../../../components/ui';
 
-
-// ─── Success screen ───────────────────────────────────────────────────────────
-export default function OrderSuccess({ orderId, onViewOrders }) {
+/** Confirmation screen after an order is placed. */
+export default function OrderSuccess({ orderId, needsRx }) {
   return (
-    <div className="order-success">
-      <div className="success-icon-wrap">
-        <FaCheckCircle className="success-icon" />
-      </div>
-      <h2 className="success-title">Order Confirmed!</h2>
-      <p className="success-subtitle">
-        Your order has been placed successfully. We'll notify you once it's dispatched.
+    <Card className="chk-success" role="status">
+      <span className="chk-success__icon" aria-hidden="true"><FiCheckCircle /></span>
+      <h1 className="chk-success__title">Order placed!</h1>
+      <p className="chk-muted">
+        {needsRx
+          ? 'Our pharmacist will verify your prescription, then confirm and dispatch your order.'
+          : 'We’ll notify you as soon as your order is on its way.'}
       </p>
-      <div className="order-id-badge">
-        Order ID: <strong>{orderId}</strong>
-      </div>
-      <div className="success-actions">
-        <Button className="btn-view-order" onClick={onViewOrders}>
-          Track My Order <FaArrowRight className="ms-2" />
+      <p className="chk-success__id">
+        Order ID <code>#{String(orderId).slice(-8).toUpperCase()}</code>
+      </p>
+      <div className="chk-success__actions">
+        <Button to={`/orders/${orderId}`} rightIcon={<FiArrowRight aria-hidden="true" />}>
+          Track my order
         </Button>
-        <Button as={Link} to="/medicines" variant="outline-secondary" className="btn-shop-more">
-          Continue Shopping
+        <Button to="/medicines" variant="secondary">
+          Continue shopping
         </Button>
       </div>
-    </div>
+    </Card>
   );
 }
