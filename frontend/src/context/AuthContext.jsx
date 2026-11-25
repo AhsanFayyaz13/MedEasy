@@ -53,10 +53,10 @@ function loadSession() {
 // ─── Role → dashboard route map ───────────────────────────────────────────────
 export const ROLE_DASHBOARD = {
   patient:    '/',
-  pharmacist: '/dashboard/pharmacist',
-  pharmacy:   '/dashboard/pharmacist',
-  doctor:     '/dashboard/doctor',
-  admin:      '/dashboard/admin',
+  pharmacist: '/pharmacist',
+  pharmacy:   '/pharmacist',
+  doctor:     '/doctor',
+  admin:      '/admin',
 };
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -140,6 +140,8 @@ export function AuthProvider({ children }) {
     setAuthError(null);
     try {
       const { data } = await api.post('/auth/verify-registration', { phone, code });
+      // Doctors wait for admin approval: verified, but not signed in yet.
+      if (data.pendingReview) return { pendingReview: true, role: data.role, message: data.message };
       const { token: access, ...userData } = data;
       persistSession(access, null, userData);
       setToken(access);
@@ -288,6 +290,19 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // ── changePassword ─────────────────────────────────────────────────────────
+  /** Change the signed-in user's password. The server ends other sessions and returns a fresh token. */
+  const changePassword = useCallback(async (currentPassword, newPassword) => {
+    try {
+      const { data } = await api.put('/auth/password', { currentPassword, newPassword });
+      persistSession(data.token, null, user);
+      setToken(data.token);
+      return data;
+    } catch (err) {
+      throw new Error(parseApiError(err, 'Couldn’t change your password. Please try again.'), { cause: err });
+    }
+  }, [user]);
+
   // ── clear transient error ──────────────────────────────────────────────────
   const clearAuthError = useCallback(() => setAuthError(null), []);
 
@@ -311,6 +326,7 @@ export function AuthProvider({ children }) {
     removePharmacistDetails,
     forgotPassword,
     resetPassword,
+    changePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

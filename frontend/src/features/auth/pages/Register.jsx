@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiMail, FiPhone, FiUser, FiUserPlus } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiClock, FiMail, FiPhone, FiUser, FiUserPlus } from 'react-icons/fi';
 import { useAuth, ROLE_DASHBOARD } from '../../../context/AuthContext';
 import { Alert, Button, Checkbox, Input } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
@@ -19,13 +19,13 @@ export default function Register() {
   const navigate = useNavigate();
   const { register, verifyRegistration, resendVerification, isAuthenticated, userRole, loading, authError, clearAuthError } = useAuth();
 
-  const [step, setStep] = useState('role'); // 'role' | 'details' | 'verify'
+  const [step, setStep] = useState('role'); // 'role' | 'details' | 'verify' | 'review'
   const [fields, setFields] = useState(REGISTER_INITIAL);
   const [touched, setTouched] = useState({});
   const [pendingPhone, setPendingPhone] = useState('');
 
   useEffect(() => {
-    if (isAuthenticated && step !== 'verify') navigate(ROLE_DASHBOARD[userRole] || '/', { replace: true });
+    if (isAuthenticated && step !== 'verify' && step !== 'review') navigate(ROLE_DASHBOARD[userRole] || '/', { replace: true });
   }, [isAuthenticated, userRole, navigate, step]);
 
   const errors = validateRegister(fields);
@@ -64,8 +64,12 @@ export default function Register() {
   };
 
   const verify = async (code) => {
-    const { role } = await verifyRegistration(pendingPhone, code);
-    setTimeout(() => navigate(ROLE_DASHBOARD[role] || '/', { replace: true }), 1200);
+    const result = await verifyRegistration(pendingPhone, code);
+    if (result.pendingReview) {
+      goTo('review');
+      return;
+    }
+    setTimeout(() => navigate(ROLE_DASHBOARD[result.role] || '/', { replace: true }), 1200);
   };
 
   if (step === 'role') {
@@ -84,6 +88,27 @@ export default function Register() {
               goTo('details');
             }}
           />
+        </AuthShell>
+      </>
+    );
+  }
+
+  if (step === 'review') {
+    return (
+      <>
+        <PageMeta title="Application received" noindex />
+        <AuthShell
+          icon={<FiClock />}
+          title="Application received"
+          subtitle={<>Thanks, {fields.name.trim().split(' ')[0] || 'Doctor'}. Your email is verified.</>}
+          footer={<>Questions? <Link to="/contact">Contact our team</Link></>}
+        >
+          <ol className="auth-next">
+            <li><FiCheckCircle aria-hidden="true" /> <span><strong>We check your PMC registration.</strong> This usually takes 1–2 working days.</span></li>
+            <li><FiMail aria-hidden="true" /> <span><strong>We email you the decision</strong> at <strong className="auth-destination">{fields.email.trim()}</strong>.</span></li>
+            <li><FiUser aria-hidden="true" /> <span><strong>Once approved, sign in</strong> to set up your schedule and start taking bookings.</span></li>
+          </ol>
+          <Button to="/" block size="lg" variant="secondary">Back to home</Button>
         </AuthShell>
       </>
     );

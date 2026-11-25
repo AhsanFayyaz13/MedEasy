@@ -60,7 +60,7 @@ export default function OtpVerification({ destination, loading, authError, onCle
       }
     >
       {authError && <Alert tone="error" title="Verification failed" onClose={onClearError}>{authError}</Alert>}
-      {verified && <Alert tone="success" title="You’re verified!">Opening your dashboard…</Alert>}
+      {verified && <Alert tone="success" title="You’re verified!">Signing you in…</Alert>}
       {notice && !verified && <Alert tone="info" onClose={() => setNotice('')}>{notice}</Alert>}
 
       <form onSubmit={submit} noValidate>

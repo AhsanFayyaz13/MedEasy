@@ -75,6 +75,42 @@
   font-weight: var(--weight-semibold);
 }
 
+/* "What happens next" list (doctor application received) */
+.auth-next {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  list-style: none;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed, 1.6);
+}
+
+.auth-next li {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.auth-next svg {
+  flex-shrink: 0;
+  margin-top: 0.2em;
+  color: var(--fg-primary);
+}
+
+.auth-next strong {
+  color: var(--text-strong);
+}
+
+.auth__footer-alt {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
 .auth-back {
   display: inline-flex;
   align-items: center;
@@ -101,9 +137,7 @@
 .auth-password-row {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: calc(-1 * var(--space-6));
-  position: relative;
-  z-index: 1;
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
 }
 
 /* Password strength */
