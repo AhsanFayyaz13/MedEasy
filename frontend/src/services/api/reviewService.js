@@ -49,4 +49,14 @@ export async function postReview({ targetType, targetId, rating, comment }) {
   return data;
 }
 
-export default { fetchReviews, postReview };
+/** Edit your own review. Returns the review with the author populated. */
+export async function updateReview(id, { rating, comment }) {
+  const { data } = await api.put(`/reviews/${id}`, { rating, comment });
+  return data;
+}
+
+export async function deleteReview(id) {
+  await api.delete(`/reviews/${id}`);
+}
+
+export default { fetchReviews, postReview, updateReview, deleteReview };

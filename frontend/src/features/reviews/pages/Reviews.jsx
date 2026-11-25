@@ -3,7 +3,7 @@ import { FiMessageSquare } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import { useAuthModal } from '../../../context/AuthModalContext';
 import { useToast } from '../../../context/ToastContext';
-import { fetchReviews, postReview, SITE_REVIEW_TARGET } from '../../../services/api/reviewService';
+import { deleteReview, fetchReviews, postReview, updateReview, SITE_REVIEW_TARGET } from '../../../services/api/reviewService';
 import { Alert, Button, Card, EmptyState, ErrorState, PageHeader, SkeletonCard } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import { RatingSummary, ReviewCard, ReviewForm } from '../components/ReviewParts';
@@ -37,6 +37,23 @@ export default function Reviews() {
   const myId = String(user?._id || user?.id || '');
   const alreadyReviewed = reviews.some((r) => String(r.userId?._id || r.userId) === myId);
 
+
+  const isMine = (r) => String(r.userId?._id || r.userId) === myId;
+  const saveEdit = (r) => async (values) => {
+    const updated = await updateReview(r._id, values);
+    setReviews((prev) => prev.map((x) => (x._id === r._id ? updated : x)));
+    toast.success('Your review has been updated.');
+  };
+  const remove = (r) => async () => {
+    try {
+      await deleteReview(r._id);
+      setReviews((prev) => prev.filter((x) => x._id !== r._id));
+      toast.success('Your review has been deleted.');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Could not delete the review.');
+    }
+  };
+
   const submit = async (values) => {
     const created = await postReview({ ...SITE_REVIEW_TARGET, ...values });
     setReviews((prev) => [{ ...created, userId: { _id: myId, name: user?.name } }, ...prev]);
@@ -54,7 +71,7 @@ export default function Reviews() {
   } else if (userRole !== 'patient') {
     form = <Alert tone="info">Reviews are written by patients.</Alert>;
   } else if (alreadyReviewed) {
-    form = <Alert tone="success">You’ve already reviewed MedEasy — thank you!</Alert>;
+    form = <Alert tone="success">Thanks for your review! You can edit or delete it from the list.</Alert>;
   } else {
     form = <ReviewForm onSubmit={submit} placeholder="Delivery speed, ordering, the doctors…" />;
   }
@@ -72,7 +89,7 @@ export default function Reviews() {
     list = (
       <ul className="rv-page__grid">
         {reviews.map((r) => (
-          <li key={r._id}><ReviewCard review={r} /></li>
+          <li key={r._id}><ReviewCard review={r} onSave={isMine(r) ? saveEdit(r) : undefined} onDelete={isMine(r) ? remove(r) : undefined} /></li>
         ))}
       </ul>
     );

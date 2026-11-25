@@ -34,9 +34,9 @@ export function RatingInput({ value, onChange, label = 'Your rating' }) {
 }
 
 /** Rating + comment form. onSubmit({ rating, comment }) may throw to show an error. */
-export function ReviewForm({ onSubmit, placeholder = 'Share your experience…' }) {
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
+export function ReviewForm({ onSubmit, onCancel, initial, submitLabel = 'Submit review', placeholder = 'Share your experience…' }) {
+  const [rating, setRating] = useState(initial?.rating || 0);
+  const [comment, setComment] = useState(initial?.comment || '');
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -48,8 +48,10 @@ export function ReviewForm({ onSubmit, placeholder = 'Share your experience…' 
     setError(null);
     try {
       await onSubmit({ rating, comment: comment.trim() });
-      setRating(0);
-      setComment('');
+      if (!initial) {
+        setRating(0);
+        setComment('');
+      }
     } catch (err) {
       setError(err?.response?.data?.message || err.message || 'Could not submit your review.');
     } finally {
@@ -61,24 +63,69 @@ export function ReviewForm({ onSubmit, placeholder = 'Share your experience…' 
     <form className="rv-form" onSubmit={submit} noValidate>
       <RatingInput value={rating} onChange={setRating} />
       <Textarea label="Your review" rows={4} maxLength={2000} placeholder={placeholder} value={comment} onChange={(e) => setComment(e.target.value)} error={error || undefined} />
-      <Button type="submit" loading={saving}>Submit review</Button>
+      <div className="rv-form__actions">
+        <Button type="submit" loading={saving}>{submitLabel}</Button>
+        {onCancel && <Button variant="ghost" onClick={onCancel}>Cancel</Button>}
+      </div>
     </form>
   );
 }
 
-export function ReviewCard({ review }) {
+const wasEdited = (r) => r.updatedAt && r.createdAt && new Date(r.updatedAt) - new Date(r.createdAt) > 60_000;
+
+/** One review. Pass onSave/onDelete for the signed-in author to edit or remove it. */
+export function ReviewCard({ review, onSave, onDelete }) {
   const name = reviewerName(review);
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const mine = Boolean(onSave);
+
+  if (editing) {
+    return (
+      <article className="rv-card rv-card--editing">
+        <ReviewForm
+          initial={review}
+          submitLabel="Save changes"
+          onCancel={() => setEditing(false)}
+          onSubmit={async (values) => {
+            await onSave(values);
+            setEditing(false);
+          }}
+        />
+      </article>
+    );
+  }
+
   return (
-    <article className="rv-card">
+    <article className={`rv-card${mine ? ' rv-card--mine' : ''}`}>
       <header>
         <Avatar name={name} size={36} />
         <div className="rv-card__who">
-          <strong>{name}</strong>
-          <time dateTime={review.createdAt}>{formatDate(review.createdAt)}</time>
+          <strong>{name}{mine && <span className="rv-card__you"> (you)</span>}</strong>
+          <time dateTime={review.createdAt}>
+            {formatDate(review.createdAt)}
+            {wasEdited(review) && ' · edited'}
+          </time>
         </div>
         <StarRating value={review.rating} />
       </header>
       {review.comment && <p>{review.comment}</p>}
+      {mine && (
+        <div className="rv-card__actions">
+          {confirming ? (
+            <>
+              <span>Delete your review?</span>
+              <Button size="sm" variant="danger" onClick={onDelete}>Delete</Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>Keep</Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>Edit</Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>Delete</Button>
+            </>
+          )}
+        </div>
+      )}
     </article>
   );
 }

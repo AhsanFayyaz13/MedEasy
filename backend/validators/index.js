@@ -196,6 +196,10 @@ const reviews = {
     targetId: objectId.optional(),
     limit: z.coerce.number().int().min(1).transform((n) => Math.min(n, 100)).optional(),
   }),
+  edit: z.object({
+    rating: z.coerce.number().int().min(1, 'Rating must be 1–5').max(5, 'Rating must be 1–5'),
+    comment: optionalText(2000),
+  }),
 };
 
 // ── Contact ────────────────────────────────────────────────────────

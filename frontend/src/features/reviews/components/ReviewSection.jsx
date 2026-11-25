@@ -3,7 +3,7 @@ import { FiLock } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import { useAuthModal } from '../../../context/AuthModalContext';
 import { useToast } from '../../../context/ToastContext';
-import { fetchReviews, postReview } from '../../../services/api/reviewService';
+import { deleteReview, fetchReviews, postReview, updateReview } from '../../../services/api/reviewService';
 import { fetchMyAppointments } from '../../../services/api/appointmentService';
 import { Alert, Button, Card, ErrorState, Skeleton } from '../../../components/ui';
 import { RatingSummary, ReviewCard, ReviewForm } from './ReviewParts';
@@ -49,7 +49,24 @@ export default function ReviewSection({ targetType, targetId }) {
     };
   }, [isAuthenticated, userRole, targetType, targetId]);
 
-  const alreadyReviewed = reviews.some((r) => String(r.userId?._id || r.userId) === String(user?._id || user?.id));
+  const myId = String(user?._id || user?.id || '');
+  const alreadyReviewed = reviews.some((r) => String(r.userId?._id || r.userId) === myId);
+  const isMine = (r) => String(r.userId?._id || r.userId) === myId;
+  const saveEdit = (r) => async (values) => {
+    const updated = await updateReview(r._id, values);
+    setReviews((prev) => prev.map((x) => (x._id === r._id ? updated : x)));
+    toast.success('Your review has been updated.');
+  };
+  const remove = (r) => async () => {
+    try {
+      await deleteReview(r._id);
+      setReviews((prev) => prev.filter((x) => x._id !== r._id));
+      toast.success('Your review has been deleted.');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Could not delete the review.');
+    }
+  };
+
 
   const submit = async (values) => {
     const created = await postReview({ targetType, targetId, ...values });
@@ -67,7 +84,7 @@ export default function ReviewSection({ targetType, targetId }) {
   } else if (userRole !== 'patient') {
     formArea = null;
   } else if (alreadyReviewed) {
-    formArea = <Alert tone="success">You’ve already reviewed this doctor — thank you.</Alert>;
+    formArea = <Alert tone="success">Thanks for your review! You can edit or delete it below.</Alert>;
   } else if (eligible === null) {
     formArea = <Skeleton lines={2} />;
   } else if (!eligible) {
@@ -93,7 +110,7 @@ export default function ReviewSection({ targetType, targetId }) {
       {!loading && !error && reviews.length > 0 && (
         <ul className="rv-list">
           {reviews.map((r) => (
-            <li key={r._id || r.id}><ReviewCard review={r} /></li>
+            <li key={r._id || r.id}><ReviewCard review={r} onSave={isMine(r) ? saveEdit(r) : undefined} onDelete={isMine(r) ? remove(r) : undefined} /></li>
           ))}
         </ul>
       )}

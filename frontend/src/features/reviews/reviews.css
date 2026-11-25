@@ -109,6 +109,30 @@
   overflow-wrap: anywhere;
 }
 
+.rv-form__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.rv-card--mine {
+  border-color: var(--tint-primary-200, var(--border-strong));
+  box-shadow: inset 3px 0 0 var(--action);
+}
+
+.rv-card__you {
+  color: var(--text-muted);
+  font-weight: var(--weight-normal);
+}
+
+.rv-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
 /* Summary */
 .rv-summary {
   display: flex;

@@ -343,6 +343,22 @@ describe('reviews', () => {
     assert.equal((await request(app).post('/api/reviews').set(auth).send(body)).status, 201);
   });
 
+  it('lets authors edit and delete only their own review', async () => {
+    const author = await createUser();
+    const other = await createUser();
+    const med = await createMedicine();
+    const as = (u) => ({ Authorization: `Bearer ${tokenFor(u)}` });
+    const created = await request(app).post('/api/reviews').set(as(author)).send({ targetType: 'medicine', targetId: med._id.toString(), rating: 3, comment: 'OK' });
+    const id = created.body._id;
+    assert.equal((await request(app).put(`/api/reviews/${id}`).set(as(other)).send({ rating: 1 })).status, 403);
+    const edited = await request(app).put(`/api/reviews/${id}`).set(as(author)).send({ rating: 5, comment: 'Better than I thought' });
+    assert.equal(edited.status, 200);
+    assert.equal(edited.body.rating, 5);
+    assert.equal(edited.body.userId.name, 'Test User');
+    assert.equal((await request(app).delete(`/api/reviews/${id}`).set(as(other))).status, 403);
+    assert.equal((await request(app).delete(`/api/reviews/${id}`).set(as(author))).status, 200);
+  });
+
   it('allows one review per user per target and computes the average', async () => {
     const user = await createUser();
     const med = await createMedicine();
@@ -366,6 +382,18 @@ describe('admin verifications', () => {
     const approved = await request(app).put(`/api/admin/users/${doctor._id}/approve`).set(auth);
     assert.equal(approved.body.user.isVerifiedProfile, true);
     assert.equal(approved.body.user.verificationDeclineReason, undefined);
+  });
+});
+
+describe('contact form', () => {
+  const msg = { name: 'Visitor', email: 'visitor@example.com', subject: 'Delivery', message: 'Do you deliver to Murree?' };
+  it('accepts messages from visitors without an account', async () => {
+    const res = await request(app).post('/api/contacts').send(msg);
+    assert.equal(res.status, 201);
+  });
+  it('still rejects an invalid token instead of treating it as a guest', async () => {
+    const res = await request(app).post('/api/contacts').set('Authorization', 'Bearer nonsense').send(msg);
+    assert.equal(res.status, 401);
   });
 });
 

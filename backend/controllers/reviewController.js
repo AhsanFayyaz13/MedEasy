@@ -41,6 +41,34 @@ exports.addReview = async (req, res) => {
   res.status(201).json(createdReview);
 };
 
+// @desc    Edit your own review
+// @route   PUT /api/reviews/:id
+// @access  Private (author)
+exports.updateReview = async (req, res) => {
+  const review = await Review.findById(req.params.id);
+  if (!review) return res.status(404).json({ message: 'Review not found' });
+  if (review.userId.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ message: 'You can only edit your own review' });
+  }
+  review.rating = req.body.rating;
+  review.comment = req.body.comment;
+  await review.save();
+  res.json(await review.populate('userId', 'name'));
+};
+
+// @desc    Delete a review
+// @route   DELETE /api/reviews/:id
+// @access  Private (author or admin)
+exports.deleteReview = async (req, res) => {
+  const review = await Review.findById(req.params.id);
+  if (!review) return res.status(404).json({ message: 'Review not found' });
+  if (review.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'You can only delete your own review' });
+  }
+  await review.deleteOne();
+  res.json({ message: 'Review deleted' });
+};
+
 // @desc    Get reviews for a specific target or recent reviews
 // @route   GET /api/reviews
 // @route   GET /api/reviews/:targetType/:targetId
