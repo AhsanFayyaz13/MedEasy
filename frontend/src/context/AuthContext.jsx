@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
+import api from '../services/api/client';
 
 /**
  * AuthContext
@@ -20,7 +20,6 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
-const USE_MOCK = false;
 
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
@@ -107,7 +106,7 @@ export function AuthProvider({ children }) {
       if (err.message && !err.response) throw err; // re-throw mock errors
       const msg = parseApiError(err, 'Invalid email/phone or password. Please try again.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }
@@ -129,7 +128,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = parseApiError(err, 'Registration failed. Please check your details and try again.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }
@@ -149,7 +148,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = parseApiError(err, 'Verification failed. Please check the code and try again.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }
@@ -165,7 +164,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = parseApiError(err, 'Failed to resend verification code.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }
@@ -191,7 +190,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = parseApiError(err, 'Failed to update profile details.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }
@@ -215,7 +214,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = parseApiError(err, 'Failed to upload profile photo.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }
@@ -233,7 +232,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = parseApiError(err, 'Failed to update pharmacist details.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }
@@ -251,7 +250,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = parseApiError(err, 'Failed to remove pharmacist details.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }
@@ -267,7 +266,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = parseApiError(err, 'Failed to request password reset code.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }
@@ -283,7 +282,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       const msg = parseApiError(err, 'Failed to reset password.');
       setAuthError(msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     } finally {
       setLoading(false);
     }

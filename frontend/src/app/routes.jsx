@@ -1,0 +1,72 @@
+import { lazy } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import ProtectedRoute from '../features/auth/components/ProtectedRoute';
+import Home from '../features/home/pages/Home';
+
+// Home is eager (landing page / LCP); every other page is code-split.
+const Login = lazy(() => import('../features/auth/pages/Login'));
+const Register = lazy(() => import('../features/auth/pages/Register'));
+const MedicineList = lazy(() => import('../features/medicines/pages/MedicineList'));
+const MedicineDetail = lazy(() => import('../features/medicines/pages/MedicineDetail'));
+const Cart = lazy(() => import('../features/cart/pages/Cart'));
+const Checkout = lazy(() => import('../features/cart/pages/Checkout'));
+const OrderTracking = lazy(() => import('../features/orders/pages/OrderTracking'));
+const Profile = lazy(() => import('../features/profile/pages/Profile'));
+const PrescriptionUpload = lazy(() => import('../features/prescriptions/pages/PrescriptionUpload'));
+const AppointmentBooking = lazy(() => import('../features/appointments/pages/AppointmentBooking'));
+const Reviews = lazy(() => import('../features/reviews/pages/Reviews'));
+const PharmacistDashboard = lazy(() => import('../features/pharmacist/pages/PharmacistDashboard'));
+const DoctorDashboard = lazy(() => import('../features/doctor/pages/DoctorDashboard'));
+const AdminDashboard = lazy(() => import('../features/admin/pages/AdminDashboard'));
+const ContactUs = lazy(() => import('../features/contact/pages/ContactUs'));
+const Team = lazy(() => import('../features/team/pages/Team'));
+const NotFound = lazy(() => import('../features/system/pages/NotFound'));
+
+const ROLES = {
+  patient: ['patient'],
+  pharmacy: ['pharmacist', 'pharmacy'],
+  doctor: ['doctor'],
+  admin: ['admin'],
+  nonAdmin: ['patient', 'doctor', 'pharmacist', 'pharmacy'],
+};
+
+const guard = (element, roles) => <ProtectedRoute roles={roles}>{element}</ProtectedRoute>;
+
+export default function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public */}
+      <Route path="/" element={<Home />} />
+      <Route path="/medicines" element={<MedicineList />} />
+      <Route path="/medicines/:id" element={<MedicineDetail />} />
+      <Route path="/reviews" element={<Reviews />} />
+      <Route path="/team" element={<Team />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      {/* Authenticated */}
+      <Route path="/cart" element={guard(<Cart />, ROLES.patient)} />
+      <Route path="/checkout" element={guard(<Checkout />, ROLES.patient)} />
+      <Route path="/orders" element={guard(<OrderTracking />, ROLES.patient)} />
+      <Route path="/orders/:orderId" element={guard(<OrderTracking />, ROLES.patient)} />
+      <Route path="/profile" element={guard(<Profile />)} />
+      <Route path="/contact" element={guard(<ContactUs />, ROLES.nonAdmin)} />
+      <Route path="/prescriptions/upload" element={guard(<PrescriptionUpload />, ROLES.patient)} />
+      <Route path="/appointments/book" element={guard(<AppointmentBooking />, ROLES.patient)} />
+
+      {/* Role dashboards */}
+      <Route path="/pharmacist" element={guard(<PharmacistDashboard />, ROLES.pharmacy)} />
+      <Route path="/doctor" element={guard(<DoctorDashboard />, ROLES.doctor)} />
+      <Route path="/admin" element={guard(<AdminDashboard />, ROLES.admin)} />
+
+      {/* Legacy aliases kept for existing links/bookmarks */}
+      <Route path="/prescription-upload" element={<Navigate to="/prescriptions/upload" replace />} />
+      <Route path="/appointments" element={<Navigate to="/appointments/book" replace />} />
+      <Route path="/dashboard/pharmacist" element={<Navigate to="/pharmacist" replace />} />
+      <Route path="/dashboard/doctor" element={<Navigate to="/doctor" replace />} />
+      <Route path="/dashboard/admin" element={<Navigate to="/admin" replace />} />
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
