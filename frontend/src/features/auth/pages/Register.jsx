@@ -1,961 +1,203 @@
-import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert, Spinner, ProgressBar } from 'react-bootstrap';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash, FaUserPlus, FaHospital, FaStethoscope, FaPills, FaEnvelopeOpenText, FaMobileAlt } from 'react-icons/fa';
-import { useAuth } from '../../../context/AuthContext';
-import { ROLE_DASHBOARD } from '../../../context/AuthContext';
-import './Auth.css';
-import { API_ORIGIN } from '../../../lib/env';
+import { FiArrowLeft, FiMail, FiPhone, FiUser, FiUserPlus } from 'react-icons/fi';
+import { useAuth, ROLE_DASHBOARD } from '../../../context/AuthContext';
+import { Alert, Button, Input } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
+import AuthShell from '../components/AuthShell';
+import RoleSelect from '../components/RoleSelect';
+import { ROLES } from '../lib/roles';
+import PasswordField from '../components/PasswordField';
+import { DoctorFields, PharmacyFields } from '../components/ProfessionalFields';
+import OtpVerification from '../components/OtpVerification';
+import { MIN_PASSWORD, REGISTER_INITIAL, toRegisterPayload, validateRegister } from '../lib/validation';
 
-
-// Specialty choices for Doctors
-const SPECIALTIES = [
-  'General Physician',
-  'Cardiologist',
-  'Dermatologist',
-  'Pediatrician',
-  'Gynecologist',
-  'Psychiatrist',
-  'Orthopedist',
-  'Neurologist',
-  'Ophthalmologist',
-  'ENT Specialist'
-];
-
-// Days of the week
-const DAYS_OF_WEEK = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
-];
-
-// ─── Validation ───────────────────────────────────────────────────────────────
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^[+]?[\d\s\-().]{7,15}$/;
-
-function validate(fields) {
-  const errors = {};
-
-  if (!fields.name.trim()) {
-    errors.name = fields.role === 'pharmacy' ? 'Pharmacy name is required.' : 'Full name is required.';
-  } else if (fields.name.trim().length < 2) {
-    errors.name = fields.role === 'pharmacy' ? 'Pharmacy name must be at least 2 characters.' : 'Name must be at least 2 characters.';
-  }
-
-  // Email is optional unless they select Email verification
-  if (fields.verificationChannel === 'email' && !fields.email.trim()) {
-    errors.email = 'Email address is required to receive verification code via email.';
-  } else if (fields.email.trim() && !EMAIL_RE.test(fields.email)) {
-    errors.email = 'Please enter a valid email address.';
-  }
-
-  // Phone is mandatory
-  if (!fields.phone.trim())
-    errors.phone = 'Phone number is required.';
-  else if (!PHONE_RE.test(fields.phone))
-    errors.phone = 'Please enter a valid phone number.';
-
-  if (!fields.role)
-    errors.role = 'Please select your role.';
-
-  if (fields.role === 'pharmacy') {
-    if (!fields.ownerName || !fields.ownerName.trim())
-      errors.ownerName = 'Owner name is required.';
-    if (!fields.pharmacyLocation || !fields.pharmacyLocation.trim())
-      errors.pharmacyLocation = 'Pharmacy address is required.';
-    if (!fields.pharmacyOutsidePicture)
-      errors.pharmacyOutsidePicture = 'Pharmacy outside picture is required.';
-  }
-
-  if (fields.role === 'doctor') {
-    if (!fields.specialty)
-      errors.specialty = 'Specialty is required.';
-    if (!fields.pmcRegistration || !fields.pmcRegistration.trim())
-      errors.pmcRegistration = 'PMC/PMDC registration number is required.';
-    if (!fields.degree || !fields.degree.trim())
-      errors.degree = 'Medical degree is required.';
-    if (fields.experience === '' || fields.experience === null || fields.experience === undefined)
-      errors.experience = 'Years of experience is required.';
-    else if (Number(fields.experience) < 0)
-      errors.experience = 'Experience cannot be negative.';
-    if (!fields.clinicAddress || !fields.clinicAddress.trim())
-      errors.clinicAddress = 'Clinic physical address is required.';
-    if (fields.consultationFee === '' || fields.consultationFee === null || fields.consultationFee === undefined)
-      errors.consultationFee = 'Consultation fee is required.';
-    else if (Number(fields.consultationFee) < 0)
-      errors.consultationFee = 'Fee cannot be negative.';
-    if (!fields.availableDays || fields.availableDays.length === 0)
-      errors.availableDays = 'Please select at least one available day.';
-  }
-
-  // Simplified password: only require 8 characters minimum
-  if (!fields.password)
-    errors.password = 'Password is required.';
-  else if (fields.password.length < 8)
-    errors.password = 'Password must be at least 8 characters.';
-
-  if (!fields.confirmPassword)
-    errors.confirmPassword = 'Please confirm your password.';
-  else if (fields.password !== fields.confirmPassword)
-    errors.confirmPassword = 'Passwords do not match.';
-
-  return errors;
-}
-
-// ─── Password strength meter ──────────────────────────────────────────────────
-function passwordStrength(pwd) {
-  if (!pwd) return { score: 0, label: '', variant: 'secondary' };
-  let score = 0;
-  if (pwd.length >= 8)          score++;
-  if (pwd.length >= 12)         score++;
-  if (/[A-Z]/.test(pwd))        score++;
-  if (/\d/.test(pwd))           score++;
-  if (/[^A-Za-z0-9]/.test(pwd)) score++;
-
-  const levels = [
-    { label: 'Very Weak', variant: 'danger'  },
-    { label: 'Weak',      variant: 'warning' },
-    { label: 'Fair',      variant: 'info'    },
-    { label: 'Strong',    variant: 'primary' },
-    { label: 'Very Strong', variant: 'success' },
-  ];
-  return { score: (score / 5) * 100, ...levels[score - 1] ?? levels[0] };
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
-const INITIAL = { 
-  name: '', email: '', phone: '', role: '', password: '', confirmPassword: '', 
-  verificationChannel: 'phone', pharmacyName: '', ownerName: '',
-  specialty: '', pmcRegistration: '', degree: '', experience: '', clinicAddress: '',
-  availableDays: [], consultationFee: ''
-};
-
-const serverUrl = API_ORIGIN;
-
+/**
+ * Registration wizard: 1) choose role → 2) details → 3) verify OTP.
+ */
 export default function Register() {
   const navigate = useNavigate();
-  const { 
-    register, 
-    verifyRegistration, 
-    resendVerification, 
-    isAuthenticated, 
-    userRole, 
-    loading, 
-    authError, 
-    clearAuthError 
-  } = useAuth();
+  const { register, verifyRegistration, resendVerification, isAuthenticated, userRole, loading, authError, clearAuthError } = useAuth();
 
-  // If already logged in, redirect
+  const [step, setStep] = useState('role'); // 'role' | 'details' | 'verify'
+  const [fields, setFields] = useState(REGISTER_INITIAL);
+  const [touched, setTouched] = useState({});
+  const [pendingPhone, setPendingPhone] = useState('');
+
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(ROLE_DASHBOARD[userRole] || '/', { replace: true });
-    }
-  }, [isAuthenticated, userRole, navigate]);
+    if (isAuthenticated && step !== 'verify') navigate(ROLE_DASHBOARD[userRole] || '/', { replace: true });
+  }, [isAuthenticated, userRole, navigate, step]);
 
-  const [fields,   setFields]   = useState(INITIAL);
-  const [errors,   setErrors]   = useState({});
-  const [touched,  setTouched]  = useState({});
-  const [showPass, setShowPass] = useState(false);
-  const [showConf, setShowConf] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const errors = validateRegister(fields);
+  const shown = (name) => (touched[name] ? errors[name] : undefined);
+  const touchedErrors = Object.fromEntries(Object.entries(errors).filter(([k]) => touched[k]));
+  const isPharmacy = fields.role === 'pharmacy';
+  const roleMeta = ROLES.find((r) => r.value === fields.role);
 
-  const handlePharmacyImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('pharmacyImage', file);
-
-    setUploadingImage(true);
-    try {
-      const response = await fetch(`${serverUrl}/api/auth/upload-pharmacy-image`, {
-        method: 'POST',
-        body: formData
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setFields(prev => ({ ...prev, pharmacyOutsidePicture: data.filePath }));
-        setErrors(prev => ({ ...prev, pharmacyOutsidePicture: null }));
-      } else {
-        alert(data.message || 'Image upload failed.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Network error uploading image.');
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  // Flow control states
-  const [roleStep,         setRoleStep]         = useState(true); // first ask "what you are?"
-  const [verificationStep, setVerificationStep] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
-  const [pendingPhone,     setPendingPhone]     = useState('');
-  const [resendTimer,      setResendTimer]      = useState(0);
-  const [success,          setSuccess]          = useState(false);
-
-  const strength = passwordStrength(fields.password);
-
-  // Clear API error on typing
-  useEffect(() => {
-    if (authError) clearAuthError();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields, verificationCode]);
-
-  // Live validate after touch
-  useEffect(() => {
-    if (Object.keys(touched).length > 0) {
-      setErrors(validate(fields));
-    }
-  }, [fields, touched]);
-
-  // Countdown timer for OTP resend
-  useEffect(() => {
-    let interval = null;
-    if (verificationStep && resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer((t) => t - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [verificationStep, resendTimer]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const setField = (name, value) => {
     setFields((prev) => {
-      const nextFields = { ...prev, [name]: value };
-      // If email is cleared, force channel back to phone
-      if (name === 'email' && !value.trim() && prev.verificationChannel === 'email') {
-        nextFields.verificationChannel = 'phone';
-      }
-      return nextFields;
+      const next = { ...prev, [name]: value };
+      if (name === 'email' && !String(value).trim() && prev.verificationChannel === 'email') next.verificationChannel = 'phone';
+      return next;
     });
+    if (authError) clearAuthError();
+  };
+  const onChange = (e) => setField(e.target.name, e.target.value);
+  const onBlur = (e) => setTouched((t) => ({ ...t, [e.target.name]: true }));
+
+  const goTo = (next) => {
+    clearAuthError();
+    setStep(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleBlur = (e) => {
-    setTouched((prev) => ({ ...prev, [e.target.name]: true }));
-  };
-
-  const selectRole = (role) => {
-    setFields((prev) => ({ ...prev, role }));
-    setRoleStep(false);
-  };
-
-  const handleSubmit = async (e) => {
+  const submitDetails = async (e) => {
     e.preventDefault();
-    const allTouched = Object.fromEntries(Object.keys(INITIAL).map((k) => [k, true]));
-    setTouched(allTouched);
-    const validationErrors = validate(fields);
-    setErrors(validationErrors);
-    if (Object.keys(validationErrors).length > 0) return;
-
-    try {
-      const payload = {
-        name:     fields.name,
-        email:    fields.email.trim() || undefined,
-        phone:    fields.phone,
-        role:     fields.role,
-        password: fields.password,
-        verificationChannel: fields.verificationChannel,
-      };
-
-      if (fields.role === 'pharmacy') {
-        payload.pharmacyName = fields.name; // name field stores pharmacy name
-        payload.ownerName = fields.ownerName;
-        payload.pharmacyLocation = fields.pharmacyLocation;
-        payload.pharmacyOutsidePicture = fields.pharmacyOutsidePicture;
-      }
-
-      if (fields.role === 'doctor') {
-        payload.specialty = fields.specialty;
-        payload.pmcRegistration = fields.pmcRegistration;
-        payload.degree = fields.degree;
-        payload.experience = Number(fields.experience);
-        payload.clinicAddress = fields.clinicAddress;
-        payload.availableDays = fields.availableDays;
-        payload.consultationFee = Number(fields.consultationFee);
-      }
-
-      // 1. Submit basic details to create PendingUser record
-      const data = await register(payload);
-      
-      setPendingPhone(data.phone);
-      setVerificationStep(true);
-      setResendTimer(60);
-      setErrors({});
-    } catch {
-      // Handled by authError in useAuth
-    }
-  };
-
-  const handleVerifySubmit = async (e) => {
-    e.preventDefault();
-
-    if (!verificationCode || verificationCode.length !== 6) {
-      setErrors({ code: 'Please enter a valid 6-digit verification code.' });
+    setTouched(Object.fromEntries(Object.keys(REGISTER_INITIAL).map((k) => [k, true])));
+    if (Object.keys(errors).length) {
+      document.querySelector('[aria-invalid="true"]')?.focus();
       return;
     }
-
     try {
-      setSuccess(false);
-      const { role } = await verifyRegistration(pendingPhone, verificationCode);
-      setSuccess(true);
-      setTimeout(() => {
-        navigate(ROLE_DASHBOARD[role] || '/', { replace: true });
-      }, 1500);
-    } catch (err) {
-      console.error(err);
-      setErrors({ code: err.message || 'Verification failed. Please check the code and try again.' });
-    }
-  };
-
-  const handleResend = async () => {
-    if (resendTimer > 0) return;
-    try {
-      await resendVerification(pendingPhone);
-      setResendTimer(60);
-      setErrors({});
-      alert('A new verification code has been dispatched successfully!');
+      const data = await register(toRegisterPayload(fields));
+      setPendingPhone(data.phone);
+      goTo('verify');
     } catch {
-      // Handled by authError in useAuth
+      /* shown via authError */
     }
   };
 
-  const isValid   = (name) => touched[name] && !errors[name];
-  const isInvalid = (name) => touched[name] && !!errors[name];
+  const verify = async (code) => {
+    const { role } = await verifyRegistration(pendingPhone, code);
+    setTimeout(() => navigate(ROLE_DASHBOARD[role] || '/', { replace: true }), 1200);
+  };
 
-  // ─── Step 1: Render Role Selection ("what you are?") ───────────────────────
-  if (roleStep) {
+  if (step === 'role') {
     return (
-      <div className="auth-page">
+      <>
         <PageMeta title="Create your account" />
-        <Container>
-          <Row className="justify-content-center align-items-center min-vh-auth">
-            <Col xs={12} sm={10} md={8} lg={6}>
-              <Card className="auth-card">
-                <Card.Body className="p-4 p-md-5">
-                  <div className="auth-header">
-                    <div className="auth-icon-badge-wrap mb-3 mx-auto">
-                      <FaUserPlus size={30} />
-                    </div>
-                    <h1 className="auth-title">Welcome to MedEasy</h1>
-                    <p className="auth-subtitle">Let&apos;s get started. Please choose your role:</p>
-                  </div>
-
-                  <div className="role-select-container">
-                    {[
-                      {
-                        value: 'patient',
-                        icon: <FaPills size={24} />,
-                        badgeClass: 'pat-badge',
-                        title: 'Register as Patient',
-                        desc: 'Search and order medicines, upload prescriptions, book doctor consultations, and track health schedules.',
-                      },
-                      {
-                        value: 'doctor',
-                        icon: <FaStethoscope size={24} />,
-                        badgeClass: 'doc-badge',
-                        title: 'Register as Doctor',
-                        desc: 'Provide online consultations, manage patient appointments, view prescriptions, and guide medical plans.',
-                      },
-                      {
-                        value: 'pharmacy',
-                        icon: <FaHospital size={24} />,
-                        badgeClass: 'pharm-badge',
-                        title: 'Register as Pharmacy',
-                        desc: 'Register your pharmacy store, list licensed pharmacist credentials, upload outside shop photos, and fulfill patient orders.',
-                      },
-                    ].map((role) => (
-                      <div
-                        key={role.value}
-                        className="role-select-card"
-                        onClick={() => selectRole(role.value)}
-                      >
-                        <div className={`role-select-badge-wrap ${role.badgeClass}`}>{role.icon}</div>
-                        <div className="role-select-info">
-                          <div className="role-select-title">{role.title}</div>
-                          <div className="role-select-desc">{role.desc}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className="auth-switch mt-4 text-center">
-                    Already have an account? <Link to="/login">Sign In</Link>
-                  </p>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        </Container>
-      </div>
+        <AuthShell
+          icon={<FiUserPlus />}
+          title="Create your account"
+          subtitle="First, tell us who you are."
+          footer={<>Already have an account? <Link to="/login">Sign in</Link></>}
+        >
+          <RoleSelect
+            onSelect={(role) => {
+              setField('role', role);
+              goTo('details');
+            }}
+          />
+        </AuthShell>
+      </>
     );
   }
 
-  // ─── Step 3: Render Verification Step ──────────────────────────────────────
-  if (verificationStep) {
-    const isEmailChannel = fields.verificationChannel === 'email';
-
+  if (step === 'verify') {
     return (
-      <div className="auth-page" style={{ background: 'linear-gradient(135deg, var(--color-neutral-50) 0%, var(--color-neutral-200) 100%)' }}>
-        <PageMeta title="Create your account" />
-        <Container>
-          <Row className="justify-content-center align-items-center min-vh-auth">
-            <Col xs={12} sm={10} md={8} lg={6}>
-              <Card className="auth-card border-0" style={{ borderRadius: '24px', boxShadow: '0 25px 50px -12px color-mix(in srgb, var(--color-black) 8%, transparent)' }}>
-                <Card.Body className="p-4 p-md-5">
-
-                  {/* Header with floating animated icon */}
-                  <div className="auth-header text-center mb-4">
-                    <div className="auth-icon-badge-wrap verify-envelope-pulse mb-3 mx-auto">
-                      {isEmailChannel ? (
-                        <FaEnvelopeOpenText size={32} />
-                      ) : (
-                        <FaMobileAlt size={32} />
-                      )}
-                    </div>
-                    <h1 className="auth-title font-extrabold fs-2 tracking-tight" style={{ color: 'var(--color-neutral-900)' }}>
-                      {isEmailChannel ? 'Verify Your Email' : 'Verify Your Phone'}
-                    </h1>
-                    
-                    <p className="auth-subtitle px-2 mt-3 text-muted">
-                      {isEmailChannel ? (
-                        <>
-                          We have sent a 6-digit verification code to your email address:
-                          <br />
-                          <span className="email-badge-capsule font-monospace mt-2 mb-1 text-primary">
-                            {fields.email}
-                          </span>
-                          <br />
-                          <span className="text-secondary d-block mt-3 px-3 fs-6" style={{ lineHeight: '1.5' }}>
-                            Please check your inbox, retrieve the 6-digit verification code, and enter it below to activate your account.
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          Enter the 6-digit verification code sent to your phone number:
-                          <br />
-                          <span className="email-badge-capsule font-monospace mt-2 text-primary">
-                            {pendingPhone}
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* API error */}
-                  {authError && (
-                    <Alert variant="danger" className="auth-alert border-0 shadow-sm" dismissible onClose={clearAuthError} style={{ background: 'var(--color-neutral-100)', color: 'var(--fg-error)' }}>
-                      <strong>Verification failed:</strong> {authError}
-                    </Alert>
-                  )}
-
-                  {/* Success */}
-                  {success && (
-                    <Alert variant="success" className="auth-alert border-0 shadow-sm" style={{ background: 'var(--color-neutral-50)', color: 'var(--fg-accent)' }}>
-                      ✨ Verification successful! Opening your dashboard…
-                    </Alert>
-                  )}
-
-                  <Form noValidate onSubmit={handleVerifySubmit}>
-                    <Form.Group className="mb-4" controlId="otpCode">
-                      <Form.Label className="text-center w-100 font-semibold mb-2 text-muted" style={{ fontSize: '0.85rem' }}>
-                        6-Digit Verification Code
-                      </Form.Label>
-                      <Form.Control
-                        type="text"
-                        placeholder="••••••"
-                        maxLength={6}
-                        className="text-center font-monospace fs-3 border-0 py-3 shadow-inner"
-                        style={{ letterSpacing: '0.35em', background: 'var(--color-neutral-50)', borderRadius: '14px', border: '1px solid var(--color-neutral-200)' }}
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                        isInvalid={!!errors.code}
-                      />
-                      <Form.Control.Feedback type="invalid" className="text-center mt-2 font-semibold">
-                        {errors.code}
-                      </Form.Control.Feedback>
-                    </Form.Group>
-
-                    <Button
-                      type="submit"
-                      className="btn-verify-gradient w-100 mb-4 py-3"
-                      disabled={loading || success}
-                    >
-                      {loading ? (
-                        <>
-                          <Spinner animation="border" size="sm" className="me-2" />
-                          Verifying Code…
-                        </>
-                      ) : (
-                        isEmailChannel ? 'Verify Email Code' : 'Verify Phone Code'
-                      )}
-                    </Button>
-                  </Form>
-
-                  <div className="text-center mt-2">
-                    <p className="mb-2 text-muted" style={{ fontSize: '0.85rem' }}>Didn&apos;t receive the email/code?</p>
-                    <Button
-                      variant="link"
-                      className="p-0 text-decoration-none font-bold text-primary hover-lift"
-                      onClick={handleResend}
-                      disabled={resendTimer > 0 || loading}
-                      style={{ fontSize: '0.9rem' }}
-                    >
-                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Verification'}
-                    </Button>
-                  </div>
-
-                  <hr className="my-4" />
-
-                  <div className="text-center">
-                    <Button
-                      variant="link"
-                      className="text-muted p-0 font-sm text-decoration-none"
-                      onClick={() => {
-                        setVerificationStep(false);
-                        setVerificationCode('');
-                        clearAuthError();
-                      }}
-                    >
-                      ← Back to Registration (Edit details)
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        </Container>
-      </div>
+      <>
+        <PageMeta title="Verify your account" />
+        <OtpVerification
+          channel={fields.verificationChannel}
+          destination={fields.verificationChannel === 'email' ? fields.email : pendingPhone}
+          loading={loading}
+          authError={authError}
+          onClearError={clearAuthError}
+          onVerify={verify}
+          onResend={() => resendVerification(pendingPhone)}
+          onBack={() => goTo('details')}
+        />
+      </>
     );
   }
 
-  // ─── Step 2: Render Details Registration Form ──────────────────────────────
   return (
-    <div className="auth-page">
+    <>
       <PageMeta title="Create your account" />
-      <Container>
-        <Row className="justify-content-center align-items-center min-vh-auth">
-          <Col xs={12} sm={10} md={8} lg={6}>
-            <Card className="auth-card">
-              <Card.Body className="p-4 p-md-5">
+      <AuthShell
+        wide
+        icon={roleMeta?.icon}
+        title="Your details"
+        subtitle={`Registering as ${roleMeta?.title.replace(/^I(’m| run) an? /, '') || fields.role}.`}
+        back={
+          <button type="button" className="auth-back" onClick={() => goTo('role')}>
+            <FiArrowLeft aria-hidden="true" /> Change account type
+          </button>
+        }
+        footer={<>Already have an account? <Link to="/login">Sign in</Link></>}
+      >
+        {authError && <Alert tone="error" title="Registration failed" onClose={clearAuthError}>{authError}</Alert>}
 
-                {/* Role Switcher Back Link */}
-                <button
-                  type="button"
-                  className="change-role-btn"
-                  onClick={() => {
-                    setRoleStep(true);
-                    clearAuthError();
-                  }}
-                >
-                  ← Registering as <span className="text-capitalize font-bold">{fields.role}</span> (Change)
-                </button>
+        <form noValidate onSubmit={submitDetails}>
+          <Input
+            name="name"
+            label={isPharmacy ? 'Pharmacy name' : 'Full name'}
+            required
+            placeholder={isPharmacy ? 'e.g. Nishtar Pharmacy' : 'Your full name'}
+            leftIcon={<FiUser />}
+            value={fields.name}
+            onChange={onChange}
+            onBlur={onBlur}
+            error={shown('name')}
+            autoComplete={isPharmacy ? 'organization' : 'name'}
+          />
+          <div className="row g-3">
+            <div className="col-sm-6">
+              <Input name="phone" type="tel" label="Phone number" required placeholder="03001234567" leftIcon={<FiPhone />} value={fields.phone} onChange={onChange} onBlur={onBlur} error={shown('phone')} autoComplete="tel" />
+            </div>
+            <div className="col-sm-6">
+              <Input name="email" type="email" label="Email" hint="Optional" placeholder="you@example.com" leftIcon={<FiMail />} value={fields.email} onChange={onChange} onBlur={onBlur} error={shown('email')} autoComplete="email" />
+            </div>
+          </div>
 
-                {/* Header */}
-                <div className="auth-header">
-                  <div className="auth-icon-badge-wrap mb-3 mx-auto">
-                    {fields.role === 'patient' && <FaPills size={28} />}
-                    {fields.role === 'doctor' && <FaStethoscope size={28} />}
-                    {fields.role === 'pharmacy' && <FaHospital size={28} />}
-                  </div>
-                  <h1 className="auth-title">Complete Registration</h1>
-                  <p className="auth-subtitle">Create your new account details</p>
-                </div>
+          {isPharmacy && <PharmacyFields fields={fields} errors={touchedErrors} onChange={onChange} onBlur={onBlur} onPicture={(url) => setField('pharmacyOutsidePicture', url)} />}
+          {fields.role === 'doctor' && (
+            <DoctorFields
+              fields={fields}
+              errors={touchedErrors}
+              onChange={onChange}
+              onBlur={onBlur}
+              onDays={(days) => {
+                setField('availableDays', days);
+                setTouched((t) => ({ ...t, availableDays: true }));
+              }}
+            />
+          )}
 
-                {/* API error */}
-                {authError && (
-                  <Alert variant="danger" className="auth-alert" dismissible onClose={clearAuthError}>
-                    <strong>Registration failed:</strong> {authError}
-                  </Alert>
-                )}
+          <fieldset className="auth-channel">
+            <legend className="ui-field__label">Send my verification code by</legend>
+            <div className="auth-channel__options">
+              {[
+                { value: 'phone', label: 'SMS', icon: <FiPhone /> },
+                { value: 'email', label: 'Email', icon: <FiMail />, disabled: !fields.email.trim() },
+              ].map((opt) => (
+                <label key={opt.value} className={`auth-channel__option${fields.verificationChannel === opt.value ? ' is-selected' : ''}${opt.disabled ? ' is-disabled' : ''}`}>
+                  <input type="radio" name="verificationChannel" value={opt.value} checked={fields.verificationChannel === opt.value} disabled={opt.disabled} onChange={onChange} />
+                  <span aria-hidden="true">{opt.icon}</span> {opt.label}
+                </label>
+              ))}
+            </div>
+            {!fields.email.trim() && <p className="ui-field__hint">Add an email above to receive the code by email.</p>}
+          </fieldset>
 
-                <Form noValidate onSubmit={handleSubmit}>
-                  {/* Full Name / Pharmacy Name */}
-                  <Form.Group className="mb-3" controlId="regName">
-                    <Form.Label>
-                      {fields.role === 'pharmacy' ? 'Pharmacy Name' : 'Full Name'} <span className="required-star">*</span>
-                    </Form.Label>
-                    <div className="input-icon-wrap">
-                      <FaUser className="input-icon" />
-                      <Form.Control
-                        type="text"
-                        name="name"
-                        placeholder={fields.role === 'pharmacy' ? 'e.g. Nishtar Pharmacy' : 'Enter your name'}
-                        className="ps-icon"
-                        value={fields.name}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isValid={isValid('name')}
-                        isInvalid={isInvalid('name')}
-                        autoComplete="name"
-                      />
-                      <Form.Control.Feedback type="invalid">{errors.name}</Form.Control.Feedback>
-                    </div>
-                  </Form.Group>
+          <div className="row g-3">
+            <div className="col-sm-6">
+              <PasswordField name="password" label="Password" required showStrength value={fields.password} onChange={onChange} onBlur={onBlur} error={shown('password')} hint={`At least ${MIN_PASSWORD} characters.`} autoComplete="new-password" />
+            </div>
+            <div className="col-sm-6">
+              <PasswordField name="confirmPassword" label="Confirm password" required value={fields.confirmPassword} onChange={onChange} onBlur={onBlur} error={shown('confirmPassword')} autoComplete="new-password" />
+            </div>
+          </div>
 
-                  {/* Phone (mandatory) */}
-                  <Form.Group className="mb-3" controlId="regPhone">
-                    <Form.Label>Phone Number <span className="required-star">*</span></Form.Label>
-                    <div className="input-icon-wrap">
-                      <FaPhone className="input-icon" />
-                      <Form.Control
-                        type="tel"
-                        name="phone"
-                        placeholder="03000000000"
-                        className="ps-icon"
-                        value={fields.phone}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isValid={isValid('phone')}
-                        isInvalid={isInvalid('phone')}
-                        autoComplete="tel"
-                      />
-                      <Form.Control.Feedback type="invalid">{errors.phone}</Form.Control.Feedback>
-                    </div>
-                  </Form.Group>
+          {fields.role === 'doctor' && (
+            <Alert tone="info">Doctor accounts are reviewed by our team before you can sign in. We’ll verify your PMC registration.</Alert>
+          )}
 
-                  {/* Email (optional) */}
-                  <Form.Group className="mb-3" controlId="regEmail">
-                    <Form.Label>Email Address <span className="optional-label">(optional)</span></Form.Label>
-                    <div className="input-icon-wrap">
-                      <FaEnvelope className="input-icon" />
-                      <Form.Control
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        className="ps-icon"
-                        value={fields.email}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isValid={isValid('email')}
-                        isInvalid={isInvalid('email')}
-                        autoComplete="email"
-                      />
-                      <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>
-                    </div>
-                  </Form.Group>
-
-                  {/* Pharmacy Details */}
-                  {fields.role === 'pharmacy' && (
-                    <Card className="border-0 shadow-sm bg-light p-3 mb-4 rounded-3">
-                      <h6 className="fw-bold text-primary mb-3"><FaHospital className="me-2 text-primary" />Pharmacy Details</h6>
-                      
-                      {/* Owner Full Name */}
-                      <Form.Group className="mb-3" controlId="regOwnerName">
-                        <Form.Label className="small fw-semibold">Owner Full Name <span className="required-star">*</span></Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="ownerName"
-                          placeholder="e.g. Fayyaz Ahmad"
-                          value={fields.ownerName || ''}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          isValid={isValid('ownerName')}
-                          isInvalid={isInvalid('ownerName')}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.ownerName}</Form.Control.Feedback>
-                      </Form.Group>
-
-                      {/* Pharmacy Location */}
-                      <Form.Group className="mb-3" controlId="regPharmacyLocation">
-                        <Form.Label className="small fw-semibold">Pharmacy Location (Address) <span className="required-star">*</span></Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="pharmacyLocation"
-                          placeholder="e.g. Shop 12, DHA Phase 5, Lahore"
-                          value={fields.pharmacyLocation || ''}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          isValid={isValid('pharmacyLocation')}
-                          isInvalid={isInvalid('pharmacyLocation')}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.pharmacyLocation}</Form.Control.Feedback>
-                      </Form.Group>
-
-                      {/* Pharmacy Outside Picture Upload */}
-                      <Form.Group className="mb-2" controlId="regPharmacyOutsidePicture">
-                        <Form.Label className="small fw-semibold">Pharmacy Outside Picture <span className="required-star">*</span></Form.Label>
-                        <div className="d-flex align-items-center gap-3">
-                          <Form.Control
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePharmacyImageUpload}
-                            isInvalid={isInvalid('pharmacyOutsidePicture')}
-                          />
-                          {uploadingImage && <Spinner animation="border" size="sm" className="text-primary" />}
-                        </div>
-                        {fields.pharmacyOutsidePicture && (
-                          <div className="mt-2 text-success small d-flex align-items-center gap-1">
-                            <span>✓ Image uploaded successfully!</span>
-                            <a href={fields.pharmacyOutsidePicture.startsWith('data:') || fields.pharmacyOutsidePicture.startsWith('http') ? fields.pharmacyOutsidePicture : `${serverUrl}${fields.pharmacyOutsidePicture}`} target="_blank" rel="noreferrer" className="text-decoration-underline text-primary">View Photo</a>
-                          </div>
-                        )}
-                        <Form.Control.Feedback type="invalid">{errors.pharmacyOutsidePicture}</Form.Control.Feedback>
-                      </Form.Group>
-                    </Card>
-                  )}
-
-                  {/* Doctor Details */}
-                  {fields.role === 'doctor' && (
-                    <Card className="border-0 shadow-sm bg-light p-3 mb-4 rounded-3">
-                      <h6 className="fw-bold text-primary mb-3"><FaStethoscope className="me-2 text-primary" />Doctor Professional Details</h6>
-                      
-                      {/* Medical Specialty */}
-                      <Form.Group className="mb-3" controlId="regSpecialty">
-                        <Form.Label className="small fw-semibold">Medical Specialty <span className="required-star">*</span></Form.Label>
-                        <Form.Select
-                          name="specialty"
-                          value={fields.specialty || ''}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          isValid={isValid('specialty')}
-                          isInvalid={isInvalid('specialty')}
-                        >
-                          <option value="">-- Select Specialty --</option>
-                          {SPECIALTIES.map(s => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </Form.Select>
-                        <Form.Control.Feedback type="invalid">{errors.specialty}</Form.Control.Feedback>
-                      </Form.Group>
-
-                      {/* PMC Registration Number */}
-                      <Form.Group className="mb-3" controlId="regPmc">
-                        <Form.Label className="small fw-semibold">PMC/PMDC Registration Number <span className="required-star">*</span></Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="pmcRegistration"
-                          placeholder="e.g. 12345-P"
-                          value={fields.pmcRegistration || ''}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          isValid={isValid('pmcRegistration')}
-                          isInvalid={isInvalid('pmcRegistration')}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.pmcRegistration}</Form.Control.Feedback>
-                      </Form.Group>
-
-                      {/* Medical Degree */}
-                      <Form.Group className="mb-3" controlId="regDegree">
-                        <Form.Label className="small fw-semibold">Medical Degree(s) <span className="required-star">*</span></Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="degree"
-                          placeholder="e.g. MBBS, FCPS (Cardiology)"
-                          value={fields.degree || ''}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          isValid={isValid('degree')}
-                          isInvalid={isInvalid('degree')}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.degree}</Form.Control.Feedback>
-                      </Form.Group>
-
-                      {/* Years of Experience */}
-                      <Form.Group className="mb-3" controlId="regExperience">
-                        <Form.Label className="small fw-semibold">Years of Experience <span className="required-star">*</span></Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="experience"
-                          placeholder="e.g. 8"
-                          min="0"
-                          value={fields.experience || ''}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          isValid={isValid('experience')}
-                          isInvalid={isInvalid('experience')}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.experience}</Form.Control.Feedback>
-                      </Form.Group>
-
-                      {/* Physical Clinic Address */}
-                      <Form.Group className="mb-3" controlId="regClinicAddress">
-                        <Form.Label className="small fw-semibold">Clinic Physical Address <span className="required-star">*</span></Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="clinicAddress"
-                          placeholder="e.g. Room 101, Shifa Clinic, Gulberg, Lahore"
-                          value={fields.clinicAddress || ''}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          isValid={isValid('clinicAddress')}
-                          isInvalid={isInvalid('clinicAddress')}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.clinicAddress}</Form.Control.Feedback>
-                      </Form.Group>
-
-                      {/* Consultation Fee */}
-                      <Form.Group className="mb-3" controlId="regFee">
-                        <Form.Label className="small fw-semibold">Consultation Fee (PKR) <span className="required-star">*</span></Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="consultationFee"
-                          placeholder="e.g. 1500"
-                          min="0"
-                          value={fields.consultationFee || ''}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          isValid={isValid('consultationFee')}
-                          isInvalid={isInvalid('consultationFee')}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.consultationFee}</Form.Control.Feedback>
-                      </Form.Group>
-
-                      {/* Available Days */}
-                      <Form.Group className="mb-2">
-                        <Form.Label className="small fw-semibold">Available Consultation Days <span className="required-star">*</span></Form.Label>
-                        <div className="d-flex flex-wrap gap-3 mt-2 px-1 py-1 bg-white rounded border">
-                          {DAYS_OF_WEEK.map(day => {
-                            const isChecked = fields.availableDays?.includes(day);
-                            return (
-                              <Form.Check
-                                key={day}
-                                type="checkbox"
-                                id={`day-${day}`}
-                                label={day}
-                                checked={isChecked}
-                                className="small text-muted"
-                                style={{ minWidth: '110px' }}
-                                onChange={(e) => {
-                                  const updatedDays = e.target.checked
-                                    ? [...(fields.availableDays || []), day]
-                                    : (fields.availableDays || []).filter(d => d !== day);
-                                  setFields(prev => ({ ...prev, availableDays: updatedDays }));
-                                  setTouched(prev => ({ ...prev, availableDays: true }));
-                                }}
-                              />
-                            );
-                          })}
-                        </div>
-                        {errors.availableDays && <div className="text-danger small mt-1 font-semibold">{errors.availableDays}</div>}
-                      </Form.Group>
-                    </Card>
-                  )}
-
-                  {/* Verification Channel selection */}
-                  <Form.Group className="mb-3" controlId="verificationChannel">
-                    <Form.Label>Verify Account Via <span className="required-star">*</span></Form.Label>
-                    <div className="role-grid">
-                      {[
-                        { value: 'phone', label: ' Phone / SMS' },
-                        { value: 'email', label: ' Email Address', disabled: !fields.email.trim() },
-                      ].map(({ value, label, disabled }) => (
-                        <label
-                          key={value}
-                          className={`role-option ${fields.verificationChannel === value ? 'selected' : ''} ${disabled ? 'disabled-label' : ''}`}
-                          htmlFor={`channel-${value}`}
-                          style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                        >
-                          <input
-                            type="radio"
-                            id={`channel-${value}`}
-                            name="verificationChannel"
-                            value={value}
-                            checked={fields.verificationChannel === value}
-                            onChange={(e) => {
-                              if (!disabled) handleChange(e);
-                            }}
-                            className="d-none"
-                            disabled={disabled}
-                          />
-                          {label}
-                        </label>
-                      ))}
-                    </div>
-                    {fields.verificationChannel === 'email' && !fields.email.trim() && (
-                      <div className="invalid-feedback d-block mt-1">
-                        You must enter an email address to verify via email.
-                      </div>
-                    )}
-                  </Form.Group>
-
-                  {/* Password */}
-                  <Form.Group className="mb-2" controlId="regPassword">
-                    <Form.Label>Password <span className="required-star">*</span></Form.Label>
-                    <div className="input-icon-wrap">
-                      <FaLock className="input-icon" />
-                      <Form.Control
-                        type={showPass ? 'text' : 'password'}
-                        name="password"
-                        placeholder="Min. 8 characters"
-                        className="ps-icon pe-eye"
-                        value={fields.password}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isValid={isValid('password')}
-                        isInvalid={isInvalid('password')}
-                        autoComplete="new-password"
-                      />
-                      <button type="button" className="eye-toggle" onClick={() => setShowPass((v) => !v)}>
-                        {showPass ? <FaEyeSlash /> : <FaEye />}
-                      </button>
-                      <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
-                    </div>
-                  </Form.Group>
-
-                  {/* Password strength bar */}
-                  {fields.password && (
-                    <div className="strength-wrap mb-3">
-                      <ProgressBar
-                        now={strength.score}
-                        variant={strength.variant}
-                        className="strength-bar"
-                      />
-                      <span className={`strength-label text-${strength.variant}`}>{strength.label}</span>
-                    </div>
-                  )}
-
-                  {/* Confirm password */}
-                  <Form.Group className="mb-4" controlId="regConfirmPassword">
-                    <Form.Label>Confirm Password <span className="required-star">*</span></Form.Label>
-                    <div className="input-icon-wrap">
-                      <FaLock className="input-icon" />
-                      <Form.Control
-                        type={showConf ? 'text' : 'password'}
-                        name="confirmPassword"
-                        placeholder="Re-enter your password"
-                        className="ps-icon pe-eye"
-                        value={fields.confirmPassword}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isValid={isValid('confirmPassword')}
-                        isInvalid={isInvalid('confirmPassword')}
-                        autoComplete="new-password"
-                      />
-                      <button type="button" className="eye-toggle" onClick={() => setShowConf((v) => !v)}>
-                        {showConf ? <FaEyeSlash /> : <FaEye />}
-                      </button>
-                      <Form.Control.Feedback type="invalid">{errors.confirmPassword}</Form.Control.Feedback>
-                    </div>
-                  </Form.Group>
-
-                  {/* Submit */}
-                  <Button
-                    type="submit"
-                    className="btn-auth w-100"
-                    disabled={loading}
-                    id="register-submit-btn"
-                  >
-                    {loading ? (
-                      <>
-                        <Spinner animation="border" size="sm" className="me-2" />
-                        Creating account…
-                      </>
-                    ) : (
-                      'Create Account'
-                    )}
-                  </Button>
-                </Form>
-
-                <p className="auth-switch mt-3 text-center">
-                  Already have an account? <Link to="/login">Sign In</Link>
-                </p>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </div>
+          <Button type="submit" block size="lg" loading={loading} id="register-submit-btn">
+            Create account
+          </Button>
+        </form>
+      </AuthShell>
+    </>
   );
 }
