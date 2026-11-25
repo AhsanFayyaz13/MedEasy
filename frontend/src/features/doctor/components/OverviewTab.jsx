@@ -1,129 +1,111 @@
-import { Row, Col, Card, Badge, Button, Spinner } from 'react-bootstrap';
-import { FaUserMd, FaCalendarCheck, FaNotesMedical, FaCheckCircle, FaClock, FaHistory, FaChevronRight } from 'react-icons/fa';
+import { FiCalendar, FiCheckCircle, FiChevronRight, FiClock, FiEdit3, FiUser } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
-import { fmtDate, STATUS_CFG } from './doctorShared';
+import { Avatar, Badge, Button, EmptyState, Skeleton } from '../../../components/ui';
+import { Panel, StatGrid, WelcomeBanner } from '../../../components/layout/DashboardLayout/widgets';
+import { APPOINTMENT_TONE } from '../../appointments/lib/appointmentUtils';
+import { fmtDate } from './doctorShared';
 
+const dayOf = (d) => String(d || '').slice(0, 10);
 
-/* ═══════════════════ OVERVIEW TAB ══════════════════════════════ */
+/** Doctor landing tab: today’s numbers, next patient and today’s list. */
 export default function OverviewTab({ apts, loading, setActive, openComplete }) {
   const { user } = useAuth();
   const today = new Date().toISOString().slice(0, 10);
-  const todayAptsList = apts.filter(a => a.date === today);
-  const todayCount = todayAptsList.length;
-  const completedCount = apts.filter(a => a.status === 'completed').length;
-  const pendingCount = apts.filter(a => a.status === 'scheduled').length;
+  const todayList = apts.filter((a) => dayOf(a.date) === today);
+  const pending = apts.filter((a) => a.status === 'scheduled');
+  const completed = apts.filter((a) => a.status === 'completed');
 
-  // Next Patient Alert
-  const nextPatient = apts
-    .filter(a => a.status === 'scheduled' && a.date >= today)
-    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))[0];
+  const next = pending
+    .filter((a) => dayOf(a.date) >= today)
+    .sort((a, b) => dayOf(a.date).localeCompare(dayOf(b.date)) || String(a.time).localeCompare(String(b.time)))[0];
+
+  const firstName = (user?.name || 'Doctor').replace(/^Dr\.?\s*/i, '').split(' ')[0];
 
   return (
-    <div className="doc-overview">
-      {/* Welcome Banner */}
-      <div className="doc-welcome-banner mb-4">
-        <h2>Welcome back, Dr. {user?.name || 'Usama'}!</h2>
-        <p>Managing healthcare operations and patient consultations with absolute precision.</p>
-      </div>
+    <>
+      <WelcomeBanner title={`Good to see you, Dr. ${firstName}`} text="Your consultations, prescriptions and patients in one place.">
+        <Button size="sm" variant="secondary" onClick={() => setActive('schedule')}>
+          Open schedule
+        </Button>
+      </WelcomeBanner>
 
-      {/* Metrics Cards */}
-      <Row className="g-3 mb-4">
-        {[
-          { label: "Today's Appointments", value: todayCount, color: 'var(--fg-primary)', icon: <FaCalendarCheck />, tab: 'schedule' },
-          { label: 'Pending Consultations', value: pendingCount, color: 'var(--color-violet-500)', icon: <FaClock />, tab: 'schedule' },
-          { label: 'Completed Cases', value: completedCount, color: 'var(--color-accent-500)', icon: <FaCheckCircle />, tab: 'schedule' },
-        ].map(s => (
-          <Col md={4} key={s.label}>
-            <Card className="doc-stat-card clickable shadow-sm" onClick={() => setActive(s.tab)} style={{ '--doc-accent': s.color }}>
-              <Card.Body>
-                <div className="doc-stat-icon">{s.icon}</div>
-                <div className="doc-stat-num">{loading ? '...' : s.value}</div>
-                <div className="doc-stat-label">{s.label}</div>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      <StatGrid
+        loading={loading}
+        stats={[
+          { label: 'Today’s appointments', value: todayList.length, icon: <FiCalendar />, tone: 'primary' },
+          { label: 'Pending consultations', value: pending.length, icon: <FiClock />, tone: 'violet' },
+          { label: 'Completed cases', value: completed.length, icon: <FiCheckCircle />, tone: 'success' },
+        ]}
+      />
 
-      <Row className="g-4">
-        {/* Next Patient Alert Banner */}
-        <Col lg={6}>
-          <Card className="doc-alert-card h-100 shadow-sm border-0">
-            <Card.Header className="bg-transparent border-0 pt-3">
-              <h5 className="fw-bold mb-0 text-primary d-flex align-items-center gap-2">
-                <FaUserMd /> Immediate Next Appointment
-              </h5>
-            </Card.Header>
-            <Card.Body className="d-flex flex-column justify-content-between">
-              {nextPatient ? (
-                <div>
-                  <div className="next-patient-banner mb-3 d-flex align-items-center gap-3">
-                    <div className="next-patient-avatar">{(nextPatient.patientName || 'P')[0]}</div>
+      <div className="row g-4">
+        <div className="col-lg-6">
+          <Panel title="Next appointment" icon={<FiUser />}>
+            {loading ? (
+              <Skeleton lines={4} />
+            ) : next ? (
+              <div className="doc-next">
+                <div className="doc-next__who">
+                  <Avatar name={next.patientName || 'Patient'} size={48} />
+                  <div>
+                    <strong>{next.patientName}</strong>
+                    <span>{next.patientEmail}</span>
+                  </div>
+                </div>
+                <dl className="doc-next__meta">
+                  <div>
+                    <dt>When</dt>
+                    <dd>{fmtDate(next.date)} at {next.time}</dd>
+                  </div>
+                  <div>
+                    <dt>Reason</dt>
+                    <dd>{next.reason || 'General consultation'}</dd>
+                  </div>
+                </dl>
+                <Button block leftIcon={<FiEdit3 aria-hidden="true" />} onClick={() => openComplete(next)}>
+                  Start consultation
+                </Button>
+              </div>
+            ) : (
+              <EmptyState icon={<FiCheckCircle />} title="All caught up" description="No upcoming appointments scheduled." />
+            )}
+          </Panel>
+        </div>
+
+        <div className="col-lg-6">
+          <Panel
+            title="Today’s consultations"
+            icon={<FiCalendar />}
+            flush
+            actions={<Button variant="link" size="sm" onClick={() => setActive('schedule')}>Full schedule</Button>}
+          >
+            {loading ? (
+              <div className="p-4"><Skeleton lines={4} /></div>
+            ) : todayList.length === 0 ? (
+              <EmptyState title="Nothing scheduled today" description="Enjoy the breathing room." />
+            ) : (
+              <ul className="dw-list">
+                {todayList.slice(0, 6).map((a) => (
+                  <li key={a.id}>
                     <div>
-                      <h5 className="mb-0 fw-800 text-dark">{nextPatient.patientName}</h5>
-                      <span className="text-muted extra-small">{nextPatient.patientEmail}</span>
+                      <strong>{a.patientName}</strong>
+                      <span>{a.time}</span>
                     </div>
-                  </div>
-                  <div className="next-patient-meta mb-3 p-3 bg-light rounded-12">
-                    <div className="d-flex justify-content-between mb-2">
-                      <span className="text-muted small">Date & Time:</span>
-                      <span className="fw-bold text-dark small">{fmtDate(nextPatient.date)} at {nextPatient.time}</span>
-                    </div>
-                    <div className="d-flex justify-content-between">
-                      <span className="text-muted small">Reason:</span>
-                      <span className="fw-bold text-dark small">{nextPatient.reason || 'General Consultation'}</span>
-                    </div>
-                  </div>
-                  <Button className="btn-doc-action w-100 mt-2" onClick={() => openComplete(nextPatient)}>
-                    <FaNotesMedical className="me-2" /> Start Consultation
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center py-4 my-auto">
-                  <FaCheckCircle className="text-success mb-2" size={42} />
-                  <h6 className="fw-bold mb-1 text-dark">All Caught Up!</h6>
-                  <p className="text-muted small mb-0">No pending appointments scheduled ahead.</p>
-                </div>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-
-        {/* Quick Timeline of Today's Consultations */}
-        <Col lg={6}>
-          <Card className="doc-schedule-card h-100 shadow-sm border-0">
-            <Card.Header className="bg-transparent border-0 pt-3">
-              <h5 className="fw-bold mb-0 text-dark"><FaHistory className="me-2 text-info" />Today's Consultation List</h5>
-            </Card.Header>
-            <Card.Body>
-              {loading ? (
-                <div className="text-center py-4"><Spinner animation="border" variant="primary" size="sm" /></div>
-              ) : todayAptsList.length === 0 ? (
-                <div className="text-center py-4 text-muted small">No appointments scheduled for today.</div>
-              ) : (
-                <div className="today-list">
-                  {todayAptsList.slice(0, 4).map(a => (
-                    <div key={a.id} className="today-item d-flex align-items-center justify-content-between py-2 border-bottom-dashed">
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="today-avatar small">{(a.patientName || 'P')[0]}</div>
-                        <div>
-                          <div className="fw-bold text-dark small">{a.patientName}</div>
-                          <span className="text-muted small">{a.time} · <Badge bg={STATUS_CFG[a.status]?.color || 'secondary'} className="extra-small">{a.status}</Badge></span>
-                        </div>
-                      </div>
+                    <div className="dw-list__end">
+                      <Badge tone={APPOINTMENT_TONE[a.status] || 'neutral'}>{a.status}</Badge>
                       {a.status === 'scheduled' && (
-                        <Button size="sm" variant="outline-primary" className="rounded-8 py-1" onClick={() => openComplete(a)}>
-                          Consult <FaChevronRight size={10} />
+                        <Button size="sm" variant="outline" rightIcon={<FiChevronRight aria-hidden="true" />} onClick={() => openComplete(a)}>
+                          Consult
                         </Button>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
+      </div>
+    </>
   );
 }

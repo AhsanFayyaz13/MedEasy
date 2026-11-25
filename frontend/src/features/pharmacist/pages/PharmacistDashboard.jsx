@@ -1,97 +1,52 @@
-import { useState } from 'react';
-import { FaPills, FaClipboardList, FaFileMedical, FaChartBar, FaHistory, FaUserShield } from 'react-icons/fa';
+import { FiActivity, FiArchive, FiClipboard, FiFileText, FiPackage, FiUserCheck } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
-import './PharmacistDashboard.css';
+import DashboardLayout from '../../../components/layout/DashboardLayout/DashboardLayout';
+import useDashboardTab from '../../../components/layout/DashboardLayout/useDashboardTab';
+import PageMeta from '../../../components/seo/PageMeta';
 import MedicinesPage from '../components/MedicinesPage';
 import OrdersPage from '../components/OrdersPage';
 import PrescriptionsPage from '../components/PrescriptionsPage';
 import OverviewPage from '../components/OverviewPage';
 import PharmacistRepPage from '../components/PharmacistRepPage';
-import PageMeta from '../../../components/seo/PageMeta';
+import './PharmacistDashboard.css';
 
-
-/* ═══════════════════ HELPERS ═══════════════════════════════════ */
-
-
-/* ═══════════════════ SIDEBAR LAYOUT ════════════════════════════ */
 const SECTIONS = [
-  { key:'overview',      label:'Dashboard Overview',   icon:<FaChartBar /> },
-  { key:'orders',        label:'Manage Orders',        icon:<FaClipboardList /> },
-  { key:'prescriptions', label:'Verify Rx',            icon:<FaFileMedical /> },
-  { key:'medicines',     label:'Inventory',            icon:<FaPills /> },
-  { key:'pharmacist-rep',label:'Pharmacist Representative', icon:<FaUserShield /> },
-  { key:'history',       label:'Order History',        icon:<FaHistory /> },
+  { key: 'overview', label: 'Overview', icon: <FiActivity />, subtitle: 'Today’s orders, prescriptions and stock at a glance.' },
+  { key: 'orders', label: 'Active orders', icon: <FiClipboard />, subtitle: 'Confirm, pack and dispatch customer orders.' },
+  { key: 'prescriptions', label: 'Verify prescriptions', icon: <FiFileText />, subtitle: 'Approve or decline uploaded prescriptions.' },
+  { key: 'medicines', label: 'Inventory', icon: <FiPackage />, subtitle: 'Manage catalogue, prices and stock levels.' },
+  { key: 'pharmacist-rep', label: 'Pharmacist representative', icon: <FiUserCheck />, subtitle: 'The licensed pharmacist who signs in for your store.', ownerOnly: true },
+  { key: 'history', label: 'Order history', icon: <FiArchive />, subtitle: 'Delivered and cancelled orders.' },
 ];
-
 
 export default function PharmacistDashboard() {
   const { user } = useAuth();
-  const [active, setActive] = useState('overview');
-  const [mobileOpen, setMobileOpen] = useState(false);
-
   const isPharmacyOwner = user?.role === 'pharmacy';
-
-  const visibleSections = SECTIONS.filter(s => {
-    if (s.key === 'pharmacist-rep') {
-      return isPharmacyOwner;
-    }
-    return true;
-  });
-
-  const section = visibleSections.find(s => s.key === active) || visibleSections[0];
+  const sections = SECTIONS.filter((s) => !s.ownerOnly || isPharmacyOwner);
+  const [active, setActive] = useDashboardTab(sections);
+  const current = sections.find((s) => s.key === active);
 
   return (
-    <div className="ph-page">
+    <>
       <PageMeta title="Pharmacy dashboard" noindex />
-      {/* Mobile sidebar toggle */}
-      <button className="ph-mobile-toggle d-lg-none" onClick={() => setMobileOpen(o => !o)}>
-        ☰ Dashboard Menu
-      </button>
-
-      <div className="ph-layout">
-        {/* ── Sidebar ── */}
-        <aside className={`ph-sidebar ${mobileOpen ? 'open' : ''}`}>
-          <div className="ph-sidebar-header">
-            <div className="ph-avatar">{user?.name?.[0] || 'P'}</div>
-            <div>
-              <div className="ph-sidebar-name">{user?.name || 'Pharmacy'}</div>
-              <div className="ph-sidebar-role">
-                {user?.role === 'pharmacy' 
-                  ? `🏪 ${user?.pharmacyName || 'Pharmacy Store'}`
-                  : 'Licensed Pharmacist'}
-              </div>
-            </div>
-          </div>
-          <nav className="ph-nav">
-            {visibleSections.map(s => (
-              <button
-                 key={s.key}
-                 className={`ph-nav-item ${active === s.key ? 'active' : ''}`}
-                 onClick={() => { setActive(s.key); setMobileOpen(false); }}
-              >
-                <span className="ph-nav-icon">{s.icon}</span>
-                {s.label}
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        {/* ── Main content ── */}
-        <main className="ph-main">
-          <div className="ph-main-header">
-            <h1 className="ph-main-title">{section?.icon} {section?.label}</h1>
-          </div>
-
-          <div className="ph-content">
-            {active === 'overview'      && <OverviewPage setActiveSection={setActive} />}
-            {active === 'medicines'     && <MedicinesPage />}
-            {active === 'orders'        && <OrdersPage mode="active" />}
-            {active === 'prescriptions' && <PrescriptionsPage />}
-            {active === 'pharmacist-rep'&& isPharmacyOwner && <PharmacistRepPage />}
-            {active === 'history'       && <OrdersPage mode="history" />}
-          </div>
-        </main>
-      </div>
-    </div>
+      <DashboardLayout
+        sections={sections}
+        active={active}
+        onSelect={setActive}
+        identity={{
+          avatar: (user?.name || 'P')[0].toUpperCase(),
+          name: user?.name || 'Pharmacy',
+          role: isPharmacyOwner ? user?.pharmacyName || 'Pharmacy store' : 'Licensed pharmacist',
+        }}
+        subtitle={current?.subtitle}
+      >
+        {active === 'overview' && <OverviewPage setActiveSection={setActive} />}
+        {active === 'orders' && <OrdersPage mode="active" />}
+        {active === 'prescriptions' && <PrescriptionsPage />}
+        {active === 'medicines' && <MedicinesPage />}
+        {active === 'pharmacist-rep' && isPharmacyOwner && <PharmacistRepPage />}
+        {active === 'history' && <OrdersPage mode="history" />}
+      </DashboardLayout>
+    </>
   );
 }

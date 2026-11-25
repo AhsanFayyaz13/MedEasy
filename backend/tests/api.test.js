@@ -121,8 +121,15 @@ describe('medicines', () => {
     assert.equal(res.body.medicines.length, 0);
   });
 
-  it('caps page size at 100', async () => {
+  it('clamps oversized page sizes instead of failing', async () => {
+    await createMedicine();
     const res = await request(app).get('/api/medicines').query({ limit: 100000 });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.medicines.length, 1);
+  });
+
+  it('rejects non-numeric page sizes', async () => {
+    const res = await request(app).get('/api/medicines').query({ limit: 'abc' });
     assert.equal(res.status, 400);
   });
 });

@@ -51,7 +51,7 @@ export function DataProvider({ children }) {
     try {
       const [usersRes, medsRes, aptsRes, ordersRes] = await Promise.all([
         api.get('/admin/users/all'),
-        api.get('/medicines?limit=1000'),
+        api.get('/medicines', { params: { limit: 500 } }),
         api.get('/appointments'),
         api.get('/orders/all'),
       ]);

@@ -1,0 +1,115 @@
+.chat-modal .ui-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+}
+
+.chat__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.chat__log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: min(55vh, 380px);
+  padding: var(--space-4);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+}
+
+.chat__log .ui-state {
+  margin: auto;
+  padding: var(--space-6) var(--space-2);
+}
+
+.chat__msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 85%;
+}
+
+.chat__msg.is-mine {
+  align-items: flex-end;
+  align-self: flex-end;
+}
+
+.chat__meta {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.chat__meta span {
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.chat__bubble {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-xs);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat__msg.is-mine .chat__bubble {
+  border-color: transparent;
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs) var(--radius-lg);
+  background: var(--action);
+  color: var(--text-on-primary);
+}
+
+.chat__composer {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.chat__composer .ui-control {
+  border-radius: var(--radius-full);
+  padding-inline: var(--space-4);
+}
+
+.chat__send {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--action);
+  color: var(--text-on-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.chat__send:hover:not(:disabled) {
+  background: var(--action-hover);
+}
+
+.chat__send:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.chat__send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat__status {
+  display: flex;
+  justify-content: flex-end;
+}

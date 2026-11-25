@@ -199,3 +199,111 @@
 }
 .doc-welcome-banner h2 { font-weight: var(--weight-extrabold); font-size: var(--text-2xl); margin: 0; }
 .doc-welcome-banner p { color: var(--color-primary-400); margin: 0; font-size: var(--text-sm); margin-top: var(--space-1); }
+
+/* ── Rebuilt components ─────────────────────────────────────── */
+.doc-next {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.doc-next__who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.doc-next__who div {
+  display: flex;
+  flex-direction: column;
+}
+
+.doc-next__who strong {
+  color: var(--text-strong);
+  font-size: var(--text-lg);
+}
+
+.doc-next__who span {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.doc-next__meta {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.doc-next__meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.doc-next__meta dt {
+  color: var(--text-muted);
+  font-weight: var(--weight-regular);
+}
+
+.doc-next__meta dd {
+  margin: 0;
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+  text-align: right;
+}
+
+.consult-patient {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.consult-patient strong {
+  color: var(--text-strong);
+}
+
+.consult-patient p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+.rx-pad-field .ui-control {
+  border-left: 4px solid var(--color-accent-500);
+  background: var(--tint-accent-50);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.rx-view {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px dashed var(--color-accent-500);
+  border-radius: var(--radius-md);
+  background: var(--tint-accent-50);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+}
+
+.rx-view-notes {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.rx-view-notes p {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+}

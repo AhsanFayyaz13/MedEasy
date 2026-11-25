@@ -1,127 +1,130 @@
-import { useState, useEffect } from 'react';
-import { Row, Col, Card } from 'react-bootstrap';
-import { FaPills, FaClipboardList, FaFileMedical, FaHistory } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
+import { FiAlertTriangle, FiClipboard, FiFileText, FiPackage, FiShoppingBag } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import { fetchAllMedicines, fetchAllOrders, fetchPendingPrescriptions } from '../../../services/api/pharmacistService';
+import { Badge, Button, EmptyState, ErrorState, Skeleton } from '../../../components/ui';
+import { Panel, StatGrid, WelcomeBanner } from '../../../components/layout/DashboardLayout/widgets';
+import { formatPrice } from '../../../lib/format';
+import { fmtDate } from './pharmacistShared';
 
+const LOW_STOCK = 10;
+const ACTIVE = ['pending', 'confirmed', 'processing', 'dispatched'];
+const STATUS_TONE = { pending: 'warning', confirmed: 'primary', processing: 'primary', dispatched: 'info', delivered: 'success', cancelled: 'error' };
 
-/* ═══════════════════ OVERVIEW PAGE ═════════════════════════════ */
+/** Pharmacy landing tab: live KPIs, latest orders and stock alerts. */
 export default function OverviewPage({ setActiveSection }) {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ pending: 0, verification: 0, lowStock: 0 });
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState({ loading: true, error: null, meds: [], orders: [], rx: [] });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    async function loadStats() {
-      try {
-        const [meds, ordersList, prescriptions] = await Promise.all([
-          fetchAllMedicines(),
-          fetchAllOrders(),
-          fetchPendingPrescriptions(),
-        ]);
-        const lowStockCount = meds.filter(m => m.stock < 10).length;
-        const pendingOrdersCount = ordersList.filter(o => o.status === 'pending' || o.status === 'confirmed' || o.status === 'dispatched').length;
-        const pendingRxCount = prescriptions.length;
-        setStats({
-          pending: pendingOrdersCount,
-          verification: pendingRxCount,
-          lowStock: lowStockCount
-        });
-      } catch (e) {
-        console.error("Failed to load overview stats:", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadStats();
-  }, []);
+    let alive = true;
+    Promise.all([fetchAllMedicines(), fetchAllOrders(), fetchPendingPrescriptions()])
+      .then(([meds, orders, rx]) => alive && setState({ loading: false, error: null, meds, orders, rx }))
+      .catch((e) => alive && setState((s) => ({ ...s, loading: false, error: e.message || 'Could not load dashboard data.' })));
+    return () => {
+      alive = false;
+    };
+  }, [attempt]);
 
-  const notifications = [
-    { time: '10 mins ago', text: 'Low stock alert: Amoxicillin 250mg is down to 8 units.', type: 'danger' },
-    { time: '45 mins ago', text: 'Order #ORD-9982 was verified and marked as Dispatched.', type: 'success' },
-    { time: '2 hours ago', text: 'Prescription #RX-4091 uploaded by Ahmed Khan was Approved.', type: 'info' },
-    { time: '4 hours ago', text: 'System: Database sync completed successfully.', type: 'primary' },
-  ];
+  const retry = () => {
+    setState((s) => ({ ...s, loading: true, error: null }));
+    setAttempt((a) => a + 1);
+  };
+
+  const { loading, error, meds, orders, rx } = state;
+  const activeOrders = orders.filter((o) => ACTIVE.includes(o.status));
+  const lowStock = meds.filter((m) => Number(m.stock) < LOW_STOCK).sort((a, b) => a.stock - b.stock);
+  const recent = [...orders].sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)).slice(0, 5);
+  const isOwner = user?.role === 'pharmacy';
 
   return (
-    <div className="ph-overview">
-      {/* Welcome Banner */}
-      <div className="ph-welcome-banner mb-4">
-        {user?.role === 'pharmacy' ? (
-          <>
-            <h2>Welcome back, {user?.name || 'Pharmacy'}!</h2>
-            <p className="mb-0 text-light opacity-75 small">{user?.pharmacyName || 'Pharmacy Store'} | Here is an overview of today's active apothecary operations.</p>
-          </>
-        ) : (
-          <>
-            <h2>Welcome back, {user?.name || 'Pharmacist'}!</h2>
-            <p className="mb-0 text-light opacity-75 small">Here is an overview of today's active apothecary operations.</p>
-          </>
-        )}
-      </div>
+    <>
+      <WelcomeBanner
+        title={`Welcome back, ${user?.name?.split(' ')[0] || (isOwner ? 'Pharmacy' : 'Pharmacist')}`}
+        text={isOwner ? `${user?.pharmacyName || 'Your pharmacy'} — today’s operations at a glance.` : 'Today’s pharmacy operations at a glance.'}
+      >
+        <Button size="sm" onClick={() => setActiveSection('orders')}>
+          Process orders
+        </Button>
+      </WelcomeBanner>
 
-      {/* KPI Cards */}
-      <Row className="g-3 mb-4">
-        <Col md={4}>
-          <Card className="ph-glass-card shadow-sm clickable" onClick={() => setActiveSection('orders')}>
-            <Card.Body className="d-flex align-items-center gap-3">
-              <div className="ph-glass-icon bg-warning-light text-warning">
-                <FaClipboardList size={24} />
-              </div>
-              <div>
-                <h4 className="fw-900 mb-0">{loading ? '...' : stats.pending}</h4>
-                <div className="text-muted small">Pending Orders</div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={4}>
-          <Card className="ph-glass-card shadow-sm clickable" onClick={() => setActiveSection('prescriptions')}>
-            <Card.Body className="d-flex align-items-center gap-3">
-              <div className="ph-glass-icon bg-info-light text-info">
-                <FaFileMedical size={24} />
-              </div>
-              <div>
-                <h4 className="fw-900 mb-0">{loading ? '...' : stats.verification}</h4>
-                <div className="text-muted small">Awaiting Verification</div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={4}>
-          <Card className="ph-glass-card shadow-sm clickable" onClick={() => setActiveSection('medicines')}>
-            <Card.Body className="d-flex align-items-center gap-3">
-              <div className="ph-glass-icon bg-danger-light text-danger">
-                <FaPills size={24} />
-              </div>
-              <div>
-                <h4 className="fw-900 mb-0">{loading ? '...' : stats.lowStock}</h4>
-                <div className="text-muted small">Low Stock Items</div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {error ? (
+        <ErrorState message={error} onRetry={retry} />
+      ) : (
+        <>
+          <StatGrid
+            loading={loading}
+            stats={[
+              { label: 'Orders to process', value: activeOrders.length, icon: <FiClipboard />, tone: 'warning', hint: 'Pending to dispatched' },
+              { label: 'Prescriptions to verify', value: rx.length, icon: <FiFileText />, tone: 'primary', hint: 'Awaiting review' },
+              { label: 'Low-stock items', value: lowStock.length, icon: <FiAlertTriangle />, tone: lowStock.length ? 'error' : 'success', hint: `Below ${LOW_STOCK} units` },
+              { label: 'Catalogue size', value: meds.length, icon: <FiPackage />, tone: 'violet', hint: 'Listed medicines' },
+            ]}
+          />
 
-      {/* Notifications timeline */}
-      <Card className="ph-glass-card shadow-sm mt-4">
-        <Card.Header className="bg-transparent border-0 pt-3">
-          <h5 className="fw-bold mb-0"><FaHistory className="me-2 text-primary" />Recent Apothecary Activity</h5>
-        </Card.Header>
-        <Card.Body>
-          <div className="ph-timeline">
-            {notifications.map((n, idx) => (
-              <div key={idx} className="ph-timeline-item d-flex gap-3 mb-3 pb-3 border-bottom-dashed">
-                <div className={`ph-timeline-badge bg-${n.type}`}></div>
-                <div className="flex-grow-1">
-                  <p className="mb-0 fw-600 text-dark small">{n.text}</p>
-                  <span className="text-muted extra-small">{n.time}</span>
-                </div>
-              </div>
-            ))}
+          <div className="row g-4">
+            <div className="col-xl-7">
+              <Panel
+                title="Latest orders"
+                icon={<FiShoppingBag />}
+                flush
+                actions={<Button variant="link" size="sm" onClick={() => setActiveSection('orders')}>View all</Button>}
+              >
+                {loading ? (
+                  <div className="p-4"><Skeleton lines={5} /></div>
+                ) : recent.length === 0 ? (
+                  <EmptyState title="No orders yet" description="New customer orders will appear here." />
+                ) : (
+                  <ul className="dw-list">
+                    {recent.map((o) => (
+                      <li key={o.id || o._id}>
+                        <div>
+                          <strong>#{String(o.id || o._id).slice(-6).toUpperCase()}</strong>
+                          <span>{o.customerName || o.patientName || o.userId?.name || 'Customer'} · {fmtDate(o.createdAt || o.date)}</span>
+                        </div>
+                        <div className="dw-list__end">
+                          <span className="dw-list__amount">{formatPrice(o.total ?? o.totalAmount)}</span>
+                          <Badge tone={STATUS_TONE[o.status] || 'neutral'}>{o.status}</Badge>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+            </div>
+
+            <div className="col-xl-5">
+              <Panel
+                title="Stock alerts"
+                icon={<FiAlertTriangle />}
+                flush
+                actions={<Button variant="link" size="sm" onClick={() => setActiveSection('medicines')}>Manage inventory</Button>}
+              >
+                {loading ? (
+                  <div className="p-4"><Skeleton lines={4} /></div>
+                ) : lowStock.length === 0 ? (
+                  <EmptyState title="Stock levels look healthy" description={`No medicines below ${LOW_STOCK} units.`} />
+                ) : (
+                  <ul className="dw-list">
+                    {lowStock.slice(0, 6).map((m) => (
+                      <li key={m.id || m._id}>
+                        <div>
+                          <strong>{m.brand || m.name}</strong>
+                          <span>{m.name}</span>
+                        </div>
+                        <Badge tone={Number(m.stock) === 0 ? 'error' : 'warning'}>
+                          {Number(m.stock) === 0 ? 'Out of stock' : `${m.stock} left`}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+            </div>
           </div>
-        </Card.Body>
-      </Card>
-    </div>
+        </>
+      )}
+    </>
   );
 }

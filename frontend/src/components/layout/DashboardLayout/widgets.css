@@ -1,0 +1,237 @@
+/* Shared dashboard widgets */
+
+.dw-welcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(24rem 14rem at 100% 0%, color-mix(in srgb, var(--color-primary-500) 40%, transparent), transparent 70%),
+    linear-gradient(135deg, var(--color-secondary-900), var(--color-secondary-700));
+  color: var(--color-white);
+}
+
+.dw-welcome__title {
+  margin: 0;
+  color: var(--color-white);
+  font-size: var(--text-2xl);
+}
+
+.dw-welcome__text {
+  margin: var(--space-1) 0 0;
+  color: color-mix(in srgb, var(--color-white) 78%, transparent);
+}
+
+.dw-welcome__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dw-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.dw-section {
+  margin-bottom: var(--space-6);
+}
+
+.dw-section__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+}
+
+.dw-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: var(--space-3);
+}
+
+.dw-shortcut {
+  --tone-bg: var(--tint-primary-50);
+  --tone-fg: var(--fg-primary);
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.dw-shortcut:hover {
+  transform: translateY(-2px);
+  border-color: var(--tone-fg);
+  box-shadow: var(--shadow-md);
+}
+
+.dw-shortcut__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--tone-bg);
+  color: var(--tone-fg);
+  font-size: var(--text-xl);
+}
+
+.dw-shortcut__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dw-shortcut__label {
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.dw-shortcut__desc {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.dw-shortcut__arrow {
+  color: var(--text-subtle);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.dw-shortcut:hover .dw-shortcut__arrow {
+  color: var(--tone-fg);
+  transform: translateX(3px);
+}
+
+.dw-tone--accent { --tone-bg: var(--tint-accent-50); --tone-fg: var(--fg-accent); }
+.dw-tone--warning { --tone-bg: var(--tint-warning-50); --tone-fg: var(--fg-warning); }
+.dw-tone--error { --tone-bg: var(--tint-error-50); --tone-fg: var(--fg-error); }
+.dw-tone--violet { --tone-bg: var(--tint-violet-50); --tone-fg: var(--fg-violet); }
+.dw-tone--rose { --tone-bg: var(--tint-rose-50); --tone-fg: var(--fg-rose); }
+
+.dw-panel {
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.dw-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.dw-panel__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.dw-panel__title > span {
+  display: inline-flex;
+  color: var(--fg-primary);
+}
+
+.dw-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dw-panel__body {
+  padding: var(--space-5);
+}
+
+.dw-panel--flush .dw-panel__body {
+  padding: 0;
+}
+
+.dw-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.dw-toolbar > * {
+  flex: 1 1 200px;
+}
+
+/* Compact list rows inside panels (recent orders, stock alerts…) */
+.dw-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dw-list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.dw-list > li:first-child {
+  border-top: none;
+}
+
+.dw-list > li > div:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.dw-list strong {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+}
+
+.dw-list span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dw-list__end {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dw-list .dw-list__amount {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.dw-list .ui-badge {
+  color: var(--badge-fg);
+  font-size: var(--text-xs);
+}

@@ -47,7 +47,7 @@ function mapMedicineToBackend(payload) {
 
 export async function fetchAllMedicines() {
   if (USE_MOCK) { await delay(400); return [...MOCK_MEDICINES]; }
-  const { data } = await api.get('/medicines');
+  const { data } = await api.get('/medicines', { params: { limit: 500 } }); // full inventory, not the default page of 10
   const list = data.medicines ?? data.results ?? data;
   return Array.isArray(list) ? list.map(mapMedicineToFrontend) : [];
 }
