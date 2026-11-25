@@ -171,9 +171,22 @@ describe('orders', () => {
       .set('Authorization', `Bearer ${tokenFor(patient)}`)
       .send({ items: [{ medicineId: med._id.toString(), quantity: 2, price: 1 }], shippingAddress: validAddress });
     assert.equal(res.status, 201);
-    assert.equal(res.body.totalAmount, 100);
+    // 2 × Rs 50 from the database, plus the Rs 120 delivery fee below Rs 1,000
+    assert.equal(res.body.deliveryFee, 120);
+    assert.equal(res.body.totalAmount, 220);
     const Medicine = require('../models/Medicine');
     assert.equal((await Medicine.findById(med._id)).stock, 3);
+  });
+
+  it('delivers free from Rs 1,000', async () => {
+    const patient = await createUser();
+    const med = await createMedicine({ price: 500, stock: 5 });
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${tokenFor(patient)}`)
+      .send({ items: [{ medicineId: med._id.toString(), quantity: 2 }], shippingAddress: validAddress });
+    assert.equal(res.body.deliveryFee, 0);
+    assert.equal(res.body.totalAmount, 1000);
   });
 
   it('never oversells under concurrent orders', async () => {

@@ -37,6 +37,10 @@ export default function PatientOrderDetail({ order, onClose }) {
                   </li>
                 ))}
               </ul>
+              <dl className="pord-detail__sums">
+                <div><dt>Subtotal</dt><dd>{formatPrice(order.totalAmount - (order.deliveryFee || 0))}</dd></div>
+                <div><dt>Delivery</dt><dd>{order.deliveryFee ? formatPrice(order.deliveryFee) : 'Free'}</dd></div>
+              </dl>
               <div className="pord-detail__total">
                 <span>Total</span>
                 <strong>{formatPrice(order.totalAmount)}</strong>

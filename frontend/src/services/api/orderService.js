@@ -117,7 +117,7 @@ export async function fetchOrders(filters = {}) {
   return data.map(order => ({
     ...order,
     id: order._id,
-    deliveryFee: 0,
+    deliveryFee: order.deliveryFee || 0,
     items: order.items.map(i => ({
       medicineId: i.medicineId?._id || i.medicineId,
       name: i.medicineId?.name || 'Unknown Medicine',

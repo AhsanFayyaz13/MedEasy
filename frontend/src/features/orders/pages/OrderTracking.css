@@ -165,12 +165,29 @@
   color: var(--text-muted);
 }
 
+.pord-detail__sums {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-sm);
+}
+
+.pord-detail__sums div {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+}
+
+.pord-detail__sums dd {
+  margin: 0;
+}
+
 .pord-detail__total {
   display: flex;
   justify-content: space-between;
-  margin-top: var(--space-4);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border);
+  margin-top: var(--space-2);
   font-size: var(--text-lg);
 }
 

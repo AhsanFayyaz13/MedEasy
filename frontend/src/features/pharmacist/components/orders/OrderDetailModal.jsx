@@ -33,6 +33,12 @@ export default function OrderDetailModal({ order, onClose }) {
                   </li>
                 ))}
               </ul>
+              {order.deliveryFee > 0 && (
+                <div className="ph-invoice__fee">
+                  <span>Delivery</span>
+                  <span>{formatPrice(order.deliveryFee)}</span>
+                </div>
+              )}
               <div className="ph-invoice__total">
                 <span>Total</span>
                 <strong>{formatPrice(order.totalAmount)}</strong>

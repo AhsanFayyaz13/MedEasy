@@ -1,5 +1,6 @@
 /* Checkout constants & validation */
 
+// Must match the API (backend/controllers/orderController.js), which charges the same fee.
 export const DELIVERY_FEE = 120;
 export const FREE_THRESHOLD = 1000;
 

@@ -2,6 +2,11 @@ const Order = require('../models/Order');
 const Medicine = require('../models/Medicine');
 const Prescription = require('../models/Prescription');
 
+// Must match the checkout page (frontend/src/features/cart/components/checkoutShared.jsx).
+const DELIVERY_FEE = 120;
+const FREE_DELIVERY_FROM = 1000;
+const deliveryFeeFor = (subtotal) => (subtotal >= FREE_DELIVERY_FROM ? 0 : DELIVERY_FEE);
+
 // @desc    Place a new order
 // @route   POST /api/orders
 // @access  Private
@@ -56,13 +61,16 @@ exports.placeOrder = async (req, res) => {
 
   // Prices always come from the database, never the client.
   const items = medicines.map((m) => ({ medicineId: m._id, quantity: qtyById.get(m._id.toString()), price: m.price }));
-  const totalAmount = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const deliveryFee = deliveryFeeFor(subtotal);
+  const totalAmount = subtotal + deliveryFee;
 
   try {
     const createdOrder = await Order.create({
       userId: req.user._id,
       items,
       prescriptionId: requiresPrescription ? prescriptionId : undefined,
+      deliveryFee,
       totalAmount,
       shippingAddress,
       paymentMethod,
