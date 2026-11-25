@@ -33,6 +33,7 @@ const Cookies = legal(() => import('../features/legal/content/cookies'));
 const RefundPolicy = legal(() => import('../features/legal/content/refunds'));
 const MedicalDisclaimer = legal(() => import('../features/legal/content/medical'));
 const LegalNotice = legal(() => import('../features/legal/content/notice'));
+const TrackOrder = lazy(() => import('../features/orders/pages/TrackOrder'));
 const NotFound = lazy(() => import('../features/system/pages/NotFound'));
 
 const ROLES = {
@@ -44,6 +45,8 @@ const ROLES = {
 };
 
 const guard = (element, roles) => <ProtectedRoute roles={roles}>{element}</ProtectedRoute>;
+/** Open to guests (OTC shopping); signed-in staff are sent to their dashboards. */
+const shopper = (element) => <ProtectedRoute roles={ROLES.patient} allowGuests>{element}</ProtectedRoute>;
 
 export default function AppRoutes() {
   return (
@@ -66,8 +69,9 @@ export default function AppRoutes() {
       <Route path="/legal" element={<LegalNotice />} />
 
       {/* Authenticated */}
-      <Route path="/cart" element={guard(<Cart />, ROLES.patient)} />
-      <Route path="/checkout" element={guard(<Checkout />, ROLES.patient)} />
+      <Route path="/cart" element={shopper(<Cart />)} />
+      <Route path="/checkout" element={shopper(<Checkout />)} />
+      <Route path="/track" element={shopper(<TrackOrder />)} />
       <Route path="/orders" element={guard(<OrderTracking />, ROLES.patient)} />
       <Route path="/orders/:orderId" element={guard(<OrderTracking />, ROLES.patient)} />
       <Route path="/profile" element={guard(<Profile />)} />

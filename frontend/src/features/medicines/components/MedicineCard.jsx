@@ -44,12 +44,10 @@ export default function MedicineCard({ medicine }) {
   const href = `/medicines/${id}`;
 
   const handleAdd = () => {
-    if (!isAuthenticated) {
-      openLoginModal();
-      return;
-    }
     if (requires_prescription) {
-      navigate('/prescriptions/upload', { state: { requiredForMedicine: name } });
+      // Prescription medicines need an account (the prescription is linked to it).
+      if (!isAuthenticated) openLoginModal();
+      else navigate('/prescriptions/upload', { state: { requiredForMedicine: name } });
       return;
     }
     if (!inStock) return;

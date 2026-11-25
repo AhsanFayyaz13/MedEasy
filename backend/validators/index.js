@@ -153,6 +153,12 @@ const orders = {
     }),
     paymentMethod: z.enum(['cod', 'jazz', 'easy', 'card']).default('cod'),
     notes: optionalText(500),
+    // Guests only: where to send the order confirmation.
+    guestEmail: emptyToUndefined(email.optional()),
+  }),
+  track: z.object({
+    orderNumber: z.string().trim().toUpperCase().regex(/^ME-[A-Z0-9]{8}$/, 'Enter the order number from your confirmation, e.g. ME-7K2Q9XAB'),
+    phone,
   }),
   status: z.object({ status: z.enum(ORDER_STATUSES, { message: 'Invalid status' }), reason: optionalText(500) }),
   listAll: z.object({ status: z.enum([...ORDER_STATUSES, 'all']).optional() }),

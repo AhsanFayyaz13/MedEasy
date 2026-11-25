@@ -271,3 +271,40 @@
     top: calc(var(--space-16) + var(--space-6));
   }
 }
+
+/* ── Guest order tracking ───────────────────────────────────── */
+.track-layout {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 760px;
+}
+
+.track-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.track-form > .ui-btn {
+  justify-self: start;
+}
+
+.track-result {
+  overflow: hidden;
+  padding: 0;
+}
+
+.track-result .pord-lines li > svg {
+  flex-shrink: 0;
+  color: var(--fg-primary);
+}
+
+@media (min-width: 640px) {
+  .track-form {
+    grid-template-columns: 1fr 1fr auto;
+    align-items: start;
+  }
+
+  .track-form > .ui-btn {
+    margin-top: 1.75rem;
+  }
+}

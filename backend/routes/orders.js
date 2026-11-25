@@ -1,6 +1,7 @@
 const express = require('express');
 const ctrl = require('../controllers/orderController');
-const { protect, authorizeRoles } = require('../middleware/auth');
+const { protect, optionalAuth, authorizeRoles } = require('../middleware/auth');
+const { guestOrderLimiter } = require('../middleware/security');
 const { validate } = require('../middleware/validate');
 const { idParam, orders: v } = require('../validators');
 
@@ -8,8 +9,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(protect, authorizeRoles('patient'), validate({ body: v.place }), ctrl.placeOrder)
+  // Signed-in patients, or guests buying OTC medicines (no account).
+  .post(optionalAuth, guestOrderLimiter, validate({ body: v.place }), ctrl.placeOrder)
   .get(protect, ctrl.getMyOrders);
+
+// Guests: look up / cancel an order with its order number and the phone used at checkout.
+router.post('/track', guestOrderLimiter, validate({ body: v.track }), ctrl.trackOrder);
+router.post('/track/cancel', guestOrderLimiter, validate({ body: v.track }), ctrl.cancelTrackedOrder);
 
 router.get('/all', protect, authorizeRoles('pharmacist', 'admin'), validate({ query: v.listAll }), ctrl.getAllOrders);
 

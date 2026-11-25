@@ -71,6 +71,7 @@ export default function AppFooter() {
                 <>
                   <li><Link to="/register">Create an account</Link></li>
                   <li><Link to="/login">Sign in</Link></li>
+                  <li><Link to="/track">Track an order</Link></li>
                   <li><Link to="/contact">Contact support</Link></li>
                 </>
               )}

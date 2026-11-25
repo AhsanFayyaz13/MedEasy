@@ -1,11 +1,19 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
+  // Signed-in customer. Empty for guest orders (see `guest`).
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true,
     ref: 'User'
   },
+  // Contact details for orders placed without an account (OTC medicines only).
+  guest: {
+    name: { type: String, trim: true, maxlength: 120 },
+    phone: { type: String, trim: true }, // normalized, used with orderNumber to track the order
+    email: { type: String, trim: true, lowercase: true, maxlength: 254 }
+  },
+  // Short human-friendly reference, e.g. ME-7K2Q9XAB. Guests track orders with it.
+  orderNumber: { type: String, unique: true, sparse: true },
   items: [{
     medicineId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -59,6 +67,7 @@ const orderSchema = new mongoose.Schema({
 });
 
 orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ 'guest.phone': 1, status: 1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', orderSchema);

@@ -68,4 +68,14 @@ const uploadLimiter = rateLimit({
   handler: json429('Upload limit reached. Please try again later.'),
 });
 
-module.exports = { sanitizeInput, stripOperators, apiLimiter, authLimiter, uploadLimiter };
+/** Guest checkout and order look-ups: limits fake cash-on-delivery orders and number guessing. */
+const guestOrderLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: (req) => skipInTest() || Boolean(req.user),
+  handler: json429('Too many attempts. Please try again later or sign in.'),
+});
+
+module.exports = { sanitizeInput, stripOperators, apiLimiter, authLimiter, uploadLimiter, guestOrderLimiter };

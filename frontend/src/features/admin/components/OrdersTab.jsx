@@ -17,7 +17,7 @@ const FILTERS = [
   { id: 'delivered', label: 'Delivered', statuses: ['delivered'] },
   { id: 'cancelled', label: 'Cancelled', statuses: ['cancelled'] },
 ];
-const customer = (o) => (o.userId?.name || `${o.shippingAddress?.firstName || ''} ${o.shippingAddress?.lastName || ''}`).trim() || 'Customer';
+const customer = (o) => (o.userId?.name || o.guest?.name || `${o.shippingAddress?.firstName || ''} ${o.shippingAddress?.lastName || ''}`).trim() || 'Customer';
 
 /** Every order on the platform: filter, inspect, move along or cancel (with restock). */
 export default function OrdersTab({ orders, setOrders }) {
@@ -40,7 +40,7 @@ export default function OrdersTab({ orders, setOrders }) {
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status, cancellationReason: reason || o.cancellationReason } : o)));
       toast.success(`Order #${shortId(order.id)} is now ${status}.`);
       const patientId = order.userId?._id || order.userId;
-      sendNotification('patient', patientId, {
+      if (patientId) sendNotification('patient', patientId, {
         text: status === 'cancelled' ? `Order cancelled: #${shortId(order.id)} was cancelled by MedEasy support. Reason: ${reason}` : `Order update: #${shortId(order.id)} is now ${status}.`,
         emoji: status === 'cancelled' ? 'cancel' : 'booking',
         link: `/orders/${order.id}`,
@@ -67,7 +67,7 @@ export default function OrdersTab({ orders, setOrders }) {
     ], visible);
 
   const columns = [
-    { key: 'id', header: 'Order', render: (o) => <span className="adm-mono">#{shortId(o.id)}</span> },
+    { key: 'id', header: 'Order', render: (o) => <div className="adm-stack"><span className="adm-mono">{o.orderNumber || `#${shortId(o.id)}`}</span>{!o.userId && <span>Guest</span>}</div> },
     { key: 'customer', header: 'Customer', render: (o) => <div className="adm-stack"><strong>{customer(o)}</strong><span>{o.shippingAddress?.city}</span></div> },
     { key: 'date', header: 'Placed', render: (o) => <span className="adm-muted">{formatDate(o.createdAt)}</span> },
     { key: 'total', header: 'Total', render: (o) => <strong>{formatPrice(o.totalAmount)}</strong> },

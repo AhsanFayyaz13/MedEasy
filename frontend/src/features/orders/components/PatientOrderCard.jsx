@@ -20,7 +20,7 @@ export default function PatientOrderCard({ order, highlighted, onDetails, onCanc
     <Card as="article" padded={false} className={cx('pord-card', highlighted && 'is-highlighted')} aria-labelledby={titleId} id={`order-${order.id}`}>
       <header className="pord-card__head">
         <div>
-          <h2 id={titleId} className="pord-card__id">Order #{shortOrderId(order.id)}</h2>
+          <h2 id={titleId} className="pord-card__id">Order {order.orderNumber || `#${shortOrderId(order.id)}`}</h2>
           <p className="pord-card__date"><FiCalendar aria-hidden="true" /> {formatDate(order.createdAt)}</p>
         </div>
         <OrderStatusBadge status={order.status} />

@@ -7,18 +7,30 @@ import { CITIES, FREE_THRESHOLD, MAX_FILE_MB, PAYMENT_METHODS } from './checkout
 
 const PAY_ICON = { cod: <FiDollarSign />, jazz: <FiSmartphone />, easy: <FiSmartphone />, card: <FiCreditCard /> };
 
-export function AddressSection({ addr, errors, onChange }) {
+export function AddressSection({ addr, errors, onChange, guest = false, onSignIn }) {
   const field = (name) => ({ name, value: addr[name], onChange, error: errors[name] });
   return (
     <Card as="section" aria-labelledby="chk-address-title">
       <h2 id="chk-address-title" className="chk-title"><FiMapPin aria-hidden="true" /> Delivery details</h2>
+      {guest && (
+        <p className="chk-muted">
+          Checking out as a guest. Have an account? <Button variant="link" onClick={onSignIn}>Sign in</Button> to see your orders in one place.
+        </p>
+      )}
       <div className="row g-3">
         <div className="col-sm-6"><Input label="First name" required autoComplete="given-name" {...field('firstName')} /></div>
         <div className="col-sm-6"><Input label="Last name" required autoComplete="family-name" {...field('lastName')} /></div>
         <div className="col-12"><Input label="Street address" required placeholder="House #42, Block B, DHA Phase 5" autoComplete="street-address" {...field('address')} /></div>
         <div className="col-sm-6"><Select label="City" required placeholder="Select a city" options={CITIES} {...field('city')} /></div>
         <div className="col-sm-6"><Input label="Postal code" hint="Optional" inputMode="numeric" autoComplete="postal-code" {...field('postalCode')} /></div>
-        <div className="col-12"><Input label="Phone number" required type="tel" placeholder="03001234567" autoComplete="tel" {...field('phone')} /></div>
+        <div className={guest ? 'col-sm-6' : 'col-12'}>
+          <Input label="Phone number" required type="tel" placeholder="03001234567" autoComplete="tel" hint={guest ? 'We’ll call to confirm, and you’ll use it to track your order.' : undefined} {...field('phone')} />
+        </div>
+        {guest && (
+          <div className="col-sm-6">
+            <Input label="Email" type="email" hint="Optional, for your order confirmation." autoComplete="email" {...field('email')} />
+          </div>
+        )}
         <div className="col-12"><Textarea label="Delivery notes" hint="Optional" rows={2} maxLength={500} placeholder="Gate code, landmark, preferred time…" {...field('notes')} /></div>
       </div>
     </Card>

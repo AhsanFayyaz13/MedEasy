@@ -249,6 +249,52 @@ describe('orders', () => {
   });
 });
 
+describe('guest checkout', () => {
+  const guestOrder = (med, extra = {}) =>
+    request(app).post('/api/orders').send({ items: [{ medicineId: med._id.toString(), quantity: 1 }], shippingAddress: validAddress, ...extra });
+
+  it('lets guests buy OTC medicines and track the order by number and phone', async () => {
+    const med = await createMedicine({ stock: 5 });
+    const res = await guestOrder(med);
+    assert.equal(res.status, 201);
+    assert.match(res.body.orderNumber, /^ME-[A-Z2-9]{8}$/);
+    assert.equal(res.body.userId, undefined);
+    assert.equal(res.body.guest.phone, '923001234567');
+
+    const wrong = await request(app).post('/api/orders/track').send({ orderNumber: res.body.orderNumber, phone: '03009999999' });
+    assert.equal(wrong.status, 404);
+    const found = await request(app).post('/api/orders/track').send({ orderNumber: res.body.orderNumber.toLowerCase(), phone: '0300-1234567' });
+    assert.equal(found.status, 200);
+    assert.equal(found.body.status, 'pending');
+    assert.equal(found.body.guest, undefined, 'contact details are not echoed back');
+
+    const cancelled = await request(app).post('/api/orders/track/cancel').send({ orderNumber: res.body.orderNumber, phone: '03001234567' });
+    assert.equal(cancelled.body.status, 'cancelled');
+    const Medicine = require('../models/Medicine');
+    assert.equal((await Medicine.findById(med._id)).stock, 5);
+  });
+
+  it('asks guests to sign in for prescription medicines', async () => {
+    const med = await createMedicine({ requiresPrescription: true });
+    const res = await guestOrder(med);
+    assert.equal(res.status, 401);
+    assert.equal(res.body.error.code, 'LOGIN_REQUIRED');
+  });
+
+  it('limits open guest orders per phone number', async () => {
+    const med = await createMedicine({ stock: 50 });
+    for (let i = 0; i < 3; i += 1) assert.equal((await guestOrder(med)).status, 201);
+    assert.equal((await guestOrder(med)).status, 429);
+  });
+
+  it('does not let staff accounts place orders', async () => {
+    const doctor = await createUser({ role: 'doctor' });
+    const med = await createMedicine();
+    const res = await guestOrder(med).set('Authorization', `Bearer ${tokenFor(doctor)}`);
+    assert.equal(res.status, 403);
+  });
+});
+
 describe('prescription orders', () => {
   it('accepts a pending prescription but blocks confirmation until it is verified', async () => {
     const Prescription = require('../models/Prescription');

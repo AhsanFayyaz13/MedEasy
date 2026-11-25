@@ -15,10 +15,13 @@ import { useAuth } from '../../../context/AuthContext';
  *
  * @param {React.ReactNode} children - Component to render if authorised
  * @param {string[]}        [roles]  - Optional whitelist of allowed roles
+ * @param {boolean}         [allowGuests] - Let signed-out visitors through (roles still apply to signed-in users)
  */
-export default function ProtectedRoute({ children, roles }) {
+export default function ProtectedRoute({ children, roles, allowGuests = false }) {
   const { isAuthenticated, userRole } = useAuth();
   const location = useLocation();
+
+  if (!isAuthenticated && allowGuests) return children;
 
   // Not logged in → redirect to login, remembering the intended URL
   if (!isAuthenticated) {

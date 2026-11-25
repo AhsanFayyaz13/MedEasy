@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { FiArrowLeft, FiShoppingCart } from 'react-icons/fi';
 import { useCart } from '../../../context/CartContext';
 import { useAuth } from '../../../context/AuthContext';
+import { useAuthModal } from '../../../context/AuthModalContext';
 import { useToast } from '../../../context/ToastContext';
 import { uploadPrescription, placeOrder } from '../../../services/api/orderService';
 import { Alert, Button, EmptyState, PageHeader, Steps } from '../../../components/ui';
@@ -16,7 +17,9 @@ import './Checkout.css';
 const STEPS = ['Cart', 'Details', 'Confirm'];
 
 export default function Checkout() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { openLoginModal } = useAuthModal();
+  const isGuest = !isAuthenticated;
   const { cartItems, cartTotal, cartCount, clearCart } = useCart();
   const { toast } = useToast();
 
@@ -28,6 +31,7 @@ export default function Checkout() {
     postalCode: '',
     phone: user?.phone || '',
     notes: '',
+    email: '',
   }));
   const [payment, setPayment] = useState('cod');
   const [rxFile, setRxFile] = useState(null);
@@ -47,7 +51,7 @@ export default function Checkout() {
         <PageMeta title="Order placed" noindex />
         <div className="container">
           <Steps steps={STEPS} current={3} />
-          <OrderSuccess orderId={placed.orderId} needsRx={placed.needsRx} />
+          <OrderSuccess {...placed} />
         </div>
       </div>
     );
@@ -78,7 +82,12 @@ export default function Checkout() {
   const submit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
+    if (isGuest && needsRx) {
+      openLoginModal();
+      return;
+    }
     const aErr = validateAddress(addr);
+    if (isGuest && addr.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr.email.trim())) aErr.email = 'Please enter a valid email address.';
     const fErr = validateFile(rxFile, needsRx);
     setErrors(aErr);
     setFileError(fErr);
@@ -93,7 +102,7 @@ export default function Checkout() {
       let prescriptionId;
       if (needsRx && rxFile) {
         const rx = await uploadPrescription(rxFile, addr.notes);
-        prescriptionId = rx.prescriptionId;
+        prescriptionId = rx.prescriptionId; // orderService.uploadPrescription returns { prescriptionId }
       }
       const result = await placeOrder({
         items: cartItems.map((i) => ({ medicineId: i.medicineId, quantity: i.quantity })),
@@ -108,16 +117,17 @@ export default function Checkout() {
         paymentMethod: payment,
         prescriptionId,
         notes: addr.notes.trim() || undefined,
+        guestEmail: isGuest ? addr.email.trim() || undefined : undefined,
       });
 
       clearCart();
-      setPlaced({ orderId: result.orderId, needsRx });
+      setPlaced({ orderId: result.orderId, orderNumber: result.orderNumber, phone: addr.phone.trim(), needsRx, guest: isGuest });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       toast.success('Order placed successfully!');
 
-      const shortId = String(result.orderId).slice(-8).toUpperCase();
-      notifySelf(user, { text: `Order placed: #${shortId} for ${formatPrice(total)}.`, emoji: 'booking', link: `/orders/${result.orderId}` });
-      sendNotification('admin', null, { text: `New order #${shortId} from ${user?.name || 'a patient'} (${formatPrice(total)}).`, emoji: 'system', link: '/admin?tab=orders' });
+      const shortId = result.orderNumber || String(result.orderId).slice(-8).toUpperCase();
+      if (!isGuest) notifySelf(user, { text: `Order placed: #${shortId} for ${formatPrice(total)}.`, emoji: 'booking', link: `/orders/${result.orderId}` });
+      sendNotification('admin', null, { text: `New ${isGuest ? 'guest ' : ''}order #${shortId} from ${user?.name || `${addr.firstName} ${addr.lastName}`.trim()} (${formatPrice(total)}).`, emoji: 'system', link: '/admin?tab=orders' });
       sendNotification('pharmacist', null, { text: `New order #${shortId} awaiting fulfilment${needsRx ? ' (prescription to verify)' : ''}.`, emoji: 'booking', link: '/pharmacist?tab=orders' });
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
@@ -142,8 +152,14 @@ export default function Checkout() {
 
         <div className="chk-layout">
           <form id="checkout-form" noValidate onSubmit={submit} className="chk-main">
-            <AddressSection addr={addr} errors={errors} onChange={onChange} />
-            {needsRx && <PrescriptionSection file={rxFile} onFile={(f) => { setRxFile(f); setFileError(validateFile(f, false)); }} error={fileError} />}
+            <AddressSection addr={addr} errors={errors} onChange={onChange} guest={isGuest} onSignIn={openLoginModal} />
+            {needsRx && isGuest && (
+              <Alert tone="warning" title="Sign in to order prescription medicines">
+                Your cart has a prescription medicine, which needs an account so a pharmacist can check your prescription.{' '}
+                <Button variant="link" onClick={openLoginModal}>Sign in or create an account</Button>
+              </Alert>
+            )}
+            {needsRx && !isGuest && <PrescriptionSection file={rxFile} onFile={(f) => { setRxFile(f); setFileError(validateFile(f, false)); }} error={fileError} />}
             <PaymentSection value={payment} onChange={setPayment} />
           </form>
 

@@ -57,7 +57,8 @@ export default function OrdersPage({ mode = 'active' }) {
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status, cancellationReason: reason || o.cancellationReason } : o)));
       toast.success(`Order #${shortId(order.id)} → ${status}`);
       const msg = PATIENT_MESSAGE[status]?.(shortId(order.id), reason);
-      if (msg) sendNotification('patient', order.userId || order.patientId, { ...msg, link: '/orders' });
+      // Guest orders have no account to notify; the pharmacy calls them instead.
+      if (msg && order.userId) sendNotification('patient', order.userId, { ...msg, link: '/orders' });
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -74,7 +75,7 @@ export default function OrdersPage({ mode = 'active' }) {
       if (filter !== 'all' && o.status !== filter) return false;
       if (!q) return true;
       const a = o.shippingAddress || {};
-      return [o.id, a.firstName, a.lastName, a.city, a.phone, o.patientName].some((v) => String(v || '').toLowerCase().includes(q));
+      return [o.id, o.orderNumber, a.firstName, a.lastName, a.city, a.phone, o.patientName].some((v) => String(v || '').toLowerCase().includes(q));
     });
   }, [inScope, filter, search]);
 
@@ -97,7 +98,16 @@ export default function OrdersPage({ mode = 'active' }) {
       ];
 
   const columns = [
-    { key: 'id', header: 'Order', render: (o) => <code className="ph-order-id">#{shortId(o.id)}</code> },
+    {
+      key: 'id',
+      header: 'Order',
+      render: (o) => (
+        <div className="ph-cell-stack">
+          <code className="ph-order-id">{o.orderNumber || `#${shortId(o.id)}`}</code>
+          {!o.userId && <span>Guest · call to confirm</span>}
+        </div>
+      ),
+    },
     {
       key: 'customer',
       header: 'Customer',

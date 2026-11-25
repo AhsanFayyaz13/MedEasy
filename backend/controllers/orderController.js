@@ -1,18 +1,68 @@
 const Order = require('../models/Order');
 const Medicine = require('../models/Medicine');
 const Prescription = require('../models/Prescription');
+const crypto = require('crypto');
+const { normalizePhone } = require('../utils/phone');
+const { sendEmail, escapeHtml } = require('../utils/mailer');
 
 // Must match the checkout page (frontend/src/features/cart/components/checkoutShared.jsx).
 const DELIVERY_FEE = 120;
 const FREE_DELIVERY_FROM = 1000;
 const deliveryFeeFor = (subtotal) => (subtotal >= FREE_DELIVERY_FROM ? 0 : DELIVERY_FEE);
 
+/** A guest may have at most this many orders in progress per phone number (fake-COD protection). */
+const MAX_OPEN_GUEST_ORDERS = 3;
+const OPEN_STATUSES = ['pending', 'confirmed', 'processing', 'dispatched'];
+
+// No 0/O/1/I so numbers are easy to read out over the phone.
+const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const newOrderNumber = () => `ME-${Array.from(crypto.randomBytes(8), (b) => ALPHABET[b % ALPHABET.length]).join('')}`;
+
+/** What a guest is allowed to see about their order. */
+const publicOrder = (o) => ({
+  orderNumber: o.orderNumber,
+  status: o.status,
+  cancellationReason: o.cancellationReason,
+  createdAt: o.createdAt,
+  items: o.items.map((i) => ({ name: i.medicineId?.name || 'Medicine', quantity: i.quantity, price: i.price })),
+  deliveryFee: o.deliveryFee,
+  totalAmount: o.totalAmount,
+  paymentMethod: o.paymentMethod,
+  shippingAddress: { firstName: o.shippingAddress.firstName, city: o.shippingAddress.city },
+});
+
+async function findTrackedOrder({ orderNumber, phone }) {
+  const order = await Order.findOne({ orderNumber, userId: { $exists: false } }).populate('items.medicineId', 'name');
+  // Same message whether the number or the phone is wrong, so numbers can't be probed.
+  if (!order || !order.guest?.phone || order.guest.phone !== normalizePhone(phone)) return null;
+  return order;
+}
+
+async function restock(order) {
+  await Promise.all(order.items.map((i) => Medicine.updateOne({ _id: i.medicineId?._id || i.medicineId }, { $inc: { stock: i.quantity } })));
+}
+
 // @desc    Place a new order
 // @route   POST /api/orders
-// @access  Private
+// @access  Patients, or guests for OTC medicines
 exports.placeOrder = async (req, res) => {
   // Body is validated by validators.orders.place (ids, 1–100 qty, address fields).
-  const { prescriptionId, shippingAddress, paymentMethod } = req.body;
+  const { prescriptionId, shippingAddress, paymentMethod, guestEmail } = req.body;
+  const isGuest = !req.user;
+  if (req.user && req.user.role !== 'patient') {
+    return res.status(403).json({ message: 'Only patient accounts can place orders' });
+  }
+
+  let guestPhone;
+  if (isGuest) {
+    guestPhone = normalizePhone(shippingAddress.phone);
+    if (!guestPhone) return res.status(400).json({ message: 'Please enter a valid phone number' });
+    if (paymentMethod !== 'cod') return res.status(400).json({ message: 'Guest orders are cash on delivery' });
+    const open = await Order.countDocuments({ 'guest.phone': guestPhone, status: { $in: OPEN_STATUSES } });
+    if (open >= MAX_OPEN_GUEST_ORDERS) {
+      return res.status(429).json({ message: 'This phone number already has several orders on the way. Please sign in or contact us to order more.' });
+    }
+  }
 
   // Merge duplicate lines so stock checks are per medicine.
   const qtyById = new Map();
@@ -26,6 +76,9 @@ exports.placeOrder = async (req, res) => {
   }
 
   const requiresPrescription = medicines.some((m) => m.requiresPrescription);
+  if (requiresPrescription && isGuest) {
+    return res.status(401).json({ message: 'Please sign in to order prescription medicines.', error: { code: 'LOGIN_REQUIRED' } });
+  }
   if (requiresPrescription) {
     if (!prescriptionId) {
       return res.status(400).json({ message: 'Prescription required for one or more medicines' });
@@ -67,7 +120,10 @@ exports.placeOrder = async (req, res) => {
 
   try {
     const createdOrder = await Order.create({
-      userId: req.user._id,
+      ...(isGuest
+        ? { guest: { name: `${shippingAddress.firstName} ${shippingAddress.lastName}`.trim(), phone: guestPhone, email: guestEmail } }
+        : { userId: req.user._id }),
+      orderNumber: newOrderNumber(),
       items,
       prescriptionId: requiresPrescription ? prescriptionId : undefined,
       deliveryFee,
@@ -77,6 +133,15 @@ exports.placeOrder = async (req, res) => {
       status: 'pending',
       paymentStatus: 'pending',
     });
+    if (isGuest && guestEmail) {
+      const lines = medicines.map((m) => `<li>${escapeHtml(m.name)} × ${qtyById.get(m._id.toString())}</li>`).join('');
+      sendEmail({
+        to: guestEmail,
+        subject: `MedEasy order ${createdOrder.orderNumber} received`,
+        title: `Order ${createdOrder.orderNumber} received`,
+        bodyHtml: `<p>Thanks, ${escapeHtml(shippingAddress.firstName)}. We’ve received your order and a pharmacist will confirm it shortly.</p><ul>${lines}</ul><p><strong>Total (cash on delivery): Rs. ${totalAmount.toLocaleString('en-PK')}</strong></p><p>Track it any time at ${escapeHtml(process.env.FRONTEND_ORIGIN || 'https://medeasy.systems')}/track with your order number and phone.</p>`,
+      }).catch((err) => console.error('Guest order email failed:', err.message));
+    }
     res.status(201).json(createdOrder);
   } catch (error) {
     await Promise.all(reserved.map((r) => Medicine.updateOne({ _id: r.id }, { $inc: { stock: r.qty } })));
@@ -109,7 +174,7 @@ exports.getOrderById = async (req, res) => {
 
   // Check if user owns the order, or is an admin/pharmacist
   if (
-    order.userId._id.toString() !== req.user._id.toString() &&
+    String(order.userId?._id || '') !== req.user._id.toString() &&
     req.user.role !== 'admin' &&
     req.user.role !== 'pharmacist' &&
     req.user.role !== 'pharmacy'
@@ -168,7 +233,7 @@ exports.cancelOrder = async (req, res) => {
 
   // Check authorization
   if (
-    order.userId.toString() !== req.user._id.toString() &&
+    String(order.userId || '') !== req.user._id.toString() &&
     req.user.role !== 'admin'
   ) {
     return res.status(403).json({ message: 'Not authorized to cancel this order' });
@@ -206,4 +271,29 @@ exports.getAllOrders = async (req, res) => {
     .populate('prescriptionId')
     .sort({ createdAt: -1 });
   res.json(orders);
+};
+
+// @desc    Guest order look-up (order number + phone used at checkout)
+// @route   POST /api/orders/track
+// @access  Public (rate limited)
+exports.trackOrder = async (req, res) => {
+  const order = await findTrackedOrder(req.body);
+  if (!order) return res.status(404).json({ message: 'We couldn’t find an order with that number and phone.' });
+  res.json(publicOrder(order));
+};
+
+// @desc    Guest cancels their own order while it is still pending
+// @route   POST /api/orders/track/cancel
+// @access  Public (rate limited)
+exports.cancelTrackedOrder = async (req, res) => {
+  const order = await findTrackedOrder(req.body);
+  if (!order) return res.status(404).json({ message: 'We couldn’t find an order with that number and phone.' });
+  const cancelled = await Order.findOneAndUpdate(
+    { _id: order._id, status: 'pending' },
+    { $set: { status: 'cancelled', cancellationReason: 'Cancelled by the customer' } },
+    { returnDocument: 'after' }
+  ).populate('items.medicineId', 'name');
+  if (!cancelled) return res.status(400).json({ message: 'This order is already being prepared. Please contact us to cancel it.' });
+  await restock(order);
+  res.json(publicOrder(cancelled));
 };

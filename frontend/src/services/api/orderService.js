@@ -91,6 +91,7 @@ export async function placeOrder(payload) {
   const { data } = await api.post('/orders', payload);
   return {
     orderId:           data._id,
+    orderNumber:       data.orderNumber,
     status:            data.status,
     estimatedDelivery: '2–3 business days',
   };
@@ -117,6 +118,7 @@ export async function fetchOrders(filters = {}) {
   return data.map(order => ({
     ...order,
     id: order._id,
+    orderNumber: order.orderNumber,
     deliveryFee: order.deliveryFee || 0,
     items: order.items.map(i => ({
       medicineId: i.medicineId?._id || i.medicineId,
@@ -149,4 +151,17 @@ export async function cancelOrder(orderId, reason) {
   }
   await api.delete(`/orders/${orderId}`, { data: reason ? { reason } : {} });
   return { success: true };
+}
+
+// ─── Guest order tracking ─────────────────────────────────────────────────────
+/** Look up a guest order with its order number and the phone used at checkout. */
+export async function trackGuestOrder(orderNumber, phone) {
+  const { data } = await api.post('/orders/track', { orderNumber: orderNumber.trim(), phone: phone.trim() });
+  return data;
+}
+
+/** Cancel a guest order while it is still pending. */
+export async function cancelGuestOrder(orderNumber, phone) {
+  const { data } = await api.post('/orders/track/cancel', { orderNumber: orderNumber.trim(), phone: phone.trim() });
+  return data;
 }
