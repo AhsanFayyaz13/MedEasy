@@ -3,8 +3,9 @@ import { Badge, Modal } from '../../../components/ui';
 import { formatDate, formatPhone, formatPrice } from '../../../lib/format';
 import MedicalIcon from '../../medicines/components/MedicalIcon';
 import { PAYMENT_LABELS } from '../lib/orderStatus';
-import { shortOrderId } from '../lib/orderFeedback';
+import { orderRef } from '../lib/orderFeedback';
 import OrderTimeline from './OrderTimeline';
+import DeliveryLocation from './DeliveryLocation';
 
 const PAYMENT_TONE = { paid: 'success', refunded: 'info' };
 
@@ -14,7 +15,7 @@ export default function PatientOrderDetail({ order, onClose }) {
   const placed = order && `Placed ${formatDate(order.createdAt, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
 
   return (
-    <Modal show={!!order} onClose={onClose} size="lg" title={`Order #${shortOrderId(order?.id)}`} description={placed}>
+    <Modal show={!!order} onClose={onClose} size="lg" title={`Order ${orderRef(order)}`} description={placed}>
       {order && (
         <>
           <OrderTimeline status={order.status} cancellationReason={order.cancellationReason} />
@@ -55,6 +56,7 @@ export default function PatientOrderDetail({ order, onClose }) {
                 <span>{addr.city}{addr.postalCode ? `, ${addr.postalCode}` : ''}</span>
                 {addr.phone && <span><FiPhone aria-hidden="true" /> {formatPhone(addr.phone)}</span>}
               </address>
+              <DeliveryLocation address={addr} />
 
               <h3 className="pord-detail__title"><FiCreditCard aria-hidden="true" /> Payment</h3>
               <p className="pord-detail__payment">

@@ -3,9 +3,15 @@ import { Badge, Button, Modal } from '../../../../components/ui';
 import { formatPhone, formatPrice, phoneHref } from '../../../../lib/format';
 import OrderTimeline from '../../../orders/components/OrderTimeline';
 import { PAYMENT_LABELS, fmtDate, serverUrl } from '../pharmacistShared';
+import DeliveryLocation from '../../../orders/components/DeliveryLocation';
+import { orderRef } from '../../../orders/lib/orderFeedback';
 
-const shortId = (id) => String(id || '').slice(-8).toUpperCase();
-const itemName = (i) => i.name || i.medicineId?.name || 'Medicine';
+// Pharmacists need both: "Panadol (Paracetamol 500mg)".
+const itemName = (i) => {
+  const med = i.medicineId || {};
+  if (med.brand && med.name) return `${med.brand} (${med.name})`;
+  return i.name || med.brand || med.name || 'Medicine';
+};
 const fileHref = (url) => (url.startsWith('http') || url.startsWith('data:') ? url : `${serverUrl}${url}`);
 
 /** Invoice-style details of an order for pharmacy staff. */
@@ -14,7 +20,7 @@ export default function OrderDetailModal({ order, onClose }) {
   const addr = order?.shippingAddress || {};
 
   return (
-    <Modal show={!!order} onClose={onClose} size="lg" title={`Order #${shortId(order?.id)}`} description={order ? `Placed ${fmtDate(order.createdAt)}` : undefined}>
+    <Modal show={!!order} onClose={onClose} size="lg" title={`Order ${orderRef(order)}`} description={order ? `Placed ${fmtDate(order.createdAt)}` : undefined}>
       {order && (
         <>
           <OrderTimeline status={order.status} cancellationReason={order.cancellationReason} />
@@ -52,6 +58,7 @@ export default function OrderDetailModal({ order, onClose }) {
                 <span>{addr.address}{addr.city ? `, ${addr.city}` : ''}</span>
                 {addr.phone && <span><FiPhone aria-hidden="true" /> <a href={`tel:${phoneHref(addr.phone)}`}>{formatPhone(addr.phone)}</a></span>}
               </address>
+              <DeliveryLocation address={addr} forStaff />
 
               <h3><FiCreditCard aria-hidden="true" /> Payment</h3>
               <p className="ph-invoice__payment">

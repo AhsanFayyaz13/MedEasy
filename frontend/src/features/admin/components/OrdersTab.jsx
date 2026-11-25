@@ -5,11 +5,12 @@ import { updateOrderStatus } from '../../../services/api/pharmacistService';
 import { Button, EmptyState, SearchInput, Table, Tabs } from '../../../components/ui';
 import { downloadCsv } from '../../../lib/csv';
 import { formatDate, formatPrice } from '../../../lib/format';
+import { hasPin, mapsLink } from '../../../lib/geo';
 import { sendNotification } from '../../../lib/notifications';
 import { OrderStatusBadge } from '../../orders/components/OrderTimeline';
 import OrderActions, { CancelOrderModal } from '../../pharmacist/components/orders/OrderActions';
 import OrderDetailModal from '../../pharmacist/components/orders/OrderDetailModal';
-import { shortId } from './adminShared';
+import { orderRef } from '../../orders/lib/orderFeedback';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -38,10 +39,10 @@ export default function OrdersTab({ orders, setOrders }) {
     try {
       await updateOrderStatus(order.id, status, reason);
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status, cancellationReason: reason || o.cancellationReason } : o)));
-      toast.success(`Order #${shortId(order.id)} is now ${status}.`);
+      toast.success(`Order ${orderRef(order)} is now ${status}.`);
       const patientId = order.userId?._id || order.userId;
       if (patientId) sendNotification('patient', patientId, {
-        text: status === 'cancelled' ? `Order cancelled: #${shortId(order.id)} was cancelled by MedEasy support. Reason: ${reason}` : `Order update: #${shortId(order.id)} is now ${status}.`,
+        text: status === 'cancelled' ? `Order cancelled: ${orderRef(order)} was cancelled by MedEasy support. Reason: ${reason}` : `Order update: ${orderRef(order)} is now ${status}.`,
         emoji: status === 'cancelled' ? 'cancel' : 'booking',
         link: `/orders/${order.id}`,
       });
@@ -55,11 +56,13 @@ export default function OrdersTab({ orders, setOrders }) {
 
   const exportCsv = () =>
     downloadCsv(`medeasy-orders-${new Date().toISOString().slice(0, 10)}`, [
-      { header: 'Order', value: (o) => shortId(o.id) },
+      { header: 'Order', value: (o) => orderRef(o) },
       { header: 'Date', value: (o) => formatDate(o.createdAt) },
       { header: 'Customer', value: customer },
       { header: 'Phone', value: (o) => o.shippingAddress?.phone },
       { header: 'City', value: (o) => o.shippingAddress?.city },
+      { header: 'Address', value: (o) => o.shippingAddress?.address },
+      { header: 'Map pin', value: (o) => (hasPin(o.shippingAddress?.location) ? mapsLink(o.shippingAddress.location) : '') },
       { header: 'Items', value: (o) => o.items?.length },
       { header: 'Total (Rs)', value: (o) => o.totalAmount },
       { header: 'Status', value: (o) => o.status },
@@ -67,7 +70,7 @@ export default function OrdersTab({ orders, setOrders }) {
     ], visible);
 
   const columns = [
-    { key: 'id', header: 'Order', render: (o) => <div className="adm-stack"><span className="adm-mono">{o.orderNumber || `#${shortId(o.id)}`}</span>{!o.userId && <span>Guest</span>}</div> },
+    { key: 'id', header: 'Order', render: (o) => <div className="adm-stack"><span className="adm-mono">{orderRef(o)}</span>{!o.userId && <span>Guest</span>}</div> },
     { key: 'customer', header: 'Customer', render: (o) => <div className="adm-stack"><strong>{customer(o)}</strong><span>{o.shippingAddress?.city}</span></div> },
     { key: 'date', header: 'Placed', render: (o) => <span className="adm-muted">{formatDate(o.createdAt)}</span> },
     { key: 'total', header: 'Total', render: (o) => <strong>{formatPrice(o.totalAmount)}</strong> },
@@ -79,7 +82,7 @@ export default function OrdersTab({ orders, setOrders }) {
       render: (o) => (
         <div className="adm-actions">
           <OrderActions order={o} busy={busyId === o.id} onAdvance={(ord, s) => change(ord, s).catch(() => {})} onCancel={setCancelling} />
-          <Button size="sm" variant="ghost" leftIcon={<FiEye aria-hidden="true" />} onClick={() => setViewing(o)} aria-label={`View order ${shortId(o.id)}`}>View</Button>
+          <Button size="sm" variant="ghost" leftIcon={<FiEye aria-hidden="true" />} onClick={() => setViewing(o)} aria-label={`View order ${orderRef(o)}`}>View</Button>
         </div>
       ),
     },

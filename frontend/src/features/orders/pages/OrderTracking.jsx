@@ -10,7 +10,7 @@ import { BUSINESS } from '../../../lib/business';
 import PatientOrderCard from '../components/PatientOrderCard';
 import PatientOrderDetail from '../components/PatientOrderDetail';
 import { CancelOrderDialog, RateOrderDialog, ReportOrderDialog } from '../components/OrderDialogs';
-import { notifyOrderCancelled, saveOrderReport, saveOrderReview, shortOrderId } from '../lib/orderFeedback';
+import { notifyOrderCancelled, saveOrderReport, saveOrderReview, orderRef } from '../lib/orderFeedback';
 import './OrderTracking.css';
 
 const FILTERS = [
@@ -73,7 +73,7 @@ export default function OrderTracking() {
       await cancelOrder(order.id, reason || undefined);
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: 'cancelled', cancellationReason: reason || o.cancellationReason } : o)));
       notifyOrderCancelled(order, reason);
-      toast.success(`Order #${shortOrderId(order.id)} cancelled.`);
+      toast.success(`Order ${orderRef(order)} cancelled.`);
       close();
     } catch (e) {
       toast.error(e.message || 'Could not cancel the order. Please try again.');

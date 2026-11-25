@@ -254,6 +254,38 @@ describe('appointments', () => {
 });
 
 describe('orders', () => {
+  it('stores the delivery map pin and the rider notes with the address', async () => {
+    const patient = await createUser();
+    const med = await createMedicine({ stock: 5 });
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${tokenFor(patient)}`)
+      .send({
+        items: [{ medicineId: med._id.toString(), quantity: 1 }],
+        shippingAddress: { ...validAddress, location: { lat: 31.520369123, lng: 74.358749456 } },
+        notes: 'Green gate, ring twice',
+      });
+    assert.equal(res.status, 201);
+    assert.deepEqual(res.body.shippingAddress.location, { lat: 31.520369, lng: 74.358749 });
+    assert.equal(res.body.shippingAddress.notes, 'Green gate, ring twice');
+  });
+
+  it('rejects a delivery pin outside Pakistan and accepts orders without a pin', async () => {
+    const patient = await createUser();
+    const med = await createMedicine({ stock: 5 });
+    const order = (shippingAddress) =>
+      request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${tokenFor(patient)}`)
+        .send({ items: [{ medicineId: med._id.toString(), quantity: 1 }], shippingAddress });
+    const abroad = await order({ ...validAddress, location: { lat: 51.5072, lng: -0.1276 } });
+    assert.equal(abroad.status, 400);
+    assert.match(abroad.body.message, /inside Pakistan/);
+    const noPin = await order({ ...validAddress, location: null });
+    assert.equal(noPin.status, 201);
+    assert.equal(noPin.body.shippingAddress.location?.lat, undefined);
+  });
+
   it('uses database prices and decrements stock', async () => {
     const patient = await createUser();
     const med = await createMedicine({ price: 50, stock: 5 });

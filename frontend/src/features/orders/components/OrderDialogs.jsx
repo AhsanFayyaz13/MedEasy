@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Modal, Select, Textarea } from '../../../components/ui';
-import { RATING_OPTIONS, REPORT_TYPES, shortOrderId } from '../lib/orderFeedback';
+import { RATING_OPTIONS, REPORT_TYPES, orderRef } from '../lib/orderFeedback';
 
 /**
  * Small form-in-a-modal used by the three patient order dialogs.
@@ -43,7 +43,7 @@ export function CancelOrderDialog({ order, onClose, onConfirm }) {
     <FormDialog
       order={order}
       onClose={onClose}
-      title={`Cancel order #${shortOrderId(order?.id)}?`}
+      title={`Cancel order ${orderRef(order)}?`}
       description="The pharmacy will be told straight away and nothing will be charged."
       formId="patient-cancel-form"
       submitLabel="Cancel order"

@@ -140,6 +140,16 @@ const medicines = {
 
 // ── Orders ─────────────────────────────────────────────────────────
 const ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'dispatched', 'delivered', 'cancelled'];
+
+// We only deliver in Pakistan: a pin outside this box is a mis-tap, not an address.
+const PK_BOUNDS = { minLat: 23.5, maxLat: 37.2, minLng: 60.8, maxLng: 77.9 };
+const deliveryPin = z
+  .object({ lat: z.coerce.number().finite(), lng: z.coerce.number().finite() })
+  .refine(
+    (p) => p.lat >= PK_BOUNDS.minLat && p.lat <= PK_BOUNDS.maxLat && p.lng >= PK_BOUNDS.minLng && p.lng <= PK_BOUNDS.maxLng,
+    { message: 'The delivery pin must be inside Pakistan.' }
+  )
+  .transform((p) => ({ lat: Number(p.lat.toFixed(6)), lng: Number(p.lng.toFixed(6)) })); // ~10 cm
 const orders = {
   place: z.object({
     items: z
@@ -154,9 +164,11 @@ const orders = {
       city: trimmed(80).min(2, 'City is required'),
       postalCode: optionalText(12),
       phone,
+      notes: optionalText(500),
+      location: emptyToUndefined(deliveryPin.optional()),
     }),
     paymentMethod: z.enum(['cod', 'jazz', 'easy', 'card']).default('cod'),
-    notes: optionalText(500),
+    notes: optionalText(500), // older clients sent delivery notes here; kept for compatibility
     // Guests only: where to send the order confirmation.
     guestEmail: emptyToUndefined(email.optional()),
   }),

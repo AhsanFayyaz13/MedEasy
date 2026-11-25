@@ -24,7 +24,7 @@ const publicOrder = (o) => ({
   status: o.status,
   cancellationReason: o.cancellationReason,
   createdAt: o.createdAt,
-  items: o.items.map((i) => ({ name: i.medicineId?.name || 'Medicine', quantity: i.quantity, price: i.price })),
+  items: o.items.map((i) => ({ name: i.medicineId?.brand || i.medicineId?.name || 'Medicine', quantity: i.quantity, price: i.price })),
   deliveryFee: o.deliveryFee,
   totalAmount: o.totalAmount,
   paymentMethod: o.paymentMethod,
@@ -32,7 +32,7 @@ const publicOrder = (o) => ({
 });
 
 async function findTrackedOrder({ orderNumber, phone }) {
-  const order = await Order.findOne({ orderNumber, userId: { $exists: false } }).populate('items.medicineId', 'name');
+  const order = await Order.findOne({ orderNumber, userId: { $exists: false } }).populate('items.medicineId', 'name brand');
   // Same message whether the number or the phone is wrong, so numbers can't be probed.
   if (!order || !order.guest?.phone || order.guest.phone !== normalizePhone(phone)) return null;
   return order;
@@ -47,7 +47,9 @@ async function restock(order) {
 // @access  Patients, or guests for OTC medicines
 exports.placeOrder = async (req, res) => {
   // Body is validated by validators.orders.place (ids, 1–100 qty, address fields).
-  const { prescriptionId, shippingAddress, paymentMethod, guestEmail } = req.body;
+  const { prescriptionId, paymentMethod, guestEmail } = req.body;
+  // Delivery notes used to arrive top-level and were dropped; keep them with the address.
+  const shippingAddress = { ...req.body.shippingAddress, notes: req.body.shippingAddress.notes || req.body.notes };
   const isGuest = !req.user;
   if (req.user && req.user.role !== 'patient') {
     return res.status(403).json({ message: 'Only patient accounts can place orders' });
@@ -154,7 +156,7 @@ exports.placeOrder = async (req, res) => {
 // @access  Private
 exports.getMyOrders = async (req, res) => {
   const orders = await Order.find({ userId: req.user._id })
-    .populate('items.medicineId', 'name imageUrl requiresPrescription')
+    .populate('items.medicineId', 'name brand imageUrl requiresPrescription')
     .sort({ createdAt: -1 });
   res.json(orders);
 };
@@ -165,7 +167,7 @@ exports.getMyOrders = async (req, res) => {
 exports.getOrderById = async (req, res) => {
   const order = await Order.findById(req.params.id)
     .populate('userId', 'name email')
-    .populate('items.medicineId', 'name imageUrl')
+    .populate('items.medicineId', 'name brand imageUrl')
     .populate('prescriptionId');
 
   if (!order) {
@@ -267,7 +269,7 @@ exports.getAllOrders = async (req, res) => {
   if (req.query.status && req.query.status !== 'all') filter.status = req.query.status;
   const orders = await Order.find(filter)
     .populate('userId', 'name email')
-    .populate('items.medicineId', 'name imageUrl requiresPrescription')
+    .populate('items.medicineId', 'name brand imageUrl requiresPrescription')
     .populate('prescriptionId')
     .sort({ createdAt: -1 });
   res.json(orders);
@@ -292,7 +294,7 @@ exports.cancelTrackedOrder = async (req, res) => {
     { _id: order._id, status: 'pending' },
     { $set: { status: 'cancelled', cancellationReason: 'Cancelled by the customer' } },
     { returnDocument: 'after' }
-  ).populate('items.medicineId', 'name');
+  ).populate('items.medicineId', 'name brand');
   if (!cancelled) return res.status(400).json({ message: 'This order is already being prepared. Please contact us to cancel it.' });
   await restock(order);
   res.json(publicOrder(cancelled));

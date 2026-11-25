@@ -12,6 +12,9 @@ const DEFAULT_PHARMACY = 'MedEasy Pharmacy Partner';
 
 export const shortOrderId = (id) => String(id || '').slice(-8).toUpperCase();
 
+/** How an order is named everywhere: the number the customer was given (older orders: short id). */
+export const orderRef = (order) => order?.orderNumber || `#${shortOrderId(order?.id || order?._id)}`;
+
 export const RATING_OPTIONS = [
   { value: '5', label: '5 — Excellent' },
   { value: '4', label: '4 — Very good' },
@@ -49,7 +52,7 @@ export function saveOrderReview(order, user, { rating, comment }) {
     time: Date.now(),
   });
   sendNotification('admin', null, {
-    text: `Pharmacy review: ${user?.name || 'A patient'} rated order #${shortOrderId(order.id)} ${rating}/5 — “${excerpt(comment)}”`,
+    text: `Pharmacy review: ${user?.name || 'A patient'} rated order ${orderRef(order)} ${rating}/5 — “${excerpt(comment)}”`,
     emoji: 'star',
     link: '/admin?tab=audits',
   });
@@ -68,14 +71,14 @@ export function saveOrderReport(order, user, { issueType, details }) {
     time: Date.now(),
   });
   sendNotification('admin', null, {
-    text: `Pharmacy complaint: ${user?.name || 'A patient'} reported a problem with order #${shortOrderId(order.id)} — “${excerpt(details)}”`,
+    text: `Pharmacy complaint: ${user?.name || 'A patient'} reported a problem with order ${orderRef(order)} — “${excerpt(details)}”`,
     emoji: 'complaint',
     link: '/admin?tab=audits',
   });
 }
 
 export function notifyOrderCancelled(order, reason) {
-  const text = `Order cancelled: the patient cancelled order #${shortOrderId(order.id)}.${reason ? ` Reason: ${reason}` : ''}`;
+  const text = `Order cancelled: the patient cancelled order ${orderRef(order)}.${reason ? ` Reason: ${reason}` : ''}`;
   sendNotification('admin', null, { text, emoji: 'cancel', link: '/admin?tab=orders' });
   sendNotification('pharmacist', null, { text, emoji: 'cancel', link: '/pharmacist' });
 }

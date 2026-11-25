@@ -6,6 +6,7 @@ import { Badge, Button, EmptyState, ErrorState, Skeleton } from '../../../compon
 import { Panel, StatGrid, WelcomeBanner } from '../../../components/layout/DashboardLayout/widgets';
 import { formatPrice } from '../../../lib/format';
 import { fmtDate } from './pharmacistShared';
+import { orderRef } from '../../orders/lib/orderFeedback';
 
 const LOW_STOCK = 10;
 const ACTIVE = ['pending', 'confirmed', 'processing', 'dispatched'];
@@ -92,7 +93,7 @@ export default function OverviewPage({ setActiveSection }) {
                     {recent.map((o) => (
                       <li key={o.id || o._id}>
                         <div>
-                          <strong>#{String(o.id || o._id).slice(-6).toUpperCase()}</strong>
+                          <strong>{orderRef(o)}</strong>
                           <span>{o.customerName || o.patientName || o.userId?.name || 'Customer'} · {fmtDate(o.createdAt || o.date)}</span>
                         </div>
                         <div className="dw-list__end">

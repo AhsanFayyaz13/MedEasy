@@ -30,7 +30,12 @@ const privacy = {
           <ul>
             <li><strong>Account details:</strong> name, phone number, email address (optional), postal address and password (stored only as a secure hash).</li>
             <li><strong>Health information:</strong> prescriptions you upload, medicines you order, the reason for an appointment, and consultation notes or e-prescriptions written by your doctor.</li>
-            <li><strong>Orders and delivery:</strong> items, delivery address, phone number, payment method and order history.</li>
+            <li><strong>Orders and delivery:</strong> items, delivery address, delivery notes, phone number, payment method and order history.</li>
+            <li>
+              <strong>Delivery map pin (optional):</strong> if you pin your door on the map at checkout, we store that point with your order
+              so the rider can navigate to it. If you tap “Use my current location”, your browser first asks your permission; your position is
+              only used to centre the map, and we keep only the pin you confirm.
+            </li>
             <li><strong>Messages and feedback:</strong> chats with your doctor, contact-form messages, reviews and complaints.</li>
             <li><strong>Professional accounts:</strong> for doctors and pharmacies — PMC/PMDC or licence numbers, degrees, clinic or store address, storefront photos and availability.</li>
           </ul>
@@ -67,6 +72,11 @@ const privacy = {
               <strong>Service providers</strong> that process data on our behalf: cloud hosting and database providers, Cloudinary (storage of
               uploaded images and documents) and Resend (sending verification and service emails). They may only use your data to provide
               their service to us.
+            </li>
+            <li>
+              <strong>OpenStreetMap</strong> provides the map and area search at checkout. When you open the map, your browser loads map images
+              for the area you view from OpenStreetMap, and any place you search for is sent to its search service. Like any website, they
+              receive your IP address with these requests. Your name, phone number and order are not shared with them.
             </li>
             <li><strong>Authorities</strong>, when required by law, a court order, or to protect someone’s life or safety.</li>
           </ul>

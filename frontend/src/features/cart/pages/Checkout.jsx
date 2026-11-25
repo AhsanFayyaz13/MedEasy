@@ -32,6 +32,7 @@ export default function Checkout() {
     phone: formatPhone(user?.phone).replace(' ', ''), // 03001234567, like the placeholder
     notes: '',
     email: '',
+    location: null, // optional map pin { lat, lng }
   }));
   const [payment, setPayment] = useState('cod');
   const [rxFile, setRxFile] = useState(null);
@@ -64,6 +65,7 @@ export default function Checkout() {
         <div className="container">
           <EmptyState
             icon={<FiShoppingCart />}
+            titleAs="h1"
             title="Your cart is empty"
             description="Add some medicines before checking out."
             action={<Button to="/medicines">Browse medicines</Button>}
@@ -113,10 +115,11 @@ export default function Checkout() {
           city: addr.city,
           postalCode: addr.postalCode.trim(),
           phone: addr.phone.trim(),
+          notes: addr.notes.trim() || undefined,
+          location: addr.location || undefined,
         },
         paymentMethod: payment,
         prescriptionId,
-        notes: addr.notes.trim() || undefined,
         guestEmail: isGuest ? addr.email.trim() || undefined : undefined,
       });
 
@@ -152,7 +155,7 @@ export default function Checkout() {
 
         <div className="chk-layout">
           <form id="checkout-form" noValidate onSubmit={submit} className="chk-main">
-            <AddressSection addr={addr} errors={errors} onChange={onChange} guest={isGuest} onSignIn={openLoginModal} />
+            <AddressSection addr={addr} errors={errors} onChange={onChange} onPin={(location) => setAddr((a) => ({ ...a, location }))} guest={isGuest} onSignIn={openLoginModal} />
             {needsRx && isGuest && (
               <Alert tone="warning" title="Sign in to order prescription medicines">
                 Your cart has a prescription medicine, which needs an account so a pharmacist can check your prescription.{' '}

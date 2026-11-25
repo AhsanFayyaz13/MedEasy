@@ -1,0 +1,163 @@
+/* ── Delivery pin picker (dialog) ─────────────────────────────── */
+.lp {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.lp__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.lp__search {
+  display: flex;
+  flex: 1 1 220px;
+  align-items: center;
+  min-width: 0;
+  padding-left: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.lp__search:focus-within {
+  border-color: var(--fg-primary);
+  box-shadow: 0 0 0 3px var(--tint-primary-100);
+}
+
+.lp__search input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: var(--text-sm);
+  outline: none;
+}
+
+.lp__results {
+  display: grid;
+  max-height: 180px;
+  margin: 0;
+  padding: var(--space-1);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  list-style: none;
+}
+
+.lp__results button {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lp__results button:hover,
+.lp__results button:focus-visible {
+  background: var(--tint-primary-50);
+}
+
+.lp__results svg {
+  flex-shrink: 0;
+  margin-top: 0.2em;
+  color: var(--fg-primary);
+}
+
+.lp__map-wrap {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.lp__map {
+  height: min(58vh, 460px);
+  min-height: 280px;
+  background: var(--bg-subtle);
+}
+
+.lp__map:focus-visible {
+  outline: 3px solid var(--fg-primary);
+  outline-offset: -3px;
+}
+
+/* Fixed pin: its tip marks the map centre. */
+.lp__pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 500;
+  line-height: 0;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  filter: drop-shadow(0 3px 4px color-mix(in srgb, var(--color-black) 35%, transparent));
+}
+
+.lp__pin path {
+  fill: var(--fg-primary);
+  stroke: var(--color-white);
+  stroke-width: 1.5;
+}
+
+.lp__pin circle {
+  fill: var(--color-white);
+}
+
+.lp__pin-shadow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 499;
+  width: 10px;
+  height: 4px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-black) 35%, transparent);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.lp__coords {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.lp__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* Leaflet's controls follow the site's theme. */
+.lp .leaflet-bar a {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.lp .leaflet-control-attribution {
+  font-size: 11px;
+}
+
+[data-theme='dark'] .lp .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  color: var(--text-muted);
+}
+
+[data-theme='dark'] .lp .leaflet-control-attribution a {
+  color: var(--fg-primary);
+}

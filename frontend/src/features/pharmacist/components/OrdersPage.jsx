@@ -10,16 +10,16 @@ import { OrderStatusBadge } from '../../orders/components/OrderTimeline';
 import OrderActions, { CancelOrderModal } from './orders/OrderActions';
 import OrderDetailModal from './orders/OrderDetailModal';
 import { fmtDate } from './pharmacistShared';
+import { orderRef } from '../../orders/lib/orderFeedback';
 
 const ACTIVE = ['pending', 'confirmed', 'dispatched'];
 const HISTORY = ['delivered', 'cancelled'];
-const shortId = (id) => String(id || '').slice(-8).toUpperCase();
 
 const PATIENT_MESSAGE = {
-  confirmed: (id) => ({ text: `Order confirmed: your order #${id} is being prepared.`, emoji: 'booking' }),
-  dispatched: (id) => ({ text: `Order dispatched: your order #${id} is on the way!`, emoji: 'booking' }),
-  delivered: (id) => ({ text: `Order delivered: your order #${id} has arrived.`, emoji: 'welcome' }),
-  cancelled: (id, reason) => ({ text: `Order cancelled: your order #${id} was cancelled by the pharmacy.${reason ? ` Reason: ${reason}` : ''}`, emoji: 'cancel' }),
+  confirmed: (id) => ({ text: `Order confirmed: your order ${id} is being prepared.`, emoji: 'booking' }),
+  dispatched: (id) => ({ text: `Order dispatched: your order ${id} is on the way!`, emoji: 'booking' }),
+  delivered: (id) => ({ text: `Order delivered: your order ${id} has arrived.`, emoji: 'welcome' }),
+  cancelled: (id, reason) => ({ text: `Order cancelled: your order ${id} was cancelled by the pharmacy.${reason ? ` Reason: ${reason}` : ''}`, emoji: 'cancel' }),
 };
 
 /** Pharmacy order management. mode="active" (to process) or "history" (delivered/cancelled). */
@@ -55,8 +55,8 @@ export default function OrdersPage({ mode = 'active' }) {
     try {
       await updateOrderStatus(order.id, status, reason);
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status, cancellationReason: reason || o.cancellationReason } : o)));
-      toast.success(`Order #${shortId(order.id)} → ${status}`);
-      const msg = PATIENT_MESSAGE[status]?.(shortId(order.id), reason);
+      toast.success(`Order ${orderRef(order)} → ${status}`);
+      const msg = PATIENT_MESSAGE[status]?.(orderRef(order), reason);
       // Guest orders have no account to notify; the pharmacy calls them instead.
       if (msg && order.userId) sendNotification('patient', order.userId, { ...msg, link: '/orders' });
     } catch (e) {
@@ -103,7 +103,7 @@ export default function OrdersPage({ mode = 'active' }) {
       header: 'Order',
       render: (o) => (
         <div className="ph-cell-stack">
-          <code className="ph-order-id">{o.orderNumber || `#${shortId(o.id)}`}</code>
+          <code className="ph-order-id">{orderRef(o)}</code>
           {!o.userId && <span>Guest · call to confirm</span>}
         </div>
       ),
@@ -130,7 +130,7 @@ export default function OrdersPage({ mode = 'active' }) {
       header: 'Details',
       align: 'end',
       render: (o) => (
-        <Button size="sm" variant="ghost" leftIcon={<FiEye aria-hidden="true" />} onClick={() => setDetail(o)} aria-label={`View order ${shortId(o.id)}`}>
+        <Button size="sm" variant="ghost" leftIcon={<FiEye aria-hidden="true" />} onClick={() => setDetail(o)} aria-label={`View order ${orderRef(o)}`}>
           View
         </Button>
       ),

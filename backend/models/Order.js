@@ -60,7 +60,14 @@ const orderSchema = new mongoose.Schema({
     address: { type: String, required: true },
     city: { type: String, required: true },
     postalCode: { type: String },
-    phone: { type: String, required: true }
+    phone: { type: String, required: true },
+    // Rider instructions (gate code, landmark, preferred time).
+    notes: { type: String, maxlength: 500 },
+    // Optional map pin the customer dropped at checkout (WGS84, as in Google/OSM links).
+    location: {
+      lat: { type: Number, min: -90, max: 90 },
+      lng: { type: Number, min: -180, max: 180 },
+    },
   }
 }, {
   timestamps: true

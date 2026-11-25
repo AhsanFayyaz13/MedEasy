@@ -39,6 +39,87 @@
   font-size: var(--text-sm);
 }
 
+/* Optional delivery map pin */
+.chk-pin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+}
+
+.chk-pin.is-set {
+  border-style: solid;
+  border-color: var(--tint-accent-200, var(--border));
+  background: var(--tint-accent-50, var(--bg-subtle));
+}
+
+.chk-pin__icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--tint-primary-100);
+  color: var(--fg-primary);
+  font-size: var(--text-lg);
+}
+
+.chk-pin.is-set .chk-pin__icon {
+  background: var(--tint-accent-100);
+  color: var(--fg-accent);
+}
+
+.chk-pin__text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.chk-pin__text strong {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+}
+
+.chk-pin__text p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.chk-pin__text a {
+  display: inline-flex;
+  gap: 0.25em;
+  align-items: center;
+  font-weight: var(--weight-semibold);
+}
+
+.chk-pin__optional {
+  margin-left: var(--space-1);
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.chk-pin__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.chk-pin__loading {
+  display: flex;
+  flex-basis: 100%;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
 .chk-rx {
   border-color: var(--tint-warning-200);
 }

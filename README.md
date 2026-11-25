@@ -103,6 +103,8 @@ refuses to start with a clear message if something required is missing.
 | `VITE_API_BASE_URL` | Render production API | Backend base URL incl. `/api`, e.g. `http://localhost:5000/api`. |
 | `VITE_SITE_URL` | `https://medeasy.systems` | Used for canonical URLs / social tags. |
 | `VITE_USE_MOCK_API` | `false` | `true` runs selected screens on local mock data (offline demos only). |
+| `VITE_MAP_TILE_URL` | OpenStreetMap | Map tiles for the checkout pin, e.g. a tile provider's `https://…/{z}/{x}/{y}.png?key=…`. Add its domain to `img-src` in both header files. |
+| `VITE_MAP_ATTRIBUTION` | OpenStreetMap credit | Attribution HTML your tile provider requires. |
 
 ---
 
@@ -225,7 +227,7 @@ Status codes: `400` validation / bad id · `401` unauthenticated · `403` forbid
 
 ```bash
 npm run lint      # ESLint (0 errors) + Stylelint
-npm test          # 49 backend integration tests (auth & sessions, validation, orders, reviews, CORS)
+npm test          # 51 backend integration tests (auth & sessions, validation, orders, reviews, CORS)
 npm run build     # production build
 ```
 
@@ -283,6 +285,14 @@ Guest checkout for over-the-counter medicines (tracked at `/track` with order nu
 required for prescription (Rx) medicines, cart cleared on logout, server-side pricing and stock reservation,
 order tracking with status timeline.
 
+**Delivery map pin (optional).** At checkout customers can pin their door on a map: "Use my current location",
+an area search, or moving the map under a fixed pin (auto-zooms to street level before confirming). The written
+address stays required, so checkout works even if the map can't load. The pin (`shippingAddress.location`,
+validated to lie inside Pakistan) and the rider notes (`shippingAddress.notes`) are stored with the order; the
+pharmacy and admin order view links straight to it in Google Maps, and the admin CSV export includes it.
+Map: Leaflet + OpenStreetMap tiles, search: OpenStreetMap Nominatim (only on "Search", per its usage policy).
+Leaflet is a separate ~45 KB chunk loaded only when the map is opened.
+
 ### Role dashboards
 
 Admin (users, verifications, medicines, appointments, orders, reports with charts, settings, audits),
@@ -311,6 +321,8 @@ Uploads go to Cloudinary and temporary files are deleted. Seed medicine images a
   `frontend/public/_headers` + `_redirects` (Netlify). Keep the two header lists in sync.
 - **If the API moves to another domain**, update `connect-src` and `img-src` in both files (and the
   `preconnect` link in `index.html`), or the browser will block API calls.
+- The headers allow the checkout map: `tile.openstreetmap.org` (img-src), `nominatim.openstreetmap.org`
+  (connect-src) and `geolocation=(self)`. If you switch map provider, swap those domains too.
 
 ---
 

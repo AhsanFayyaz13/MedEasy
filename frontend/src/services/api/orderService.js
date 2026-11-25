@@ -122,7 +122,8 @@ export async function fetchOrders(filters = {}) {
     deliveryFee: order.deliveryFee || 0,
     items: order.items.map(i => ({
       medicineId: i.medicineId?._id || i.medicineId,
-      name: i.medicineId?.name || 'Unknown Medicine',
+      // Brand first, like the catalogue and cart ("Panadol", not "Paracetamol 500mg").
+      name: i.medicineId?.brand || i.medicineId?.name || 'Unknown Medicine',
       image: i.medicineId?.imageUrl || '💊',
       requiresPrescription: i.medicineId?.requiresPrescription,
       price: i.price,

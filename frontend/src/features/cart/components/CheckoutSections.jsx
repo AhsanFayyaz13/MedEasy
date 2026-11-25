@@ -4,10 +4,11 @@ import { Alert, Badge, Button, Card, FileDropzone, Input, Select, Textarea } fro
 import { formatPrice } from '../../../lib/format';
 import MedicalIcon from '../../medicines/components/MedicalIcon';
 import { CITIES, FREE_THRESHOLD, MAX_FILE_MB, PAYMENT_METHODS } from './checkoutShared';
+import DeliveryPinField from './DeliveryPinField';
 
 const PAY_ICON = { cod: <FiDollarSign />, jazz: <FiSmartphone />, easy: <FiSmartphone />, card: <FiCreditCard /> };
 
-export function AddressSection({ addr, errors, onChange, guest = false, onSignIn }) {
+export function AddressSection({ addr, errors, onChange, onPin, guest = false, onSignIn }) {
   const field = (name) => ({ name, value: addr[name], onChange, error: errors[name] });
   return (
     <Card as="section" aria-labelledby="chk-address-title">
@@ -23,6 +24,7 @@ export function AddressSection({ addr, errors, onChange, guest = false, onSignIn
         <div className="col-12"><Input label="Street address" required placeholder="House #42, Block B, DHA Phase 5" autoComplete="street-address" {...field('address')} /></div>
         <div className="col-sm-6"><Select label="City" required placeholder="Select a city" options={CITIES} {...field('city')} /></div>
         <div className="col-sm-6"><Input label="Postal code" hint="Optional" inputMode="numeric" autoComplete="postal-code" {...field('postalCode')} /></div>
+        <div className="col-12"><DeliveryPinField value={addr.location} city={addr.city} onChange={onPin} /></div>
         <div className={guest ? 'col-sm-6' : 'col-12'}>
           <Input label="Phone number" required type="tel" placeholder="03001234567" autoComplete="tel" hint={guest ? 'We’ll call to confirm, and you’ll use it to track your order.' : undefined} {...field('phone')} />
         </div>
