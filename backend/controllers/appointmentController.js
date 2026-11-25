@@ -72,7 +72,7 @@ exports.getMyAppointments = async (req, res) => {
   } else if (req.user.role === 'admin' || req.user.role === 'pharmacist' || req.user.role === 'pharmacy') {
     appointments = await Appointment.find()
       .populate('patientId', 'name email')
-      .populate('doctorId', 'name email')
+      .populate('doctorId', 'name email specialty')
       .sort({ date: 1, time: 1 });
   }
 

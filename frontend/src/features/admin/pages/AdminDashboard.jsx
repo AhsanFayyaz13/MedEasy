@@ -59,7 +59,6 @@ export default function AdminDashboard() {
   const [active, setActive] = useDashboardTab(SECTIONS);
   const {
     users, setUsers,
-    medicines, setMedicines,
     orders, setOrders,
     apts, setApts,
     loading, error: loadError,
@@ -132,11 +131,11 @@ export default function AdminDashboard() {
             {active === 'overview' && <OverviewTab setActive={setActive} stats={globalStats} orders={orders} />}
             {active === 'verifications' && <VerificationsTab users={users} setUsers={setUsers} />}
             {active === 'users' && <UsersTab users={users} setUsers={setUsers} />}
-            {active === 'medicines' && <MedicinesTab medicines={medicines} setMedicines={setMedicines} />}
+            {active === 'medicines' && <MedicinesTab />}
             {active === 'appointments' && <AppointmentsTab apts={apts} setApts={setApts} />}
             {active === 'orders' && <OrdersTab orders={orders} setOrders={setOrders} />}
             {active === 'reports' && <ReportsTab orders={orders} apts={apts} />}
-            {active === 'audits' && <AuditsTab />}
+            {active === 'audits' && <AuditsTab users={users} setUsers={setUsers} />}
             {active === 'settings' && <SettingsTab />}
           </>
         )}

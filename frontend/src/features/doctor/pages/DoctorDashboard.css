@@ -1,18 +1,5 @@
 
-
-
-/* ── Table & Generic Card ────────────────────────────────────── */
-.doc-card { border: none !important; border-radius: var(--radius-lg) !important; box-shadow: 0 4px 15px color-mix(in srgb, var(--color-black) 4%, transparent) !important; background: var(--surface); }
-.status-pill { font-size: var(--text-xs); border-radius: var(--radius-xl); padding: 0.3em 0.75em; text-transform: capitalize; display: inline-flex; align-items: center; gap: var(--space-1); }
-.rounded-8 { border-radius: var(--radius-sm) !important; }
-
-/* ── Digital Prescription Pad & EHR lookup ───────────────────── */
-.rounded-10 { border-radius: var(--radius-md) !important; }
-.doc-label { font-weight: var(--weight-bold); font-size: var(--text-xs); color: var(--color-secondary-600); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: var(--space-1-5); }
 .rx-view-notes { font-size: var(--text-sm); border: 1px solid var(--color-neutral-200); }
-
-/* Extras */
-.extra-small { font-size: var(--text-xs); font-weight: var(--weight-bold); }
 
 /* ── Rebuilt components ─────────────────────────────────────── */
 .doc-next {

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FiAlertTriangle, FiEdit2, FiPackage, FiPlus, FiSlash, FiXCircle } from 'react-icons/fi';
+import { FiAlertTriangle, FiEdit2, FiPackage, FiPlus, FiSlash, FiTrash2, FiXCircle } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
 import { Badge, Button, EmptyState, ErrorState, Modal, SearchInput, Skeleton, Table, Tabs } from '../../../components/ui';
 import { StatGrid } from '../../../components/layout/DashboardLayout/widgets';
 import { formatPrice } from '../../../lib/format';
 import MedicalIcon from '../../medicines/components/MedicalIcon';
-import { fetchAllMedicines, createMedicine, updateMedicine } from '../../../services/api/pharmacistService';
+import { fetchAllMedicines, createMedicine, updateMedicine, deleteMedicine } from '../../../services/api/pharmacistService';
 import MedicineFormModal from './MedicineFormModal';
 
 const LOW = 10;
@@ -17,10 +17,11 @@ const FILTERS = [
 ];
 
 /**
- * Pharmacy inventory: add and edit medicines, spot low stock.
- * Deleting from the catalogue is admin-only (API), so staff mark items out of stock instead.
+ * Inventory: add and edit medicines, spot low stock.
+ * Deleting from the catalogue is admin-only (API): pass canDelete for admins;
+ * pharmacy staff mark items out of stock instead.
  */
-export default function MedicinesPage() {
+export default function MedicinesPage({ canDelete = false }) {
   const { toast } = useToast();
   const [meds, setMeds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,7 @@ export default function MedicinesPage() {
   const [filter, setFilter] = useState('all');
   const [editing, setEditing] = useState(null); // null | 'new' | medicine
   const [clearing, setClearing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -78,6 +80,20 @@ export default function MedicinesPage() {
     }
   };
 
+  const confirmDelete = async () => {
+    setBusy(true);
+    try {
+      await deleteMedicine(deleting.id);
+      setMeds((prev) => prev.filter((m) => m.id !== deleting.id));
+      toast.success(`${deleting.brand || deleting.name} removed from the catalogue.`);
+      setDeleting(null);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Could not remove the medicine.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const q = search.trim().toLowerCase();
   const active = FILTERS.find((f) => f.id === filter);
   const visible = meds.filter((m) => active.test(m) && (!q || `${m.name} ${m.brand} ${m.category} ${m.manufacturer || ''}`.toLowerCase().includes(q)));
@@ -116,6 +132,11 @@ export default function MedicinesPage() {
           {m.stock > 0 && (
             <Button size="sm" variant="ghost" className="ph-danger" leftIcon={<FiSlash aria-hidden="true" />} onClick={() => setClearing(m)} aria-label={`Mark ${m.brand || m.name} out of stock`}>
               Out of stock
+            </Button>
+          )}
+          {canDelete && (
+            <Button size="sm" variant="ghost" className="ph-danger" leftIcon={<FiTrash2 aria-hidden="true" />} onClick={() => setDeleting(m)} aria-label={`Remove ${m.brand || m.name}`}>
+              Remove
             </Button>
           )}
         </div>
@@ -169,6 +190,19 @@ export default function MedicinesPage() {
           <>
             <Button variant="secondary" onClick={() => setClearing(null)}>Cancel</Button>
             <Button variant="danger" loading={busy} onClick={confirmOutOfStock}>Mark out of stock</Button>
+          </>
+        }
+      />
+
+      <Modal
+        show={!!deleting}
+        onClose={() => setDeleting(null)}
+        title={`Remove ${deleting?.brand || deleting?.name || 'medicine'} from the catalogue?`}
+        description="It disappears from the shop for everyone. Past orders keep their details."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDeleting(null)}>Keep it</Button>
+            <Button variant="danger" loading={busy} onClick={confirmDelete}>Remove</Button>
           </>
         }
       />

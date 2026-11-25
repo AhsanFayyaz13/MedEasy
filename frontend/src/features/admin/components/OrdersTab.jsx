@@ -1,64 +1,114 @@
-import { Card, Table, Badge, Button } from 'react-bootstrap';
-import { FaShoppingCart } from 'react-icons/fa';
+import { useState } from 'react';
+import { FiDownload, FiEye, FiShoppingBag } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
+import { updateOrderStatus } from '../../../services/api/pharmacistService';
+import { Button, EmptyState, SearchInput, Table, Tabs } from '../../../components/ui';
+import { downloadCsv } from '../../../lib/csv';
+import { formatDate, formatPrice } from '../../../lib/format';
+import { sendNotification } from '../../../lib/notifications';
+import { OrderStatusBadge } from '../../orders/components/OrderTimeline';
+import OrderActions, { CancelOrderModal } from '../../pharmacist/components/orders/OrderActions';
+import OrderDetailModal from '../../pharmacist/components/orders/OrderDetailModal';
+import { shortId } from './adminShared';
 
+const FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'open', label: 'Open', statuses: ['pending', 'confirmed', 'processing', 'dispatched'] },
+  { id: 'delivered', label: 'Delivered', statuses: ['delivered'] },
+  { id: 'cancelled', label: 'Cancelled', statuses: ['cancelled'] },
+];
+const customer = (o) => (o.userId?.name || `${o.shippingAddress?.firstName || ''} ${o.shippingAddress?.lastName || ''}`).trim() || 'Customer';
 
-/* ═══════════════ TAB 4 – ORDER MANAGEMENT ════════════════════ */
+/** Every order on the platform: filter, inspect, move along or cancel (with restock). */
 export default function OrdersTab({ orders, setOrders }) {
   const { toast } = useToast();
+  const [filter, setFilter] = useState('open');
+  const [search, setSearch] = useState('');
+  const [viewing, setViewing] = useState(null);
+  const [cancelling, setCancelling] = useState(null);
+  const [busyId, setBusyId] = useState(null);
 
-  const handleRefund = (id) => {
-    if (!window.confirm(`Issue complete refund for Order #${id} and flag dispute resolved?`)) return;
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'cancelled', paymentStatus: 'refunded' } : o));
-    toast.success(`Dispute resolved. Refund of Rs. ${orders.find(o => o.id === id)?.totalAmount.toLocaleString()} credited successfully!`);
+  const q = search.trim().toLowerCase();
+  const matches = (f, o) => !f.statuses || f.statuses.includes(o.status);
+  const active = FILTERS.find((f) => f.id === filter);
+  const visible = orders.filter((o) => matches(active, o) && (!q || `${o.id} ${customer(o)} ${o.shippingAddress?.city || ''} ${o.shippingAddress?.phone || ''}`.toLowerCase().includes(q)));
+
+  const change = async (order, status, reason) => {
+    setBusyId(order.id);
+    try {
+      await updateOrderStatus(order.id, status, reason);
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status, cancellationReason: reason || o.cancellationReason } : o)));
+      toast.success(`Order #${shortId(order.id)} is now ${status}.`);
+      const patientId = order.userId?._id || order.userId;
+      sendNotification('patient', patientId, {
+        text: status === 'cancelled' ? `Order cancelled: #${shortId(order.id)} was cancelled by MedEasy support. Reason: ${reason}` : `Order update: #${shortId(order.id)} is now ${status}.`,
+        emoji: status === 'cancelled' ? 'cancel' : 'booking',
+        link: `/orders/${order.id}`,
+      });
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Could not update the order.');
+      throw e;
+    } finally {
+      setBusyId(null);
+    }
   };
 
+  const exportCsv = () =>
+    downloadCsv(`medeasy-orders-${new Date().toISOString().slice(0, 10)}`, [
+      { header: 'Order', value: (o) => shortId(o.id) },
+      { header: 'Date', value: (o) => formatDate(o.createdAt) },
+      { header: 'Customer', value: customer },
+      { header: 'Phone', value: (o) => o.shippingAddress?.phone },
+      { header: 'City', value: (o) => o.shippingAddress?.city },
+      { header: 'Items', value: (o) => o.items?.length },
+      { header: 'Total (Rs)', value: (o) => o.totalAmount },
+      { header: 'Status', value: (o) => o.status },
+      { header: 'Payment', value: (o) => o.paymentStatus },
+    ], visible);
+
+  const columns = [
+    { key: 'id', header: 'Order', render: (o) => <span className="adm-mono">#{shortId(o.id)}</span> },
+    { key: 'customer', header: 'Customer', render: (o) => <div className="adm-stack"><strong>{customer(o)}</strong><span>{o.shippingAddress?.city}</span></div> },
+    { key: 'date', header: 'Placed', render: (o) => <span className="adm-muted">{formatDate(o.createdAt)}</span> },
+    { key: 'total', header: 'Total', render: (o) => <strong>{formatPrice(o.totalAmount)}</strong> },
+    { key: 'status', header: 'Status', render: (o) => <OrderStatusBadge status={o.status} /> },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'end',
+      render: (o) => (
+        <div className="adm-actions">
+          <OrderActions order={o} busy={busyId === o.id} onAdvance={(ord, s) => change(ord, s).catch(() => {})} onCancel={setCancelling} />
+          <Button size="sm" variant="ghost" leftIcon={<FiEye aria-hidden="true" />} onClick={() => setViewing(o)} aria-label={`View order ${shortId(o.id)}`}>View</Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <>
-      <div className="adm-section-toolbar mb-3">
-        <h5 className="adm-section-title"><FaShoppingCart className="me-2 text-primary" /> Active Logistics Tracking & Dispute Resolution</h5>
+    <div className="adm-section">
+      <div className="adm-toolbar">
+        <Tabs tabs={FILTERS.map((f) => ({ id: f.id, label: f.label, badge: orders.filter((o) => matches(f, o)).length || null }))} active={filter} onChange={setFilter} label="Filter orders" />
+        <div className="adm-toolbar__end">
+          <SearchInput label="Search orders" placeholder="Order, customer, city or phone" value={search} onChange={setSearch} />
+          <Button variant="secondary" leftIcon={<FiDownload aria-hidden="true" />} onClick={exportCsv} disabled={!visible.length}>Export CSV</Button>
+        </div>
       </div>
 
-      <Card className="adm-table-card border-0 shadow-sm">
-        <div className="adm-table-wrap">
-          <Table hover className="adm-table">
-            <thead>
-              <tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Total Items</th><th>Total Amount</th><th>Logistics Status</th><th>Payment</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              {orders.length === 0 && <tr><td colSpan={8} className="text-center py-4">No platform orders logged.</td></tr>}
-              {orders.map(o => (
-                <tr key={o.id}>
-                  <td><code>{o.id}</code></td>
-                  <td className="fw-bold">{o.shippingAddress?.firstName} {o.shippingAddress?.lastName}</td>
-                  <td className="text-muted small">{new Date(o.createdAt).toLocaleDateString('en-PK')}</td>
-                  <td>{o.items.length} items</td>
-                  <td className="fw-bold">Rs. {o.totalAmount.toLocaleString()}</td>
-                  <td>
-                    <Badge bg={o.status === 'delivered' ? 'success' : o.status === 'cancelled' ? 'danger' : 'warning'}>
-                      {o.status}
-                    </Badge>
-                  </td>
-                  <td>
-                    <Badge bg={o.paymentStatus === 'paid' ? 'success' : o.paymentStatus === 'refunded' ? 'info' : 'warning'} text={o.paymentStatus !== 'paid' ? 'dark' : undefined}>
-                      {o.paymentStatus || 'pending'}
-                    </Badge>
-                  </td>
-                  <td>
-                    {o.status !== 'cancelled' ? (
-                      <Button size="sm" variant="danger" className="rounded-8 py-1" onClick={() => handleRefund(o.id)}>
-                        Refund / Cancel
-                      </Button>
-                    ) : (
-                      <span className="text-muted extra-small">Resolved</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </div>
-      </Card>
-    </>
+      <Table columns={columns} data={visible} rowKey="id" caption="Orders" empty={<EmptyState icon={<FiShoppingBag />} title="No orders here" />} />
+
+      <OrderDetailModal order={viewing} onClose={() => setViewing(null)} />
+      {cancelling && (
+        <CancelOrderModal
+          key={cancelling.id}
+          order={cancelling}
+          onClose={() => setCancelling(null)}
+          onConfirm={async (reason) => {
+            await change(cancelling, 'cancelled', reason);
+            setCancelling(null);
+          }}
+        />
+      )}
+    </div>
   );
 }

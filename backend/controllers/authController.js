@@ -548,6 +548,11 @@ exports.updateProfile = async (req, res) => {
     // NOTE: verification is granted only by an administrator (adminController.approveProfessional).
   }
 
+  // A declined doctor who edits their profile goes back into the admin review queue.
+  if (user.role === 'doctor' && user.verificationDeclinedAt) {
+    user.verificationDeclinedAt = undefined;
+    user.verificationDeclineReason = undefined;
+  }
   await user.save();
 
   // Return updated user profile omitting the password

@@ -21,6 +21,9 @@ const userSchema = new mongoose.Schema({
   
   // Profile verification status for professional roles (doctor, pharmacist, pharmacy)
   isVerifiedProfile: { type: Boolean, default: false },
+  // Set when an admin declines a doctor's or pharmacy's verification; cleared on approval.
+  verificationDeclineReason: { type: String, trim: true, maxlength: 500 },
+  verificationDeclinedAt: { type: Date },
 
   // Pharmacy / Pharmacist specific fields
   pharmacyName: { type: String },

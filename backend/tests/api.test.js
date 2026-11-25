@@ -355,6 +355,20 @@ describe('reviews', () => {
   });
 });
 
+describe('admin verifications', () => {
+  it('records why a doctor was declined and clears it on approval', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const doctor = await createUser({ role: 'doctor' });
+    const auth = { Authorization: `Bearer ${tokenFor(admin)}` };
+    const declined = await request(app).put(`/api/admin/users/${doctor._id}/decline`).set(auth).send({ reason: 'PMC number not found' });
+    assert.equal(declined.body.user.verificationDeclineReason, 'PMC number not found');
+    assert.ok(declined.body.user.verificationDeclinedAt);
+    const approved = await request(app).put(`/api/admin/users/${doctor._id}/approve`).set(auth);
+    assert.equal(approved.body.user.isVerifiedProfile, true);
+    assert.equal(approved.body.user.verificationDeclineReason, undefined);
+  });
+});
+
 describe('CORS', () => {
   it('rejects unknown origins', async () => {
     const res = await request(app).get('/api/health').set('Origin', 'https://evil.example');

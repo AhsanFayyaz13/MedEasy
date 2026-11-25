@@ -1,169 +1,132 @@
 import { useMemo } from 'react';
-import { tokenColor } from '../../../lib/theme';
-import { Row, Col, Card, Table, Badge, Button } from 'react-bootstrap';
-import { FaChartBar, FaBoxes, FaDownload, FaTrophy, FaCalendarCheck } from 'react-icons/fa';
 import { Bar } from 'react-chartjs-2';
-import { fmtRs, pdfPlaceholder, chartOpts } from './adminShared';
+import { FiAward, FiBarChart2, FiDownload, FiPackage, FiUserCheck } from 'react-icons/fi';
+import { tokenColor } from '../../../lib/theme';
+import { Button, EmptyState, Table } from '../../../components/ui';
+import { Panel, StatGrid } from '../../../components/layout/DashboardLayout/widgets';
+import { downloadCsv } from '../../../lib/csv';
+import { formatPrice } from '../../../lib/format';
+import { chartOpts } from './adminShared';
 
+const MONTHS = 6;
+// Order lines keep only a reference, so a medicine deleted from the catalogue has no name left.
+const itemName = (i) => i.medicineId?.name || i.name || 'Removed from catalogue';
 
-/* ═══════════════ TAB 5 – REPORTS & ANALYTICS ════════════════ */
+/** Sales trend, best sellers and busiest doctors, computed from live orders and appointments. */
 export default function ReportsTab({ orders, apts }) {
+  const sold = useMemo(() => (orders || []).filter((o) => o.status !== 'cancelled'), [orders]);
 
-  // ── Build last-6-months revenue & order count from real orders ──
-  const monthlyData = useMemo(() => {
+  const monthly = useMemo(() => {
     const now = new Date();
-    const labels = [];
-    const revenue = [];
-    const orderCounts = [];
-
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      labels.push(label);
-
-      const monthOrders = (orders || []).filter(o => {
-        if (o.status === 'cancelled') return false;
+    return Array.from({ length: MONTHS }, (_, k) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (MONTHS - 1 - k), 1);
+      const inMonth = sold.filter((o) => {
         const od = new Date(o.createdAt);
         return od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth();
       });
+      return {
+        label: d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
+        revenue: inMonth.reduce((s, o) => s + (o.totalAmount || 0), 0),
+        orders: inMonth.length,
+      };
+    });
+  }, [sold]);
 
-      revenue.push(monthOrders.reduce((s, o) => s + (o.totalAmount || 0), 0));
-      orderCounts.push(monthOrders.length);
-    }
-    return { labels, revenue, orderCounts };
-  }, [orders]);
-
-  // ── Top medicines: aggregate units sold from order items ──
   const topMedicines = useMemo(() => {
-    const map = {};
-    (orders || []).forEach(o => {
-      if (o.status === 'cancelled') return;
-      (o.items || []).forEach(item => {
-        const name = item.medicineName || item.name || 'Unknown';
-        const category = item.category || '—';
-        if (!map[name]) map[name] = { name, category, units: 0, revenue: 0 };
-        map[name].units += item.quantity || 0;
-        map[name].revenue += (item.price || 0) * (item.quantity || 0);
-      });
-    });
-    return Object.values(map)
-      .sort((a, b) => b.units - a.units)
-      .slice(0, 5);
-  }, [orders]);
+    const map = new Map();
+    sold.forEach((o) =>
+      (o.items || []).forEach((i) => {
+        const name = itemName(i);
+        const row = map.get(name) || { name, units: 0, revenue: 0 };
+        row.units += i.quantity || 0;
+        row.revenue += (i.price || 0) * (i.quantity || 0);
+        map.set(name, row);
+      })
+    );
+    return [...map.values()].sort((a, b) => b.units - a.units).slice(0, 5);
+  }, [sold]);
 
-  // ── Doctor leaderboard: count completed appointments per doctor ──
-  const doctorLeaderboard = useMemo(() => {
-    const map = {};
-    (apts || []).filter(a => a.status === 'completed').forEach(a => {
-      const name = a.doctorName || a.doctorId?.name || 'Unknown Doctor';
-      const dept = a.doctorId?.specialization || a.specialization || '—';
-      if (!map[name]) map[name] = { name, dept, cases: 0 };
-      map[name].cases += 1;
-    });
-    return Object.values(map)
-      .sort((a, b) => b.cases - a.cases)
-      .slice(0, 5);
+  const topDoctors = useMemo(() => {
+    const map = new Map();
+    (apts || [])
+      .filter((a) => a.status === 'completed')
+      .forEach((a) => {
+        const name = a.doctorName || a.doctorId?.name || 'Doctor';
+        const row = map.get(name) || { name, specialty: a.doctorId?.specialty || '—', cases: 0 };
+        row.cases += 1;
+        map.set(name, row);
+      });
+    return [...map.values()].sort((a, b) => b.cases - a.cases).slice(0, 5);
   }, [apts]);
 
-  const barData = {
-    labels: monthlyData.labels,
+  const revenue = sold.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const avg = sold.length ? Math.round(revenue / sold.length) : 0;
+
+  const chart = {
+    labels: monthly.map((m) => m.label),
     datasets: [
-      { label: 'Revenue (Rs.)', data: monthlyData.revenue,     backgroundColor: tokenColor('--color-primary-400', 0.7), borderRadius: 8, borderSkipped: false },
-      { label: 'Orders',        data: monthlyData.orderCounts, backgroundColor: tokenColor('--color-violet-400', 0.7), borderRadius: 8, borderSkipped: false },
+      { label: 'Revenue (Rs.)', data: monthly.map((m) => m.revenue), backgroundColor: tokenColor('--color-primary-400', 0.75), borderRadius: 6, yAxisID: 'y' },
+      { label: 'Orders', data: monthly.map((m) => m.orders), backgroundColor: tokenColor('--color-violet-400', 0.75), borderRadius: 6, yAxisID: 'y1' },
     ],
   };
+  const base = chartOpts();
+  const options = { ...base, scales: { ...base.scales, y1: { beginAtZero: true, position: 'right', grid: { display: false }, ticks: { precision: 0, color: base.scales.y.ticks.color } } } };
 
-  const hasOrders = (orders || []).length > 0;
-  const hasApts   = (apts || []).filter(a => a.status === 'completed').length > 0;
+  const exportCsv = () =>
+    downloadCsv(`medeasy-monthly-sales-${new Date().toISOString().slice(0, 10)}`, [
+      { header: 'Month', value: (m) => m.label },
+      { header: 'Orders', value: (m) => m.orders },
+      { header: 'Revenue (Rs)', value: (m) => m.revenue },
+    ], monthly);
 
   return (
-    <>
-      <div className="adm-section-toolbar mb-3">
-        <h5 className="adm-section-title">MedEasy Health Platform Analytics</h5>
-        <Button variant="outline-secondary" size="sm" onClick={() => pdfPlaceholder('Sales Report')}>
-          <FaDownload className="me-1" />Export PDF
-        </Button>
+    <div className="adm-section">
+      <StatGrid
+        stats={[
+          { label: 'Revenue (all time)', value: formatPrice(revenue), icon: <FiBarChart2 />, tone: 'success', hint: 'Excludes cancelled orders' },
+          { label: 'Orders', value: sold.length, icon: <FiPackage />, tone: 'primary' },
+          { label: 'Average order', value: formatPrice(avg), icon: <FiAward />, tone: 'violet' },
+        ]}
+      />
+
+      <Panel title={`Revenue and orders — last ${MONTHS} months`} icon={<FiBarChart2 />} actions={<Button size="sm" variant="secondary" leftIcon={<FiDownload aria-hidden="true" />} onClick={exportCsv}>Export CSV</Button>}>
+        {sold.length ? (
+          <div style={{ height: 300 }}>
+            <Bar data={chart} options={options} role="img" aria-label="Bar chart of monthly revenue and order counts" />
+          </div>
+        ) : (
+          <EmptyState icon={<FiBarChart2 />} title="No sales yet" description="The chart fills in as orders come in." />
+        )}
+      </Panel>
+
+      <div className="adm-two-col">
+        <Panel title="Best-selling medicines" icon={<FiPackage />} flush>
+          <Table
+            columns={[
+              { key: 'name', header: 'Medicine', render: (m) => <strong>{m.name}</strong> },
+              { key: 'units', header: 'Units', render: (m) => m.units.toLocaleString() },
+              { key: 'revenue', header: 'Revenue', align: 'end', render: (m) => formatPrice(m.revenue) },
+            ]}
+            data={topMedicines}
+            rowKey="name"
+            caption="Best-selling medicines"
+            empty={<EmptyState icon={<FiPackage />} title="No sales yet" />}
+          />
+        </Panel>
+        <Panel title="Most consultations" icon={<FiUserCheck />} flush>
+          <Table
+            columns={[
+              { key: 'name', header: 'Doctor', render: (d) => <strong>{d.name}</strong> },
+              { key: 'specialty', header: 'Specialty', render: (d) => <span className="adm-muted">{d.specialty}</span> },
+              { key: 'cases', header: 'Completed', align: 'end', render: (d) => d.cases },
+            ]}
+            data={topDoctors}
+            rowKey="name"
+            caption="Doctors by completed consultations"
+            empty={<EmptyState icon={<FiUserCheck />} title="No completed consultations yet" />}
+          />
+        </Panel>
       </div>
-
-      {/* Monthly revenue & orders bar chart */}
-      <Card className="adm-chart-card mb-4 border-0 shadow-sm">
-        <Card.Body>
-          <h6 className="adm-chart-title">Monthly Revenue &amp; Orders</h6>
-          {hasOrders ? (
-            <div style={{height: 285}}>
-              <Bar data={barData} options={chartOpts()} />
-            </div>
-          ) : (
-            <div className="text-center text-muted py-5">
-              <FaChartBar size={36} className="mb-2 opacity-25" />
-              <p className="mb-0">No order data yet. Chart will populate once orders are placed.</p>
-            </div>
-          )}
-        </Card.Body>
-      </Card>
-
-      <Row className="g-4">
-        {/* Top doctors leaderboard */}
-        <Col lg={6}>
-          <Card className="adm-table-card border-0 shadow-sm">
-            <Card.Header className="adm-card-header bg-transparent pt-3 border-0">
-              <h6 className="adm-chart-title mb-0"><FaTrophy className="me-2 text-warning" /> Top Doctor Leaderboard</h6>
-            </Card.Header>
-            <div className="adm-table-wrap">
-              {hasApts ? (
-                <Table hover className="adm-table">
-                  <thead><tr><th>Doctor Name</th><th>Speciality</th><th>Completed Consults</th></tr></thead>
-                  <tbody>
-                    {doctorLeaderboard.map((doc, idx) => (
-                      <tr key={doc.name}>
-                        <td><span className="top-rank me-2">#{idx + 1}</span><strong>{doc.name}</strong></td>
-                        <td><Badge bg="info" className="cat-badge">{doc.dept}</Badge></td>
-                        <td className="fw-bold">{doc.cases} consultations</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              ) : (
-                <div className="text-center text-muted py-4">
-                  <FaCalendarCheck size={28} className="mb-2 opacity-25" />
-                  <p className="mb-0 small">No completed appointments yet.</p>
-                </div>
-              )}
-            </div>
-          </Card>
-        </Col>
-
-        {/* Top selling medicines */}
-        <Col lg={6}>
-          <Card className="adm-table-card border-0 shadow-sm">
-            <Card.Header className="adm-card-header bg-transparent pt-3 border-0">
-              <h6 className="adm-chart-title mb-0"><FaTrophy className="me-2 text-warning" /> Top Selling Pharmaceutics</h6>
-            </Card.Header>
-            <div className="adm-table-wrap">
-              {topMedicines.length > 0 ? (
-                <Table hover className="adm-table">
-                  <thead><tr><th>Medicine</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
-                  <tbody>
-                    {topMedicines.map((m, i) => (
-                      <tr key={m.name}>
-                        <td><span className="top-rank me-2">#{i + 1}</span>{m.name}</td>
-                        <td><Badge bg="secondary" className="cat-badge">{m.category}</Badge></td>
-                        <td>{m.units.toLocaleString()} units</td>
-                        <td className="fw-bold">{fmtRs(m.revenue)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              ) : (
-                <div className="text-center text-muted py-4">
-                  <FaBoxes size={28} className="mb-2 opacity-25" />
-                  <p className="mb-0 small">No sales data yet. Data will appear once orders are fulfilled.</p>
-                </div>
-              )}
-            </div>
-          </Card>
-        </Col>
-      </Row>
-    </>
+    </div>
   );
 }

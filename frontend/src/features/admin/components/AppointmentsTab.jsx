@@ -1,114 +1,130 @@
 import { useState } from 'react';
-import { Card, Table, Badge, Button, Form, Modal } from 'react-bootstrap';
-import { FaClock, FaCalendarCheck } from 'react-icons/fa';
+import { FiCalendar, FiClock, FiXCircle } from 'react-icons/fi';
+import api from '../../../services/api/client';
 import { useToast } from '../../../context/ToastContext';
-import { STATUS_COLOR, fmtDate } from './adminShared';
+import { Badge, Button, EmptyState, Input, Modal, SearchInput, Table, Tabs } from '../../../components/ui';
+import { sendNotification } from '../../../lib/notifications';
+import { APPOINTMENT_TONE } from '../../appointments/lib/appointmentUtils';
+import { fmtDate, shortId } from './adminShared';
 
+const FILTERS = ['scheduled', 'completed', 'cancelled', 'all'];
+const LABEL = { scheduled: 'Upcoming', completed: 'Completed', cancelled: 'Cancelled', all: 'All' };
+const idOf = (ref) => ref?._id || ref;
 
-/* ═══════════════ TAB 3 – APPOINTMENT OVERSIGHT ═══════════════ */
+/** All appointments: admins can reschedule or cancel upcoming ones. */
 export default function AppointmentsTab({ apts, setApts }) {
   const { toast } = useToast();
-  const [showModal, setShowModal] = useState(false);
-  const [selectedApt, setSelectedApt] = useState(null);
-  const [newDate, setNewDate] = useState('');
-  const [newTime, setNewTime] = useState('10:00 AM');
+  const [filter, setFilter] = useState('scheduled');
+  const [search, setSearch] = useState('');
+  const [cancelling, setCancelling] = useState(null);
+  const [moving, setMoving] = useState(null);
+  const [when, setWhen] = useState({ date: '', time: '' });
+  const [busy, setBusy] = useState(false);
 
-  const handleCancelOverride = (id) => {
-    if (!window.confirm('Force cancel this appointment? This sends a notification to the patient and doctor.')) return;
-    setApts(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' } : a));
-    toast.success('Appointment cancelled by Administrator Override');
+  const q = search.trim().toLowerCase();
+  const visible = apts.filter((a) => (filter === 'all' || a.status === filter) && (!q || `${a.patientName} ${a.doctorName} ${a.reason || ''}`.toLowerCase().includes(q)));
+
+  const notifyBoth = (a, text, emoji) => {
+    sendNotification('patient', idOf(a.patientId), { text, emoji, link: '/appointments/book' });
+    sendNotification('doctor', idOf(a.doctorId), { text, emoji, link: '/doctor?tab=schedule' });
   };
 
-  const openRescheduleModal = (apt) => {
-    setSelectedApt(apt);
-    setNewDate(apt.date);
-    setNewTime(apt.time);
-    setShowModal(true);
+  const save = async (a, body, after) => {
+    setBusy(true);
+    try {
+      const { data } = await api.put(`/appointments/${a.id}`, body);
+      setApts((prev) => prev.map((x) => (x.id === a.id ? { ...x, status: data.status, date: data.date, time: data.time } : x)));
+      after(data);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Could not update the appointment.');
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleRescheduleSave = (e) => {
+  const confirmCancel = () =>
+    save(cancelling, { status: 'cancelled' }, () => {
+      toast.success('Appointment cancelled.');
+      notifyBoth(cancelling, `Appointment cancelled by MedEasy support: #APT-${shortId(cancelling.id)} on ${fmtDate(cancelling.date)}.`, 'cancel');
+      setCancelling(null);
+    });
+
+  const openMove = (a) => {
+    setWhen({ date: String(a.date).slice(0, 10), time: a.time || '' });
+    setMoving(a);
+  };
+
+  const confirmMove = (e) => {
     e.preventDefault();
-    if (!selectedApt) return;
-    setApts(prev => prev.map(a => a.id === selectedApt.id ? { ...a, date: newDate, time: newTime } : a));
-    toast.success(`Appointment #APT-${selectedApt.id} rescheduled to ${newDate} at ${newTime}`);
-    setShowModal(false);
-    setSelectedApt(null);
+    if (!when.date || !when.time.trim()) return;
+    save(moving, { date: when.date, time: when.time.trim() }, () => {
+      toast.success('Appointment rescheduled.');
+      notifyBoth(moving, `Appointment rescheduled: #APT-${shortId(moving.id)} is now on ${fmtDate(when.date)} at ${when.time.trim()}.`, 'booking');
+      setMoving(null);
+    });
   };
+
+  const columns = [
+    { key: 'patient', header: 'Patient', render: (a) => <strong>{a.patientName}</strong> },
+    { key: 'doctor', header: 'Doctor', render: (a) => <div className="adm-stack"><span className="adm-strong">{a.doctorName}</span><span>{a.doctorId?.specialty}</span></div> },
+    { key: 'when', header: 'When', render: (a) => <div className="adm-stack"><span>{fmtDate(a.date)}</span><span>{a.time}</span></div> },
+    { key: 'reason', header: 'Reason', render: (a) => <span className="adm-muted">{a.reason || '—'}</span> },
+    { key: 'status', header: 'Status', render: (a) => <Badge tone={APPOINTMENT_TONE[a.status] || 'neutral'}>{a.status}</Badge> },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'end',
+      render: (a) =>
+        a.status === 'scheduled' ? (
+          <div className="adm-actions">
+            <Button size="sm" variant="secondary" leftIcon={<FiClock aria-hidden="true" />} onClick={() => openMove(a)}>Reschedule</Button>
+            <Button size="sm" variant="ghost" className="adm-danger" leftIcon={<FiXCircle aria-hidden="true" />} onClick={() => setCancelling(a)}>Cancel</Button>
+          </div>
+        ) : (
+          <span className="adm-muted">—</span>
+        ),
+    },
+  ];
 
   return (
-    <>
-      <div className="adm-section-toolbar mb-3">
-        <h5 className="adm-section-title"><FaCalendarCheck className="me-2 text-primary" /> Hospital-wide Appointment Oversight</h5>
+    <div className="adm-section">
+      <div className="adm-toolbar">
+        <Tabs tabs={FILTERS.map((f) => ({ id: f, label: LABEL[f], badge: f === 'all' ? null : apts.filter((a) => a.status === f).length || null }))} active={filter} onChange={setFilter} label="Filter appointments" />
+        <SearchInput label="Search appointments" placeholder="Patient, doctor or reason" value={search} onChange={setSearch} />
       </div>
 
-      <Card className="adm-table-card border-0 shadow-sm">
-        <div className="adm-table-wrap">
-          <Table hover className="adm-table">
-            <thead>
-              <tr><th>#ID</th><th>Patient</th><th>Assigned Doctor</th><th>Date & Time</th><th>Reason</th><th>Status</th><th>Oversight Actions</th></tr>
-            </thead>
-            <tbody>
-              {apts.length === 0 && <tr><td colSpan={7} className="text-center py-4">No active appointments found.</td></tr>}
-              {apts.map(a => (
-                <tr key={a.id}>
-                  <td className="text-muted small">#APT-{a.id}</td>
-                  <td className="fw-bold">{a.patientName}</td>
-                  <td>{a.doctorName}</td>
-                  <td>{fmtDate(a.date)} at <Badge bg="light" text="dark">{a.time}</Badge></td>
-                  <td className="text-muted small">{a.reason || 'General Follow-up'}</td>
-                  <td>
-                    <Badge bg={STATUS_COLOR[a.status] || 'secondary'} text={a.status === 'scheduled' ? 'dark' : undefined}>
-                      {a.status}
-                    </Badge>
-                  </td>
-                  <td>
-                    {a.status === 'scheduled' ? (
-                      <div className="d-flex gap-2">
-                        <Button size="sm" variant="outline-primary" onClick={() => openRescheduleModal(a)}>Reschedule</Button>
-                        <Button size="sm" variant="outline-danger" onClick={() => handleCancelOverride(a.id)}>Force Cancel</Button>
-                      </div>
-                    ) : (
-                      <span className="text-muted extra-small">No action available</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </div>
-      </Card>
+      <Table columns={columns} data={visible} rowKey="id" caption="Appointments" empty={<EmptyState icon={<FiCalendar />} title={`No ${LABEL[filter].toLowerCase()} appointments`} />} />
 
-      {/* Reschedule Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton className="ph-modal-header">
-          <Modal.Title className="fw-bold"><FaClock className="me-2 text-primary" /> Reschedule Appointment</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleRescheduleSave}>
-            <Form.Group className="mb-3">
-              <Form.Label>Patient: <strong>{selectedApt?.patientName}</strong></Form.Label>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>New Consultation Date</Form.Label>
-              <Form.Control type="date" required value={newDate} onChange={e => setNewDate(e.target.value)} />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Consultation Time Slot</Form.Label>
-              <Form.Select value={newTime} onChange={e => setNewTime(e.target.value)}>
-                <option value="09:00 AM">09:00 AM</option>
-                <option value="10:00 AM">10:00 AM</option>
-                <option value="11:30 AM">11:30 AM</option>
-                <option value="02:00 PM">02:00 PM</option>
-                <option value="03:30 PM">03:30 PM</option>
-              </Form.Select>
-            </Form.Group>
-            <div className="d-flex justify-content-end gap-2 mt-4">
-              <Button variant="outline-secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-              <Button type="submit" className="btn-adm-save">Update Appointment</Button>
-            </div>
-          </Form>
-        </Modal.Body>
+      <Modal
+        show={!!cancelling}
+        onClose={() => setCancelling(null)}
+        title="Cancel this appointment?"
+        description={cancelling ? `${cancelling.patientName} with ${cancelling.doctorName} on ${fmtDate(cancelling.date)} at ${cancelling.time}. Both will be notified.` : undefined}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setCancelling(null)}>Keep</Button>
+            <Button variant="danger" loading={busy} onClick={confirmCancel}>Cancel appointment</Button>
+          </>
+        }
+      />
+
+      <Modal
+        show={!!moving}
+        onClose={() => setMoving(null)}
+        title="Reschedule appointment"
+        description={moving ? `${moving.patientName} with ${moving.doctorName}. Both will be notified.` : undefined}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setMoving(null)}>Cancel</Button>
+            <Button type="submit" form="reschedule-form" loading={busy}>Save</Button>
+          </>
+        }
+      >
+        <form id="reschedule-form" onSubmit={confirmMove} className="row g-3">
+          <div className="col-sm-6"><Input label="Date" type="date" required min={new Date().toISOString().slice(0, 10)} value={when.date} onChange={(e) => setWhen((w) => ({ ...w, date: e.target.value }))} /></div>
+          <div className="col-sm-6"><Input label="Time" required placeholder="10:30" value={when.time} onChange={(e) => setWhen((w) => ({ ...w, time: e.target.value }))} /></div>
+        </form>
       </Modal>
-    </>
+    </div>
   );
 }

@@ -1,64 +1,79 @@
-import { useState } from 'react';
-import { Card, Button, Form } from 'react-bootstrap';
-import { FaSlidersH } from 'react-icons/fa';
-import { useToast } from '../../../context/ToastContext';
+import { FiExternalLink, FiInfo, FiSettings } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { Alert } from '../../../components/ui';
+import { Panel } from '../../../components/layout/DashboardLayout/widgets';
+import { BUSINESS, LEGAL_LAST_UPDATED, LEGAL_LINKS } from '../../../lib/business';
+import { formatDate, formatPrice } from '../../../lib/format';
+import { DELIVERY_FEE, FREE_THRESHOLD, MAX_FILE_MB } from '../../cart/components/checkoutShared';
 
+const missing = <span className="adm-missing">Not set</span>;
 
-/* ═══════════════ TAB 6 – SYSTEM CONFIGS (SETTINGS) ═══════════ */
+/**
+ * Read-only view of how the platform is configured, and where each value lives.
+ * (These are set in code / environment variables, not stored in the database.)
+ */
 export default function SettingsTab() {
-  const { toast } = useToast();
-  const [commission, setCommission] = useState(15);
-  const [maintenance, setMaintenance] = useState(false);
-  const [couriers, setCouriers] = useState({
-    leopard: true,
-    tcs: true,
-    mp: false,
-    rider: true
-  });
-
-  const handleSaveConfigs = () => {
-    toast.success('Platform configurations saved successfully. Nodes updated.');
-  };
+  const rows = [
+    {
+      title: 'Orders & delivery',
+      file: 'frontend/src/features/cart/components/checkoutShared.jsx and backend/controllers/orderController.js',
+      items: [
+        ['Delivery fee', formatPrice(DELIVERY_FEE)],
+        ['Free delivery from', formatPrice(FREE_THRESHOLD)],
+        ['Payment methods', 'Cash on delivery (wallets and cards not enabled yet)'],
+        ['Prescription / upload size limit', `${MAX_FILE_MB} MB`],
+      ],
+    },
+    {
+      title: 'Business details (footer and legal pages)',
+      file: 'frontend/src/lib/business.js',
+      items: [
+        ['Brand', BUSINESS.brand],
+        ['Support email', BUSINESS.email],
+        ['Phone', BUSINESS.phone],
+        ['Address', BUSINESS.address],
+        ['Legal name', BUSINESS.legalName || missing],
+        ['Registration no.', BUSINESS.registrationNo || missing],
+        ['DRAP / drug-sale licence', BUSINESS.drapLicence || missing],
+        ['Pharmacist in charge', BUSINESS.pharmacistInCharge || missing],
+      ],
+    },
+    {
+      title: 'Accounts',
+      file: 'backend/controllers/authController.js',
+      items: [
+        ['Sign-up verification', 'Email code (SMS not enabled)'],
+        ['Login attempts', '10 per 15 minutes per IP'],
+        ['Doctor and pharmacist accounts', 'Need admin verification (Verifications tab)'],
+      ],
+    },
+  ];
 
   return (
-    <Card className="doc-card shadow-sm border-0">
-      <Card.Body className="p-4">
-        <h5 className="fw-bold text-dark mb-4"><FaSlidersH className="text-primary me-2" /> Global System Variables</h5>
+    <div className="adm-section">
+      <Alert tone="info" title={<><FiInfo aria-hidden="true" /> These settings are read-only here</>}>
+        They’re set in the code or the server environment. Each section shows the file to change; ask your developer to update and redeploy.
+      </Alert>
 
-        <Form.Group className="mb-4">
-          <Form.Label className="doc-label">Platform Consultation Commission Rate (%)</Form.Label>
-          <div className="d-flex align-items-center gap-3">
-            <Form.Range style={{ flex: 1 }} min={5} max={30} value={commission} onChange={e => setCommission(e.target.value)} />
-            <span className="fw-bold text-primary" style={{ width: '45px' }}>{commission}%</span>
-          </div>
-          <span className="text-muted extra-small">Platform transaction fee cut deducted automatically from Doctor consult booking prices.</span>
-        </Form.Group>
-
-        <Form.Group className="mb-4">
-          <Form.Label className="doc-label">Authorized Shipping Courier Partners</Form.Label>
-          <div className="d-flex flex-column gap-2 mt-2">
-            {[
-              { key: 'leopard', label: 'Leopard Courier Services -- Standard Dispatch' },
-              { key: 'tcs', label: 'TCS Express Logistics -- Premium Urgent delivery' },
-              { key: 'mp', label: 'M&P Pakistan -- Cash On Delivery Integration' },
-              { key: 'rider', label: 'Rider Logistics -- Local Suburb Delivery' }
-            ].map(c => (
-              <Form.Check type="switch" id={`switch-${c.key}`} key={c.key} label={c.label} checked={couriers[c.key]} onChange={e => setCouriers(prev => ({ ...prev, [c.key]: e.target.checked }))} />
+      {rows.map((section) => (
+        <Panel key={section.title} title={section.title} icon={<FiSettings />}>
+          <dl className="adm-settings">
+            {section.items.map(([k, v]) => (
+              <div key={k}><dt>{k}</dt><dd>{v}</dd></div>
             ))}
-          </div>
-        </Form.Group>
+          </dl>
+          <p className="adm-settings__file">Set in <code>{section.file}</code></p>
+        </Panel>
+      ))}
 
-        <Form.Group className="mb-4 pb-3 border-bottom">
-          <Form.Label className="doc-label text-danger">Platform Operational Status Flags</Form.Label>
-          <Form.Check type="switch" id="maintenance-flag" className="text-dark small fw-bold" label="Under Maintenance Mode (Suspends public checkout)" checked={maintenance} onChange={e => setMaintenance(e.target.checked)} />
-        </Form.Group>
-
-        <div className="d-flex justify-content-end">
-          <Button className="btn-adm-save py-2 px-4 rounded-10" onClick={handleSaveConfigs}>
-            Save Platform Configurations
-          </Button>
-        </div>
-      </Card.Body>
-    </Card>
+      <Panel title="Legal pages" icon={<FiSettings />}>
+        <p className="adm-muted">Last updated {formatDate(LEGAL_LAST_UPDATED, { day: 'numeric', month: 'long', year: 'numeric' })}. Have a lawyer review them before launch.</p>
+        <ul className="adm-links">
+          {LEGAL_LINKS.map((l) => (
+            <li key={l.to}><Link to={l.to} target="_blank" rel="noopener">{l.label} <FiExternalLink aria-hidden="true" /></Link></li>
+          ))}
+        </ul>
+      </Panel>
+    </div>
   );
 }

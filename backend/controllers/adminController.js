@@ -128,6 +128,8 @@ exports.approveProfessional = async (req, res) => {
     }
     user.isVerifiedProfile = true;
   }
+  user.verificationDeclineReason = undefined;
+  user.verificationDeclinedAt = undefined;
 
   await user.save();
   res.json({ message: 'Approved successfully', user });
@@ -149,6 +151,8 @@ exports.declineProfessional = async (req, res) => {
     }
     user.isVerifiedProfile = false;
   }
+  user.verificationDeclineReason = reason || 'Credentials did not pass audit.';
+  user.verificationDeclinedAt = new Date();
 
   await user.save();
   res.json({ message: 'Declined successfully', user });
