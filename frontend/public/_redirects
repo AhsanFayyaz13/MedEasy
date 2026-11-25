@@ -1,0 +1,2 @@
+# Netlify: serve the SPA for every route (real files are served first).
+/*  /index.html  200

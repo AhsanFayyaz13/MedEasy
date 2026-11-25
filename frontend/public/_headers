@@ -1,0 +1,14 @@
+# Netlify headers (Vercel uses vercel.json). Keep the two in sync.
+# If the API moves, update connect-src and img-src below.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com https://medeasy-backend-a5yi.onrender.com; font-src 'self' data:; connect-src 'self' https://medeasy-backend-a5yi.onrender.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+  Cross-Origin-Opener-Policy: same-origin
+
+# Hashed build output never changes, so browsers may keep it for a year.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -10,6 +10,8 @@
     />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://medeasy.systems/" />
+    <!-- Warm up the API connection while the app boots (the first screen fetches medicines) -->
+    <link rel="preconnect" href="https://medeasy-backend-a5yi.onrender.com" crossorigin />
 
     <!-- Icons & PWA -->
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
@@ -81,17 +83,8 @@
       }
     </script>
 
-    <script>
-      // Apply saved/OS theme before first paint to avoid a light→dark flash.
-      (function () {
-        try {
-          var t = localStorage.getItem('medeasy_theme');
-          if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          document.documentElement.setAttribute('data-theme', t);
-          document.documentElement.setAttribute('data-bs-theme', t);
-        } catch (e) {}
-      })();
-    </script>
+    <!-- Theme before first paint (a file, not inline, so the CSP can forbid inline scripts) -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <noscript>MedEasy needs JavaScript enabled to run. Please enable it in your browser settings.</noscript>
