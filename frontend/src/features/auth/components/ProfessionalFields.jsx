@@ -4,6 +4,7 @@ import { FaHospital, FaStethoscope } from 'react-icons/fa';
 import { Input, Select, Spinner } from '../../../components/ui';
 import { API_ORIGIN } from '../../../lib/env';
 import { DAYS_OF_WEEK, SPECIALTIES } from '../lib/validation';
+import '../auth.css';
 
 /** Extra fields for pharmacy registration, incl. storefront photo upload. */
 export function PharmacyFields({ fields, errors, onChange, onBlur, onPicture }) {

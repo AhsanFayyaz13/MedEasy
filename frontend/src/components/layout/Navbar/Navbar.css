@@ -429,3 +429,9 @@
     display: flex;
   }
 }
+
+/* Bootstrap's .dropdown-toggle caret (bootstrap.css loads after this file) */
+.site-nav .nav-user.dropdown-toggle::after,
+.site-nav .nav-icon-btn.dropdown-toggle::after {
+  display: none;
+}
