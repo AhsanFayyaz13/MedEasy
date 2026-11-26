@@ -6,8 +6,7 @@ import { useAuthModal } from '../../../context/AuthModalContext';
 import { uploadPrescription, placeOrder } from '../../../services/api/orderService';
 import { Alert, Button, EmptyState, PageHeader, Steps } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
-import { formatPhone, formatPrice } from '../../../lib/format';
-import { notifySelf, sendNotification } from '../../../lib/notifications';
+import { formatPhone } from '../../../lib/format';
 import { DELIVERY_FEE, FREE_THRESHOLD, validateAddress, validateFile } from '../components/checkoutShared';
 import { AddressSection, OrderSummary, PaymentSection, PrescriptionSection } from '../components/CheckoutSections';
 import OrderSuccess from '../components/OrderSuccess';
@@ -124,10 +123,6 @@ export default function Checkout() {
       setPlaced({ orderId: result.orderId, orderNumber: result.orderNumber, phone: addr.phone.trim(), needsRx, guest: isGuest });
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      const shortId = result.orderNumber || String(result.orderId).slice(-8).toUpperCase();
-      if (!isGuest) notifySelf(user, { text: `Order placed: #${shortId} for ${formatPrice(total)}.`, emoji: 'booking', link: `/orders/${result.orderId}` });
-      sendNotification('admin', null, { text: `New ${isGuest ? 'guest ' : ''}order #${shortId} from ${user?.name || `${addr.firstName} ${addr.lastName}`.trim()} (${formatPrice(total)}).`, emoji: 'system', link: '/admin?tab=orders' });
-      sendNotification('pharmacist', null, { text: `New order #${shortId} awaiting fulfilment${needsRx ? ' (prescription to verify)' : ''}.`, emoji: 'booking', link: '/pharmacist?tab=orders' });
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
       setSubmitError(msg);

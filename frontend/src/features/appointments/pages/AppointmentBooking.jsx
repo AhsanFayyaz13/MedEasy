@@ -6,16 +6,12 @@ import { useAuth } from '../../../context/AuthContext';
 import { fetchDoctors, bookAppointment, fetchMyAppointments, cancelAppointment } from '../../../services/api/appointmentService';
 import { Card, EmptyState, ErrorState, PageHeader, Skeleton } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
-import { notifySelf, sendNotification } from '../../../lib/notifications';
 import ReviewSection from '../../reviews/components/ReviewSection';
 import BookingForm from '../components/BookingForm';
 import AppointmentCard from '../components/AppointmentCard';
 import ReportIssueModal from '../components/ReportIssueModal';
 import ConsultationChat from '../components/ConsultationChat';
-import { fmtDate } from '../lib/appointmentUtils';
 import './AppointmentBooking.css';
-
-const shortId = (id) => String(id).slice(-6);
 
 export default function AppointmentBooking() {
   const { toast } = useToast();
@@ -68,11 +64,6 @@ export default function AppointmentBooking() {
       const appt = await bookAppointment(payload);
       setLastBooked(appt);
       toast.success('Appointment booked. The doctor has been notified.');
-      notifySelf(user, {
-        text: `Booking confirmed: ${appt.doctorName} on ${fmtDate(appt.date)} at ${appt.time}.`,
-        emoji: 'booking',
-        link: `/appointments/book?chat=${appt.id}`,
-      });
       await loadMyApts();
       return true;
     } catch (e) {
@@ -111,11 +102,6 @@ export default function AppointmentBooking() {
         time: Date.now(),
       });
       localStorage.setItem('medeasy_doctor_reports', JSON.stringify(all));
-      sendNotification('admin', null, {
-        text: `Clinical complaint: ${user?.name || 'A patient'} reported Dr. ${reportApt.doctorName} (appointment #APT-${shortId(reportApt.id)}).`,
-        emoji: 'complaint',
-        link: '/admin?tab=audits',
-      });
       toast.success('Your report has been submitted to the medical board.');
       setReportApt(null);
     } catch (err) {
@@ -193,14 +179,6 @@ export default function AppointmentBooking() {
         role="patient"
         counterpart={chatApt?.doctorName}
         onClose={() => setChatApt(null)}
-        buildMessage={() => ({ senderId: user?._id || user?.id, senderName: user?.name || 'Patient', senderRole: 'patient' })}
-        onSent={() =>
-          sendNotification('doctor', null, {
-            text: `${user?.name || 'A patient'} sent you a message — appointment #APT-${shortId(chatApt.id)}.`,
-            emoji: 'chat',
-            link: `/doctor?tab=schedule&chat=${chatApt.id}`,
-          })
-        }
       />
       <ReportIssueModal key={reportApt?.id || 'none'} appointment={reportApt} onClose={() => setReportApt(null)} onSubmit={handleReport} />
     </div>

@@ -3,6 +3,7 @@ import { FiCalendar, FiEdit3, FiFileText, FiMessageCircle, FiXCircle } from 'rea
 import { Avatar, Badge, Button, EmptyState, Modal, SearchInput, Skeleton, Table, Tabs } from '../../../components/ui';
 import { APPOINTMENT_TONE } from '../../appointments/lib/appointmentUtils';
 import { fmtDate } from './doctorShared';
+import { useNotifications } from '../../../context/NotificationsContext';
 
 const FILTERS = ['all', 'scheduled', 'completed', 'cancelled'];
 const LABEL = { all: 'All', scheduled: 'Upcoming', completed: 'Completed', cancelled: 'Cancelled' };
@@ -13,6 +14,7 @@ export default function ScheduleTab({ apts, loading, openComplete, handleCancel,
   const [search, setSearch] = useState('');
   const [cancelling, setCancelling] = useState(null);
   const [busy, setBusy] = useState(false);
+  const { hasUnreadChat } = useNotifications();
 
   const q = search.trim().toLowerCase();
   const visible = apts.filter(
@@ -63,7 +65,14 @@ export default function ScheduleTab({ apts, loading, openComplete, handleCancel,
             <Button size="sm" variant="ghost" onClick={() => openComplete(a)}>Edit notes</Button>
           )}
           {a.status !== 'cancelled' && (
-            <Button size="sm" variant="ghost" leftIcon={<FiMessageCircle aria-hidden="true" />} onClick={() => setChatApt(a)} aria-label={`Chat with ${a.patientName}`}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className={hasUnreadChat(a.id) ? 'chat-unread' : undefined}
+              leftIcon={<FiMessageCircle aria-hidden="true" />}
+              onClick={() => setChatApt(a)}
+              aria-label={hasUnreadChat(a.id) ? `Chat with ${a.patientName}, new message` : `Chat with ${a.patientName}`}
+            >
               Chat
             </Button>
           )}

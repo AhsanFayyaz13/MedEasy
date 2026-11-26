@@ -15,6 +15,7 @@ const {
 const { sendVerificationEmail, sendResetPasswordEmail } = require('../utils/mailer');
 const { uploadToCloudinary } = require('../utils/cloudinary');
 const { PARTNER_AGREEMENT, PARTNER_ROLES } = require('../config/partner');
+const { notifyStaff } = require('../utils/notify');
 
 /** What gets recorded when a partner accepts the current agreement. */
 const agreementRecord = () => ({ version: PARTNER_AGREEMENT.VERSION, commissionRate: PARTNER_AGREEMENT.COMMISSION_RATE, acceptedAt: new Date() });
@@ -577,6 +578,7 @@ exports.updatePharmacistDetails = async (req, res) => {
   };
 
   await user.save();
+  notifyStaff('verifications', { type: 'account', text: `Pharmacist to verify: ${user.pharmacyName || user.name} submitted ${name} as its pharmacist.` });
   
   // Return updated user profile, hiding the nested pharmacistDetails password
   const updatedUser = await User.findById(user._id).select('-password');

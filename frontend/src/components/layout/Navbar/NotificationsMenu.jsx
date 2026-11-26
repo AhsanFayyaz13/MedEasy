@@ -10,20 +10,22 @@ import {
   FiFileText,
   FiInfo,
   FiMessageCircle,
-  FiStar,
+  FiPackage,
+  FiUserCheck,
   FiXCircle,
 } from 'react-icons/fi';
 import { Button, Modal } from '../../ui';
+import { useNotifications } from '../../../context/NotificationsContext';
 
 const ICONS = {
-  welcome: { icon: FiCheckCircle, tone: 'primary' },
   system: { icon: FiInfo, tone: 'primary' },
-  star: { icon: FiStar, tone: 'warning' },
-  review: { icon: FiStar, tone: 'warning' },
   cancel: { icon: FiXCircle, tone: 'error' },
   chat: { icon: FiMessageCircle, tone: 'primary' },
   booking: { icon: FiCalendar, tone: 'accent' },
+  order: { icon: FiPackage, tone: 'accent' },
   prescription: { icon: FiFileText, tone: 'warning' },
+  account: { icon: FiUserCheck, tone: 'accent' },
+  done: { icon: FiCheckCircle, tone: 'accent' },
 };
 
 export function NotificationIcon({ type }) {
@@ -35,9 +37,16 @@ export function NotificationIcon({ type }) {
   );
 }
 
-const timeLabel = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+/** "10:30 AM" today, otherwise "3 Jun". */
+const timeLabel = (t) => {
+  const d = new Date(t);
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+};
 
-export default function NotificationsMenu({ notifications, unreadCount, markAllRead, markAsRead, onNavigate }) {
+export default function NotificationsMenu({ onNavigate }) {
+  const { notifications, unreadCount, markAllRead, markAsRead, refresh } = useNotifications();
   const navigate = useNavigate();
   const [viewing, setViewing] = useState(null);
 
@@ -53,7 +62,7 @@ export default function NotificationsMenu({ notifications, unreadCount, markAllR
 
   return (
     <>
-      <Dropdown align="end">
+      <Dropdown align="end" onToggle={(open) => open && refresh()}>
         <Dropdown.Toggle
           as="button"
           type="button"
@@ -83,7 +92,7 @@ export default function NotificationsMenu({ notifications, unreadCount, markAllR
               notifications.map((n) => (
                 <div key={n.id} className={`nav-notif__item${n.unread ? ' is-unread' : ''}`}>
                   <button type="button" className="nav-notif__open" onClick={() => open(n)}>
-                    <NotificationIcon type={n.emoji} />
+                    <NotificationIcon type={n.type} />
                     <span className="nav-notif__body">
                       <span className="nav-notif__text">{n.text}</span>
                       <span className="nav-notif__time">{timeLabel(n.time)}</span>
@@ -111,7 +120,7 @@ export default function NotificationsMenu({ notifications, unreadCount, markAllR
         {viewing && (
           <div className="text-center">
             <div className="d-flex justify-content-center mb-3">
-              <NotificationIcon type={viewing.emoji} />
+              <NotificationIcon type={viewing.type} />
             </div>
             <p className="mb-2">{viewing.text}</p>
             <small className="text-muted">

@@ -11,7 +11,6 @@ import { Button } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import ConsultationChat from '../../appointments/components/ConsultationChat';
 import PartnerAgreementGate from '../../legal/components/PartnerAgreementGate';
-import { sendNotification } from '../../../lib/notifications';
 import ConsultationModal, { PrescriptionViewModal } from '../components/ConsultationModal';
 import OverviewTab from '../components/OverviewTab';
 import ScheduleTab from '../components/ScheduleTab';
@@ -28,8 +27,6 @@ const SECTIONS = [
 
 const RESCHEDULE_TEMPLATE =
   'I am not available at your selected date/time. Would you be comfortable rescheduling to [Day] at [Time] instead? Let me know so we can consult.';
-
-const shortId = (id) => String(id).slice(-6);
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
@@ -71,16 +68,12 @@ export default function DoctorDashboard() {
     if (found) setChatApt(found);
   }
 
-  const notifyPatient = (apt, text, emoji, link = '/appointments/book') =>
-    sendNotification('patient', apt?.patientId, { text, emoji, link });
-
   const handleComplete = async ({ notes, prescription }) => {
     try {
       await completeAppointment(completing.id, { notes, prescription });
       // The API returns the raw document (no mapped id/patientName), so merge into the existing row.
       setApts((prev) => prev.map((a) => (a.id === completing.id ? { ...a, status: 'completed', notes, prescription } : a)));
       toast.success('Consultation recorded and e-prescription issued.');
-      notifyPatient(completing, `E-prescription issued: Dr. ${doctorName} issued a prescription for appointment #APT-${shortId(completing.id)}.`, 'prescription');
       setCompleting(null);
     } catch (e) {
       toast.error(e.message);
@@ -90,10 +83,8 @@ export default function DoctorDashboard() {
   const handleCancel = async (id) => {
     try {
       await cancelAppointment(id);
-      const target = apts.find((a) => a.id === id);
       setApts((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'cancelled' } : a)));
       toast.success('Appointment cancelled.');
-      notifyPatient(target, `Appointment cancelled: Dr. ${doctorName} cancelled appointment #APT-${shortId(id)}.`, 'cancel');
     } catch (e) {
       toast.error(e.message);
     }
@@ -105,7 +96,6 @@ export default function DoctorDashboard() {
       await completeAppointment(appointment.id, { notes, prescription });
       setApts((prev) => prev.map((a) => (a.id === appointment.id ? { ...a, status: 'completed', notes, prescription } : a)));
       toast.success(`Prescription issued to ${appointment.patientName}.`);
-      notifyPatient(appointment, `E-prescription issued: Dr. ${doctorName} issued a prescription for appointment #APT-${shortId(appointment.id)}.`, 'prescription');
       setActive('schedule');
     } catch (e) {
       toast.error(e.message);
@@ -143,10 +133,6 @@ export default function DoctorDashboard() {
         onClose={() => setChatApt(null)}
         draft={chatDraft}
         setDraft={setChatDraft}
-        buildMessage={() => ({ senderId: user?.id || user?._id, senderName: `Dr. ${doctorName}`, senderRole: 'doctor' })}
-        onSent={() =>
-          notifyPatient(chatApt, `Dr. ${doctorName} replied to your message — appointment #APT-${shortId(chatApt.id)}.`, 'chat', `/appointments/book?chat=${chatApt.id}`)
-        }
         toolbar={
           <Button variant="secondary" size="sm" leftIcon={<FiAlertTriangle aria-hidden="true" />} onClick={() => setChatDraft(RESCHEDULE_TEMPLATE)}>
             Suggest rescheduling

@@ -5,7 +5,6 @@ import { useToast } from '../../../context/ToastContext';
 import api from '../../../services/api/client';
 import { Alert, Avatar, Badge, Button, Card, FileDropzone, Input, Modal, Select } from '../../../components/ui';
 import { assetUrl } from '../../../lib/media';
-import { sendNotification } from '../../../lib/notifications';
 import PasswordField from '../../auth/components/PasswordField';
 import { MIN_PASSWORD } from '../../auth/lib/validation';
 
@@ -37,7 +36,7 @@ function validate(f, isNew) {
 }
 
 function RepForm({ details, onDone, onCancel }) {
-  const { user, updatePharmacistDetails } = useAuth();
+  const { updatePharmacistDetails } = useAuth();
   const { toast } = useToast();
   const isNew = details.status === 'none';
   const [f, setF] = useState({
@@ -87,7 +86,6 @@ function RepForm({ details, onDone, onCancel }) {
     setSaving(true);
     try {
       await updatePharmacistDetails({ ...f, name: f.name.trim(), email: f.email.trim(), age: Number(f.age), password: f.password || undefined });
-      sendNotification('admin', null, { text: `Pharmacist to verify: ${user?.name || 'A pharmacy'} submitted ${f.name.trim()} as its pharmacist.`, emoji: 'prescription', link: '/admin?tab=verifications' });
       toast.success('Submitted. Our team will verify the pharmacist’s details.');
       onDone();
     } catch (err) {

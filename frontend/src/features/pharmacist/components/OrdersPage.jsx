@@ -4,7 +4,6 @@ import { useToast } from '../../../context/ToastContext';
 import { fetchAllOrders, updateOrderStatus } from '../../../services/api/pharmacistService';
 import { Button, EmptyState, ErrorState, SearchInput, Skeleton, Table, Tabs } from '../../../components/ui';
 import { StatGrid } from '../../../components/layout/DashboardLayout/widgets';
-import { sendNotification } from '../../../lib/notifications';
 import { formatPhone, formatPrice } from '../../../lib/format';
 import { OrderStatusBadge } from '../../orders/components/OrderTimeline';
 import OrderActions, { CancelOrderModal } from './orders/OrderActions';
@@ -14,13 +13,6 @@ import { orderRef } from '../../orders/lib/orderFeedback';
 
 const ACTIVE = ['pending', 'confirmed', 'dispatched'];
 const HISTORY = ['delivered', 'cancelled'];
-
-const PATIENT_MESSAGE = {
-  confirmed: (id) => ({ text: `Order confirmed: your order ${id} is being prepared.`, emoji: 'booking' }),
-  dispatched: (id) => ({ text: `Order dispatched: your order ${id} is on the way!`, emoji: 'booking' }),
-  delivered: (id) => ({ text: `Order delivered: your order ${id} has arrived.`, emoji: 'welcome' }),
-  cancelled: (id, reason) => ({ text: `Order cancelled: your order ${id} was cancelled by the pharmacy.${reason ? ` Reason: ${reason}` : ''}`, emoji: 'cancel' }),
-};
 
 /** Pharmacy order management. mode="active" (to process) or "history" (delivered/cancelled). */
 export default function OrdersPage({ mode = 'active' }) {
@@ -56,9 +48,6 @@ export default function OrdersPage({ mode = 'active' }) {
       await updateOrderStatus(order.id, status, reason);
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status, cancellationReason: reason || o.cancellationReason } : o)));
       toast.success(`Order ${orderRef(order)} → ${status}`);
-      const msg = PATIENT_MESSAGE[status]?.(orderRef(order), reason);
-      // Guest orders have no account to notify; the pharmacy calls them instead.
-      if (msg && order.userId) sendNotification('patient', order.userId, { ...msg, link: '/orders' });
     } catch (e) {
       toast.error(e.message);
     } finally {

@@ -1,6 +1,12 @@
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const { commissionOn } = require('../config/partner');
+const { notify } = require('../utils/notify');
+const { formatDay } = require('../utils/dates');
+
+const DOCTOR_LINK = '/doctor?tab=schedule';
+const PATIENT_LINK = '/appointments/book';
+const drName = (name) => `Dr. ${String(name || '').replace(/^Dr\.?\s*/i, '')}`.trim();
 
 // @desc    Book a new appointment
 // @route   POST /api/appointments/book
@@ -24,7 +30,7 @@ exports.bookAppointment = async (req, res) => {
   today.setHours(0, 0, 0, 0);
 
   const bookingDate = new Date(parsedDate);
-  bookingDate.setHours(0, 0, 0, 0);
+  bookingDate.setUTCHours(0, 0, 0, 0); // stored as midnight UTC of the booked day, whatever the server time zone
 
   if (bookingDate < today) {
     return res.status(400).json({ message: 'You cannot book an appointment for a past date.' });
@@ -58,6 +64,11 @@ exports.bookAppointment = async (req, res) => {
 
   const createdAppointment = await appointment.save();
   res.status(201).json(createdAppointment);
+  notify(doctorUser._id, {
+    type: 'booking',
+    text: `New booking: ${req.user.name} on ${formatDay(bookingDate)} at ${time}.`,
+    link: DOCTOR_LINK,
+  });
 };
 
 // @desc    Get appointments for logged-in user (role based)
@@ -110,10 +121,6 @@ exports.updateAppointment = async (req, res) => {
     return res.status(403).json({ message: 'Only the doctor can edit appointment details' });
   }
 
-  if (status) {
-    appointment.status = status;
-  }
-  
   if (notes && (isDoctor || req.user.role === 'admin')) {
     appointment.notes = notes;
     appointment.consultationNotes = notes;
@@ -132,6 +139,44 @@ exports.updateAppointment = async (req, res) => {
     appointment.time = time;
   }
 
+  const before = { status: appointment.status, date: appointment.date?.getTime(), time: appointment.time };
+  if (status) appointment.status = status;
   const updatedAppointment = await appointment.save();
   res.json(updatedAppointment);
+  notifyAppointmentChange(updatedAppointment, before, { req, isPatient, isDoctor });
 };
+
+/** Tell the other side (both sides, when an admin made the change) what changed. */
+async function notifyAppointmentChange(apt, before, { req, isPatient, isDoctor }) {
+  try {
+    const cancelled = apt.status === 'cancelled' && before.status !== 'cancelled';
+    const completed = apt.status === 'completed' && before.status !== 'completed';
+    const moved = !cancelled && (apt.date?.getTime() !== before.date || apt.time !== before.time);
+    if (!cancelled && !completed && !moved) return;
+
+    const [patient, doctor] = await Promise.all([User.findById(apt.patientId).select('name'), User.findById(apt.doctorId).select('name')]);
+    const day = formatDay(apt.date);
+    const dr = drName(doctor?.name);
+    const byAdmin = !isPatient && !isDoctor;
+
+    if (cancelled) {
+      if (!isPatient) notify(apt.patientId, { type: 'cancel', text: `${byAdmin ? 'MedEasy' : dr} cancelled your appointment ${byAdmin ? `with ${dr} ` : ''}on ${day} at ${apt.time}.`, link: PATIENT_LINK });
+      if (!isDoctor) notify(apt.doctorId, { type: 'cancel', text: `${byAdmin ? 'MedEasy cancelled the' : `${patient?.name || 'Your patient'} cancelled their`} appointment on ${day} at ${apt.time}${byAdmin ? ` with ${patient?.name || 'your patient'}` : ''}.`, link: DOCTOR_LINK });
+      return;
+    }
+    if (completed && !isPatient) {
+      notify(apt.patientId, {
+        type: 'prescription',
+        text: apt.prescription ? `${dr} completed your consultation and issued a prescription.` : `${dr} completed your consultation on ${day}.`,
+        link: PATIENT_LINK,
+      });
+    }
+    if (moved) {
+      const text = `Appointment moved: ${dr} with ${patient?.name || 'the patient'} is now on ${day} at ${apt.time}.`;
+      if (!isPatient) notify(apt.patientId, { type: 'booking', text, link: PATIENT_LINK });
+      if (!isDoctor) notify(apt.doctorId, { type: 'booking', text, link: DOCTOR_LINK });
+    }
+  } catch (err) {
+    console.error('Appointment notification failed:', err.message, req.originalUrl);
+  }
+}

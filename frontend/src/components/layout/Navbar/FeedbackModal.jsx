@@ -50,16 +50,6 @@ export default function FeedbackModal({ show, onClose, user }) {
       });
       localStorage.setItem('medeasy_feedbacks', JSON.stringify(all));
 
-      const alerts = JSON.parse(localStorage.getItem('medeasy_notifications_admin') || '[]');
-      alerts.unshift({
-        id: `alert-${now}-admin`,
-        text: `New suggestion from ${user?.name || 'a patient'}: "${form.subject.trim()}".`,
-        time: now,
-        emoji: 'system',
-        unread: true,
-        link: '/admin?tab=audits',
-      });
-      localStorage.setItem('medeasy_notifications_admin', JSON.stringify(alerts));
 
       toast.success('Thank you! Your feedback has been submitted.');
       setForm(EMPTY);

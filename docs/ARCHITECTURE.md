@@ -92,9 +92,9 @@ src/
   components/ui/  Design system: Button, Input, Modal, Table, Tabs, Badge, EmptyState…
   components/     layout (Navbar, Footer, DashboardLayout), feedback, seo
   features/<x>/   pages/, components/, lib/ per domain (auth, cart, orders, admin, doctor, pharmacist…)
-  context/        Auth, Cart, Toast, AuthModal, Data (admin data)
+  context/        Auth, Notifications, Cart, Toast, AuthModal, Data (admin data)
   services/api/   Axios client + one module per domain
-  lib/            env, formatting, geo (map helpers), notifications, theme helpers
+  lib/            env, formatting, geo (map helpers), theme helpers
   styles/         tokens.css (all colours and scales), bootstrap-overrides.css, base.css
 ```
 
@@ -102,10 +102,27 @@ src/
 anywhere else. Light and dark themes switch the same tokens. `bootstrap-overrides.css` maps Bootstrap's
 variables to the tokens so react-bootstrap components match.
 
+## Notifications and chat
+
+Both are stored on the server and work on the free hosting plans: no WebSockets or paid push service.
+
+- **Notifications** are created by the API when something happens (booking, cancellation, order status,
+  prescription decision, verification, new chat message) in `backend/utils/notify.js`. They never block the
+  action that caused them. Staff alerts go to active admins and approved pharmacies. They are deleted
+  automatically after 90 days (TTL index), which keeps the free database small. The site checks
+  `GET /api/notifications` every 30 seconds while the tab is visible (`context/NotificationsContext.jsx`).
+- **Chat** messages belong to an appointment (`Message` model); only its patient and doctor can write, and
+  admins can read them. The chat is open until 3 days after the appointment and closed when it's cancelled.
+  An open chat checks for new messages every 5 seconds, asking only for messages newer than the last one.
+- **One alert per unread conversation**: more messages update the same notification instead of adding more.
+  Only that first alert sends an email, and the email never contains the message. This keeps within
+  Resend's free quota.
+- Polling is rate-limited per user, not per IP, so people sharing a mobile network's IP don't block each other.
+
 ## Known limitations
 
-- **Notifications, consultation chat and some feedback are stored in the browser** (`localStorage`), so they
-  only appear on the device that created them. They should move to the API.
+- **Feedback, complaints and pharmacy ratings are stored in the browser** (`localStorage`), so admins only
+  see them on the device where they were submitted. They should move to the API.
 - **Uploaded files use public URLs**: anyone with a prescription's link can open it. Signed or
   authenticated URLs would be better for health data.
 - **Admin lists load every record**: fine at current volume; add server-side pagination as data grows.

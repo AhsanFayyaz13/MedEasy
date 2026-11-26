@@ -20,7 +20,6 @@ import { assetUrl } from '../../../lib/media';
 import { Avatar, Button, ThemeToggle } from '../../ui';
 import NotificationsMenu from './NotificationsMenu';
 import FeedbackModal from './FeedbackModal';
-import useNotifications from './useNotifications';
 import './Navbar.css';
 
 const ROLE_META = {
@@ -79,7 +78,6 @@ export default function AppNavbar() {
   const roleMeta = ROLE_META[userRole] || ROLE_META.patient;
   const isPatientOrGuest = !isAuthenticated || userRole === 'patient';
   const navItems = useNavItems({ isAuthenticated, isPatientOrGuest, userRole, roleMeta });
-  const notif = useNotifications(user, isAuthenticated);
   const homePath = isPatientOrGuest ? '/' : roleMeta.dashPath;
   const account = accountLinks(isPatientOrGuest, roleMeta.dashPath);
   const drawerAccount = account.filter((a) => !navItems.some((n) => n.to === a.to));
@@ -155,7 +153,7 @@ export default function AppNavbar() {
             </Link>
           )}
 
-          {isAuthenticated && <NotificationsMenu {...notif} onNavigate={() => setDrawerOpen(false)} />}
+          {isAuthenticated && <NotificationsMenu onNavigate={() => setDrawerOpen(false)} />}
 
           {isAuthenticated ? (
             <Dropdown align="end">

@@ -16,7 +16,8 @@ Base URL: `https://<api-host>/api` (local: `http://localhost:5000/api`).
   `400` invalid input · `401` not signed in, wrong password or ended session · `403` wrong role, suspended or
   pending approval · `404` not found · `409` duplicate · `413` body too large · `429` rate limited · `500`
   unexpected (no internals in production).
-- **Rate limits:** 600 requests / 15 min per IP overall; sign-in, sign-up, codes and password changes
+- **Rate limits:** 600 requests / 15 min per IP overall (polling for notifications and chat messages is
+  instead limited to 900 / 15 min per user; sending messages 30 / min per user); sign-in, sign-up, codes and password changes
   10 / 15 min per IP + identifier; uploads and contact form 20 / hour; guest orders and tracking 10 / hour.
 - **Caching:** responses to signed-in requests are `Cache-Control: private, no-store`.
 
@@ -90,6 +91,23 @@ Roles: `patient`, `doctor`, `pharmacy` (owner), `pharmacist` (representative), `
 | GET | `/appointments` | Signed in | Patient: own bookings · doctor: their schedule · pharmacist, admin: all |
 | POST | `/appointments/book` | Patient | `{doctorId, date, time, reason?}` |
 | PUT / PATCH | `/appointments/:id` | Doctor, admin (any change); patient (cancel only) | Complete with notes and e-prescription, reschedule, or cancel |
+
+## Chat — `/appointments/:id/messages`
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| GET | `/appointments/:id/messages?after` | The appointment's patient and doctor; admins (read-only) | `{messages:[{id, senderRole, text, createdAt, readAt}], canSend, closesAt}`; with `after` (ISO time) only newer messages. Opening marks the other side's messages read |
+| POST | `/appointments/:id/messages` | The appointment's patient and doctor | `{text}` (1–2,000 characters); `400 CHAT_CLOSED` once cancelled or 3 days after the appointment. Notifies the other side (one alert and one email per unread conversation; the email never includes the message) |
+
+## Notifications — `/notifications`
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| GET | `/notifications?limit` | Signed in | `{items:[{id, type, text, link, thread, read, createdAt}], unread}`, newest first (max 50). Deleted after 90 days |
+| PUT | `/notifications/:id/read` | Recipient | Mark one as read |
+| PUT | `/notifications/read-all` | Signed in | Mark all as read |
+
+Types: `booking`, `cancel`, `chat`, `prescription`, `order`, `account`, `system`.
 
 ## Reviews — `/reviews`
 

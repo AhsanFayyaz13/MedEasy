@@ -30,6 +30,8 @@ Only the current `main` branch (what runs on medeasy.systems) receives security 
 - helmet headers, CORS allow-list, 100 kB body limit, NoSQL-operator stripping, rate limits on sign-in,
   codes, uploads, guest orders and the whole API.
 - Prices, stock and delivery fees are always computed by the server.
+- Only an appointment's patient and doctor can read or write its chat (admins can read). Notification
+  emails never include message content.
 - Uploads: random filenames, extension and MIME type must match, size-limited, stored on Cloudinary.
 - No internal error details in production responses; `Cache-Control: no-store` on signed-in responses.
 
@@ -42,4 +44,4 @@ Only the current `main` branch (what runs on medeasy.systems) receives security 
 ## Known gaps
 
 - Uploaded prescriptions are served from unguessable but public URLs; signed URLs are planned.
-- Notifications and chat are stored in the browser, not on the server.
+- Feedback, complaints and pharmacy ratings are stored in the browser, not on the server.

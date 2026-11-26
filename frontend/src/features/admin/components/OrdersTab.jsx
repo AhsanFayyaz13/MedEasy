@@ -6,7 +6,6 @@ import { Button, EmptyState, SearchInput, Table, Tabs } from '../../../component
 import { downloadCsv } from '../../../lib/csv';
 import { formatDate, formatPrice } from '../../../lib/format';
 import { hasPin, mapsLink } from '../../../lib/geo';
-import { sendNotification } from '../../../lib/notifications';
 import { OrderStatusBadge } from '../../orders/components/OrderTimeline';
 import OrderActions, { CancelOrderModal } from '../../pharmacist/components/orders/OrderActions';
 import OrderDetailModal from '../../pharmacist/components/orders/OrderDetailModal';
@@ -40,12 +39,6 @@ export default function OrdersTab({ orders, setOrders }) {
       await updateOrderStatus(order.id, status, reason);
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status, cancellationReason: reason || o.cancellationReason } : o)));
       toast.success(`Order ${orderRef(order)} is now ${status}.`);
-      const patientId = order.userId?._id || order.userId;
-      if (patientId) sendNotification('patient', patientId, {
-        text: status === 'cancelled' ? `Order cancelled: ${orderRef(order)} was cancelled by MedEasy support. Reason: ${reason}` : `Order update: ${orderRef(order)} is now ${status}.`,
-        emoji: status === 'cancelled' ? 'cancel' : 'booking',
-        link: `/orders/${order.id}`,
-      });
     } catch (e) {
       toast.error(e.response?.data?.message || 'Could not update the order.');
       throw e;

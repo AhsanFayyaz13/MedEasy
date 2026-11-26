@@ -202,6 +202,15 @@ const appointments = {
   }),
 };
 
+const messages = {
+  list: z.object({ after: z.coerce.date().optional() }),
+  send: z.object({ text: z.string().trim().min(1, 'Type a message first.').max(2000, 'Messages can be up to 2,000 characters.') }),
+};
+
+const notifications = {
+  list: z.object({ limit: z.coerce.number().int().min(1).max(50).optional() }),
+};
+
 // ── Prescriptions ──────────────────────────────────────────────────
 const prescriptions = {
   verify: z.object({ status: z.enum(['pending', 'verified', 'rejected']), doctorId: emptyToUndefined(objectId.optional()), rejectionReason: optionalText(500) }),
@@ -261,6 +270,8 @@ module.exports = {
   medicines,
   orders,
   appointments,
+  messages,
+  notifications,
   prescriptions,
   reviews,
   contact,

@@ -6,6 +6,11 @@ deployed continuously from `main`, so entries are grouped by date.
 ## Unreleased
 
 ### Added
+- Patient–doctor chat now works between devices: messages are stored with the appointment, show when
+  they've been seen, and close 3 days after the appointment. The other side gets a notification and one
+  email per unread conversation (without the message).
+- Notifications come from the server, so they reach people on any device: bookings, cancellations,
+  order progress, prescription decisions, verifications and messages. Unread dots on Chat buttons.
 - Partner Agreement (`/partner-agreement`): doctors and pharmacies accept a 10% commission at sign-up;
   existing partners accept it once in their dashboard. Each order and consultation records its commission;
   the admin overview shows commission for the month.
@@ -20,6 +25,7 @@ deployed continuously from `main`, so entries are grouped by date.
 - Old documentation (project report, system specification, run guide), replaced by `docs/`.
 
 ### Fixed
+- Appointment dates no longer depend on the server's time zone.
 - The booking page showed a made-up 4.7 rating for every doctor, and turned a free consultation into
   Rs. 1,000. Only real profile data is shown now.
 

@@ -5,6 +5,16 @@ const crypto = require('crypto');
 const { commissionOn } = require('../config/partner');
 const { normalizePhone } = require('../utils/phone');
 const { sendEmail, escapeHtml } = require('../utils/mailer');
+const { notify, notifyStaff } = require('../utils/notify');
+
+const rs = (n) => `Rs. ${Number(n || 0).toLocaleString('en-PK')}`;
+const STATUS_TEXT = {
+  confirmed: 'has been confirmed by the pharmacy',
+  processing: 'is being prepared',
+  dispatched: 'is on its way',
+  delivered: 'has been delivered',
+};
+const ref = (order) => order.orderNumber || `#${String(order._id).slice(-8).toUpperCase()}`;
 
 // Must match the checkout page (frontend/src/features/cart/components/checkoutShared.jsx).
 const DELIVERY_FEE = 120;
@@ -148,6 +158,10 @@ exports.placeOrder = async (req, res) => {
       }).catch((err) => console.error('Guest order email failed:', err.message));
     }
     res.status(201).json(createdOrder);
+    notifyStaff('orders', {
+      type: 'order',
+      text: `New ${isGuest ? 'guest ' : ''}order ${createdOrder.orderNumber} (${rs(totalAmount)})${requiresPrescription ? ' with a prescription to verify' : ''}.`,
+    });
   } catch (error) {
     await Promise.all(reserved.map((r) => Medicine.updateOne({ _id: r.id }, { $inc: { stock: r.qty } })));
     throw error;
@@ -216,14 +230,19 @@ exports.updateOrderStatus = async (req, res) => {
     );
     if (cancelled) {
       await Promise.all(order.items.map((i) => Medicine.updateOne({ _id: i.medicineId }, { $inc: { stock: i.quantity } })));
+      if (order.userId) notify(order.userId, { type: 'cancel', text: `Order ${ref(order)} was cancelled.${reason ? ` Reason: ${reason}` : ''}`, link: `/orders/${order._id}` });
       return res.json(cancelled);
     }
     return res.json(await Order.findById(order._id));
   }
 
+  const changed = order.status !== status;
   order.status = status;
   const updatedOrder = await order.save();
   res.json(updatedOrder);
+  if (changed && order.userId && STATUS_TEXT[status]) {
+    notify(order.userId, { type: 'order', text: `Order ${ref(order)} ${STATUS_TEXT[status]}.`, link: `/orders/${order._id}` });
+  }
 };
 
 // @desc    Cancel order
@@ -262,6 +281,9 @@ exports.cancelOrder = async (req, res) => {
   Object.assign(order, cancelled.toObject());
 
   res.json({ message: 'Order cancelled and stock restored', order });
+  if (String(order.userId || '') === String(req.user._id)) {
+    notifyStaff('orders', { type: 'cancel', text: `${req.user.name || 'The customer'} cancelled order ${ref(order)}.${req.body?.reason ? ` Reason: ${req.body.reason}` : ''}` });
+  }
 };
 
 // @desc    Admin/Pharmacist: get all orders (with optional status filter)
@@ -301,4 +323,5 @@ exports.cancelTrackedOrder = async (req, res) => {
   if (!cancelled) return res.status(400).json({ message: 'This order is already being prepared. Please contact us to cancel it.' });
   await restock(order);
   res.json(publicOrder(cancelled));
+  notifyStaff('orders', { type: 'cancel', text: `The customer cancelled guest order ${ref(order)}.` });
 };

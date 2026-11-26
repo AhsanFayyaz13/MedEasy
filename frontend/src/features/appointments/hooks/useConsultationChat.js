@@ -1,48 +1,89 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { fetchMessages, sendMessage } from '../../../services/api/notificationService';
+import { useNotifications } from '../../../context/NotificationsContext';
 
-const STORAGE_KEY = 'medeasy_chats';
-
-const readAll = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  } catch {
-    return [];
-  }
-};
+/** How often an open chat checks for new messages (only while the tab is visible). */
+const POLL_MS = 5000;
 
 /**
- * Messages for one appointment (localStorage-backed, polled every second so
- * the patient and doctor tabs see each other's messages).
+ * Messages of one appointment's chat, from the API. While the chat is open it checks for new
+ * messages every few seconds, asking only for ones newer than the last it has.
  */
 export default function useConsultationChat(appointmentId) {
   const [messages, setMessages] = useState([]);
+  const [canSend, setCanSend] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const lastAt = useRef(null);
+  const { refresh: refreshNotifications } = useNotifications();
 
-  const load = useCallback(() => {
-    if (appointmentId == null) return;
-    setMessages(readAll().filter((m) => m.appointmentId === appointmentId));
-  }, [appointmentId]);
+  const merge = useCallback((incoming) => {
+    if (!incoming.length) return;
+    setMessages((prev) => {
+      const seen = new Set(prev.map((m) => m.id));
+      const next = [...prev, ...incoming.filter((m) => !seen.has(m.id))];
+      lastAt.current = next[next.length - 1]?.createdAt || lastAt.current;
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (appointmentId == null) return undefined;
-    const first = setTimeout(load, 0);
-    const timer = setInterval(load, 1000);
+    let cancelled = false;
+    lastAt.current = null;
+
+    const load = async (first) => {
+      try {
+        const data = await fetchMessages(appointmentId, first ? undefined : lastAt.current);
+        if (cancelled) return;
+        if (first) {
+          setMessages(data.messages);
+          lastAt.current = data.messages[data.messages.length - 1]?.createdAt || null;
+          refreshNotifications(); // opening the chat cleared its alert
+        } else {
+          merge(data.messages);
+        }
+        setCanSend(data.canSend);
+        setError('');
+      } catch (e) {
+        if (!cancelled && first) setError(e.response?.data?.message || 'Couldn’t load the messages. Check your connection.');
+      } finally {
+        if (!cancelled && first) setLoading(false);
+      }
+    };
+
+    const start = setTimeout(() => {
+      setMessages([]);
+      setLoading(true);
+      load(true);
+    }, 0);
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') load(false);
+    }, POLL_MS);
     return () => {
-      clearTimeout(first);
+      cancelled = true;
+      clearTimeout(start);
       clearInterval(timer);
     };
-  }, [appointmentId, load]);
+  }, [appointmentId, merge, refreshNotifications]);
 
+  /** Send a message; resolves to true when it was delivered. */
   const send = useCallback(
-    (message) => {
-      const all = readAll();
-      const msg = { id: `msg-${Date.now()}`, appointmentId, time: Date.now(), ...message };
-      all.push(msg);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-      setMessages((prev) => [...prev, msg]);
-      return msg;
+    async (text) => {
+      try {
+        const msg = await sendMessage(appointmentId, text);
+        merge([msg]);
+        setError('');
+        return true;
+      } catch (e) {
+        const code = e.response?.data?.error?.code;
+        if (code === 'CHAT_CLOSED') setCanSend(false);
+        setError(e.response?.data?.message || 'Your message wasn’t sent. Check your connection and try again.');
+        return false;
+      }
     },
-    [appointmentId]
+    [appointmentId, merge]
   );
 
-  return { messages, send };
+  return { messages, send, canSend, loading, error };
 }

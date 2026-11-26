@@ -1,10 +1,24 @@
 import { FiAlertTriangle, FiCalendar, FiClock, FiFileText, FiMessageCircle, FiXCircle } from 'react-icons/fi';
 import { Badge, Button } from '../../../components/ui';
 import { APPOINTMENT_TONE, fmtDate } from '../lib/appointmentUtils';
+import { useNotifications } from '../../../context/NotificationsContext';
 
 /** One of the patient's appointments with chat / cancel / report actions. */
 export default function AppointmentCard({ appointment: a, cancelling, onChat, onCancel, onReport }) {
   const actionable = a.status === 'scheduled' || a.status === 'completed';
+  const unread = useNotifications().hasUnreadChat(a.id);
+  const chatButton = (
+    <Button
+      size="sm"
+      variant="outline"
+      className={unread ? 'chat-unread' : undefined}
+      leftIcon={<FiMessageCircle aria-hidden="true" />}
+      onClick={() => onChat(a)}
+      aria-label={unread ? `Chat with ${a.doctorName}, new message` : `Chat with ${a.doctorName}`}
+    >
+      Chat
+    </Button>
+  );
   return (
     <article className={`appt-card appt-card--${a.status}`}>
       <header className="appt-card__head">
@@ -41,9 +55,7 @@ export default function AppointmentCard({ appointment: a, cancelling, onChat, on
         <div className="appt-card__actions">
           {a.status === 'scheduled' && (
             <>
-              <Button size="sm" variant="outline" leftIcon={<FiMessageCircle aria-hidden="true" />} onClick={() => onChat(a)}>
-                Chat
-              </Button>
+              {chatButton}
               <Button
                 size="sm"
                 variant="secondary"
@@ -55,6 +67,7 @@ export default function AppointmentCard({ appointment: a, cancelling, onChat, on
               </Button>
             </>
           )}
+          {a.status === 'completed' && chatButton}
           <Button size="sm" variant="ghost" leftIcon={<FiAlertTriangle aria-hidden="true" />} onClick={() => onReport(a)}>
             Report an issue
           </Button>

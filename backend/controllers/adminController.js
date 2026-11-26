@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const Medicine = require('../models/Medicine');
 const User = require('../models/User');
 const Prescription = require('../models/Prescription');
+const { notify } = require('../utils/notify');
 
 // @desc    Get sales report
 // @route   GET /api/admin/sales
@@ -152,6 +153,11 @@ exports.approveProfessional = async (req, res) => {
       .catch((err) => console.error('Verification email failed:', err.message));
   }
   res.json({ message: 'Approved successfully', subject, user });
+  notify(user._id, {
+    type: 'account',
+    text: subject === 'representative' ? `Your pharmacist ${user.pharmacistDetails?.name || ''} has been approved and can now sign in.`.replace('  ', ' ') : 'Your account has been verified. Welcome to MedEasy!',
+    link: subject === 'representative' ? '/pharmacist?tab=pharmacist-rep' : user.role === 'pharmacy' ? '/pharmacist' : '/doctor',
+  });
 };
 
 exports.declineProfessional = async (req, res) => {
@@ -182,6 +188,10 @@ exports.declineProfessional = async (req, res) => {
       .catch((err) => console.error('Verification email failed:', err.message));
   }
   res.json({ message: 'Declined successfully', subject, user });
+  // Declined accounts can't sign in (they get an email); a declined representative's store still can.
+  if (subject === 'representative') {
+    notify(user._id, { type: 'cancel', text: `Your pharmacist ${user.pharmacistDetails?.name || ''} wasn't approved. Reason: ${reason}`.replace('  ', ' '), link: '/pharmacist?tab=pharmacist-rep' });
+  }
 };
 
 // @desc    List all users

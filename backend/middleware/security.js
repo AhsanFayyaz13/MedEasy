@@ -34,13 +34,20 @@ const json429 = (message) => (req, res) =>
 
 const skipInTest = () => process.env.NODE_ENV === 'test' && process.env.ENABLE_RATE_LIMIT_IN_TEST !== 'true';
 
+/**
+ * Background checks the site makes while open (new notifications, new chat messages). They are
+ * limited per signed-in user by pollLimiter instead, so many people sharing one mobile-network IP
+ * don't use up each other's allowance.
+ */
+const isPoll = (req) => req.method === 'GET' && /^\/(notifications\/?|appointments\/[a-f\d]{24}\/messages\/?)$/i.test(req.path);
+
 /** Whole-API limiter: generous, protects against floods. */
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 600,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  skip: skipInTest,
+  skip: (req) => skipInTest() || isPoll(req),
   handler: json429('Too many requests. Please slow down and try again shortly.'),
 });
 
@@ -78,4 +85,26 @@ const guestOrderLimiter = rateLimit({
   handler: json429('Too many attempts. Please try again later or sign in.'),
 });
 
-module.exports = { sanitizeInput, stripOperators, apiLimiter, authLimiter, uploadLimiter, guestOrderLimiter };
+/** Polling endpoints, per signed-in user (runs after `protect`). An open chat checks every 5 s. */
+const pollLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 900,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: skipInTest,
+  keyGenerator: (req) => `user:${req.user?._id || ipKeyGenerator(req.ip)}`,
+  handler: json429('Too many requests. Please slow down and try again shortly.'),
+});
+
+/** Sending chat messages, per user: plenty for a conversation, stops floods. */
+const messageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: skipInTest,
+  keyGenerator: (req) => `user:${req.user?._id || ipKeyGenerator(req.ip)}`,
+  handler: json429('You’re sending messages too quickly. Please wait a moment.'),
+});
+
+module.exports = { sanitizeInput, stripOperators, apiLimiter, authLimiter, uploadLimiter, guestOrderLimiter, pollLimiter, messageLimiter };

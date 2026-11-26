@@ -1,5 +1,8 @@
 const Prescription = require('../models/Prescription');
 const { uploadToCloudinary } = require('../utils/cloudinary');
+const { notify, notifyStaff } = require('../utils/notify');
+
+const rxRef = (rx) => `#RX-${String(rx._id).slice(-6).toUpperCase()}`;
 
 // @desc    Upload prescription
 // @route   POST /api/prescriptions/upload
@@ -30,6 +33,7 @@ exports.uploadPrescription = async (req, res) => {
     });
 
     res.status(201).json(prescription);
+    notifyStaff('prescriptions', { type: 'prescription', text: `New prescription ${rxRef(prescription)} from ${req.user.name || 'a patient'} is waiting for review.` });
   } catch (error) {
     if (req.file && req.file.path) {
       const fs = require('fs');
@@ -71,6 +75,13 @@ exports.verifyPrescription = async (req, res) => {
 
     const updatedPrescription = await prescription.save();
     res.json(updatedPrescription);
+    notify(prescription.userId, {
+      type: status === 'verified' ? 'prescription' : 'cancel',
+      text: status === 'verified'
+        ? `Prescription ${rxRef(prescription)} was approved. You can now order those medicines.`
+        : `Prescription ${rxRef(prescription)} was declined.${prescription.rejectionReason ? ` Reason: ${prescription.rejectionReason}` : ''}`,
+      link: '/prescriptions/upload',
+    });
   } else {
     res.status(404).json({ message: 'Prescription not found' });
   }

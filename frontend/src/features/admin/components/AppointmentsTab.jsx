@@ -3,13 +3,11 @@ import { FiCalendar, FiClock, FiXCircle } from 'react-icons/fi';
 import api from '../../../services/api/client';
 import { useToast } from '../../../context/ToastContext';
 import { Badge, Button, EmptyState, Input, Modal, SearchInput, Table, Tabs } from '../../../components/ui';
-import { sendNotification } from '../../../lib/notifications';
 import { APPOINTMENT_TONE } from '../../appointments/lib/appointmentUtils';
-import { fmtDate, shortId } from './adminShared';
+import { fmtDate } from './adminShared';
 
 const FILTERS = ['scheduled', 'completed', 'cancelled', 'all'];
 const LABEL = { scheduled: 'Upcoming', completed: 'Completed', cancelled: 'Cancelled', all: 'All' };
-const idOf = (ref) => ref?._id || ref;
 
 /** All appointments: admins can reschedule or cancel upcoming ones. */
 export default function AppointmentsTab({ apts, setApts }) {
@@ -23,11 +21,6 @@ export default function AppointmentsTab({ apts, setApts }) {
 
   const q = search.trim().toLowerCase();
   const visible = apts.filter((a) => (filter === 'all' || a.status === filter) && (!q || `${a.patientName} ${a.doctorName} ${a.reason || ''}`.toLowerCase().includes(q)));
-
-  const notifyBoth = (a, text, emoji) => {
-    sendNotification('patient', idOf(a.patientId), { text, emoji, link: '/appointments/book' });
-    sendNotification('doctor', idOf(a.doctorId), { text, emoji, link: '/doctor?tab=schedule' });
-  };
 
   const save = async (a, body, after) => {
     setBusy(true);
@@ -45,7 +38,6 @@ export default function AppointmentsTab({ apts, setApts }) {
   const confirmCancel = () =>
     save(cancelling, { status: 'cancelled' }, () => {
       toast.success('Appointment cancelled.');
-      notifyBoth(cancelling, `Appointment cancelled by MedEasy support: #APT-${shortId(cancelling.id)} on ${fmtDate(cancelling.date)}.`, 'cancel');
       setCancelling(null);
     });
 
@@ -59,7 +51,6 @@ export default function AppointmentsTab({ apts, setApts }) {
     if (!when.date || !when.time.trim()) return;
     save(moving, { date: when.date, time: when.time.trim() }, () => {
       toast.success('Appointment rescheduled.');
-      notifyBoth(moving, `Appointment rescheduled: #APT-${shortId(moving.id)} is now on ${fmtDate(when.date)} at ${when.time.trim()}.`, 'booking');
       setMoving(null);
     });
   };

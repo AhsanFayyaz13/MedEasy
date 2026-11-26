@@ -3,8 +3,8 @@
  *
  * NOTE: ratings and complaints are kept in localStorage (read by the admin Audits tab)
  * until the API has endpoints for them. Keep all writes here so that swap stays easy.
+ * (Cancellations reach the pharmacy and admins as server notifications.)
  */
-import { sendNotification } from '../../../lib/notifications';
 
 const REVIEWS_KEY = 'medeasy_pharmacy_reviews';
 const REPORTS_KEY = 'medeasy_pharmacy_reports';
@@ -32,8 +32,6 @@ export const REPORT_TYPES = [
   { value: 'other', label: 'Something else' },
 ];
 
-const excerpt = (text, n = 60) => (text.length > n ? `${text.slice(0, n)}…` : text);
-
 function append(key, entry) {
   const all = JSON.parse(localStorage.getItem(key) || '[]');
   all.push(entry);
@@ -51,11 +49,6 @@ export function saveOrderReview(order, user, { rating, comment }) {
     comment,
     time: Date.now(),
   });
-  sendNotification('admin', null, {
-    text: `Pharmacy review: ${user?.name || 'A patient'} rated order ${orderRef(order)} ${rating}/5 — “${excerpt(comment)}”`,
-    emoji: 'star',
-    link: '/admin?tab=audits',
-  });
 }
 
 export function saveOrderReport(order, user, { issueType, details }) {
@@ -70,15 +63,4 @@ export function saveOrderReport(order, user, { issueType, details }) {
     status: 'pending',
     time: Date.now(),
   });
-  sendNotification('admin', null, {
-    text: `Pharmacy complaint: ${user?.name || 'A patient'} reported a problem with order ${orderRef(order)} — “${excerpt(details)}”`,
-    emoji: 'complaint',
-    link: '/admin?tab=audits',
-  });
-}
-
-export function notifyOrderCancelled(order, reason) {
-  const text = `Order cancelled: the patient cancelled order ${orderRef(order)}.${reason ? ` Reason: ${reason}` : ''}`;
-  sendNotification('admin', null, { text, emoji: 'cancel', link: '/admin?tab=orders' });
-  sendNotification('pharmacist', null, { text, emoji: 'cancel', link: '/pharmacist' });
 }

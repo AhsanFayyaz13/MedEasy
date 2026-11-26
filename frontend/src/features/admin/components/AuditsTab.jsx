@@ -5,7 +5,6 @@ import api from '../../../services/api/client';
 import { useToast } from '../../../context/ToastContext';
 import { Badge, Button, Card, EmptyState, Modal, Tabs } from '../../../components/ui';
 import { formatDate } from '../../../lib/format';
-import { sendNotification } from '../../../lib/notifications';
 import { REPORT_TYPES } from '../../orders/lib/orderFeedback';
 import { shortId } from './adminShared';
 
@@ -93,11 +92,6 @@ export default function AuditsTab({ users = [], setUsers }) {
         setUsers?.((prev) => prev.map((u) => (u.id === doctor.id ? { ...u, status: res.user.status } : u)));
       }
       update('doctors', report.id, { status: 'resolved', resolutionAction: 'sanction' });
-      sendNotification('doctor', report.doctorId, {
-        text: 'Your account has been suspended while we review a patient complaint. Please contact support.',
-        emoji: 'complaint',
-        link: '/contact',
-      });
       toast.success(`${report.doctorName} has been suspended.`);
       setSuspending(null);
     } catch (e) {

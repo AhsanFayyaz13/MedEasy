@@ -4,7 +4,6 @@ import { useToast } from '../../../context/ToastContext';
 import { fetchPendingPrescriptions, verifyPrescription } from '../../../services/api/pharmacistService';
 import { Badge, Button, Card, EmptyState, ErrorState, Modal, SkeletonCard, Textarea } from '../../../components/ui';
 import { assetUrl } from '../../../lib/media';
-import { sendNotification } from '../../../lib/notifications';
 import { fmtDate } from './pharmacistShared';
 import { formatPhone, phoneHref } from '../../../lib/format';
 
@@ -53,13 +52,10 @@ export default function PrescriptionsPage() {
     try {
       await verifyPrescription(rx.id, status, why);
       setList((prev) => prev.filter((p) => p.id !== rx.id));
-      const patientId = rx.userId?._id || rx.userId;
       if (status === 'verified') {
         toast.success(`Prescription #${shortRx(rx.id)} verified.`);
-        sendNotification('patient', patientId, { text: `Prescription verified: #RX-${shortRx(rx.id)} was approved by our pharmacist. You can now order those medicines.`, emoji: 'booking', link: '/prescriptions/upload' });
       } else {
         toast.success(`Prescription #${shortRx(rx.id)} declined.`);
-        sendNotification('patient', patientId, { text: `Prescription declined: #RX-${shortRx(rx.id)}. Reason: ${why}`, emoji: 'cancel', link: '/prescriptions/upload' });
       }
       setRejecting(null);
       setViewing(null);

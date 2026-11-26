@@ -2,13 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FiCheckCircle, FiClock, FiExternalLink, FiFileText, FiShield, FiTrash2, FiUpload, FiXCircle } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import { uploadPrescription, fetchPrescriptions, deletePrescription } from '../../../services/api/prescriptionService';
 import { Alert, Badge, Button, Card, EmptyState, ErrorState, FileDropzone, Modal, PageHeader, SkeletonCard, Textarea } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import { formatDate } from '../../../lib/format';
 import { assetUrl } from '../../../lib/media';
-import { notifySelf, sendNotification } from '../../../lib/notifications';
 import { MAX_FILE_MB, validateFile } from '../../cart/components/checkoutShared';
 import './PrescriptionUpload.css';
 
@@ -73,7 +71,6 @@ function PrescriptionItem({ rx, onDelete }) {
 
 export default function PrescriptionUpload() {
   const { toast } = useToast();
-  const { user } = useAuth();
   const requiredFor = useLocation().state?.requiredForMedicine;
 
   const [file, setFile] = useState(null);
@@ -114,11 +111,8 @@ export default function PrescriptionUpload() {
     if (err) return setFileError(err === 'A prescription is required for Rx items.' ? 'Choose a photo or PDF of your prescription.' : err);
     setUploading(true);
     try {
-      const rx = await uploadPrescription(file, notes.trim());
-      const ref = shortRxId(rx.id);
+      await uploadPrescription(file, notes.trim());
       toast.success('Prescription uploaded. A pharmacist will review it shortly.');
-      notifySelf(user, { text: `Prescription #${ref} uploaded and sent for review.`, emoji: 'prescription', link: '/prescriptions/upload' });
-      sendNotification('pharmacist', null, { text: `New prescription #${ref} from ${user?.name || 'a patient'} is waiting for review.`, emoji: 'prescription', link: '/pharmacist' });
       setFile(null);
       setNotes('');
       load();

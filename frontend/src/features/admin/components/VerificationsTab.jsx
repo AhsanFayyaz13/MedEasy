@@ -5,7 +5,6 @@ import { useToast } from '../../../context/ToastContext';
 import { Avatar, Badge, Button, Card, EmptyState, Modal, SearchInput, Tabs, Textarea } from '../../../components/ui';
 import { assetUrl } from '../../../lib/media';
 import { formatDate, formatPhone, formatPrice } from '../../../lib/format';
-import { sendNotification } from '../../../lib/notifications';
 import { reviewItems } from './adminShared';
 
 const KIND = {
@@ -95,25 +94,12 @@ export default function VerificationsTab({ users, setUsers }) {
 
   const update = (data) => setUsers((prev) => prev.map((x) => (x.id === data.user._id || x._id === data.user._id ? { ...x, ...data.user, id: x.id } : x)));
 
-  const notify = (item, text, emoji) => {
-    const u = item.user;
-    const isStore = item.kind !== 'doctor';
-    sendNotification(isStore ? 'pharmacist' : 'doctor', u.id, { text, emoji, link: item.kind === 'pharmacist' ? '/pharmacist?tab=pharmacist-rep' : isStore ? '/pharmacist' : '/profile' });
-  };
-
-  const APPROVED_TEXT = {
-    doctor: 'Your doctor profile has been verified. Patients can now book you.',
-    pharmacy: 'Your pharmacy has been verified. You can now receive orders.',
-    pharmacist: 'Your pharmacist has been verified and can now sign in for your store.',
-  };
-
   const approve = async (item) => {
     setBusy(`${item.key}:approve`);
     try {
       const { data } = await api.put(`/admin/users/${item.user.id}/approve`, { subject: item.subject });
       update(data);
       toast.success(`${who(item).name} approved.`);
-      notify(item, APPROVED_TEXT[item.kind], 'welcome');
       setViewing(null);
     } catch (e) {
       toast.error(e.response?.data?.message || 'Could not approve.');
@@ -129,7 +115,6 @@ export default function VerificationsTab({ users, setUsers }) {
       const { data } = await api.put(`/admin/users/${item.user.id}/decline`, { reason: reason.trim(), subject: item.subject });
       update(data);
       toast.success('Declined. The applicant has been emailed the reason.');
-      notify(item, `Verification declined: ${reason.trim()}. Please update your details and resubmit.`, 'cancel');
       setDeclining(null);
       setViewing(null);
     } catch (e) {
