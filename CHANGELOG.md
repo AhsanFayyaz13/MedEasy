@@ -6,6 +6,9 @@ deployed continuously from `main`, so entries are grouped by date.
 ## Unreleased
 
 ### Added
+- Feedback, complaints about doctors and orders, and pharmacy ratings are now sent to the server, so
+  admins see them from any device. Admins are alerted to new complaints, and patients are told when
+  theirs has been reviewed. Rating an order again replaces the earlier rating.
 - Patient–doctor chat now works between devices: messages are stored with the appointment, show when
   they've been seen, and close 3 days after the appointment. The other side gets a notification and one
   email per unread conversation (without the message).

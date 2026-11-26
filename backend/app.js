@@ -84,6 +84,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/doctors', require('./routes/doctors'));
 app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/feedback', require('./routes/feedback'));
 
 app.use(notFound);
 app.use(errorHandler);

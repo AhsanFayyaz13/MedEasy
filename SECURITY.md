@@ -32,6 +32,8 @@ Only the current `main` branch (what runs on medeasy.systems) receives security 
 - Prices, stock and delivery fees are always computed by the server.
 - Only an appointment's patient and doctor can read or write its chat (admins can read). Notification
   emails never include message content.
+- Complaints and ratings are accepted only about the sender's own appointments and orders; only admins can
+  read them.
 - Uploads: random filenames, extension and MIME type must match, size-limited, stored on Cloudinary.
 - No internal error details in production responses; `Cache-Control: no-store` on signed-in responses.
 

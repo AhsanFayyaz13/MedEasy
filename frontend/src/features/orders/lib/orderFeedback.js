@@ -1,14 +1,8 @@
 /**
- * Patient feedback on orders: pharmacy ratings, complaints and cancellation alerts.
- *
- * NOTE: ratings and complaints are kept in localStorage (read by the admin Audits tab)
- * until the API has endpoints for them. Keep all writes here so that swap stays easy.
- * (Cancellations reach the pharmacy and admins as server notifications.)
+ * Patient feedback on orders: pharmacy ratings and complaints, sent to the MedEasy team
+ * (admin Audits tab), plus how orders are named.
  */
-
-const REVIEWS_KEY = 'medeasy_pharmacy_reviews';
-const REPORTS_KEY = 'medeasy_pharmacy_reports';
-const DEFAULT_PHARMACY = 'MedEasy Pharmacy Partner';
+import { submitFeedback } from '../../../services/api/feedbackService';
 
 export const shortOrderId = (id) => String(id || '').slice(-8).toUpperCase();
 
@@ -32,35 +26,10 @@ export const REPORT_TYPES = [
   { value: 'other', label: 'Something else' },
 ];
 
-function append(key, entry) {
-  const all = JSON.parse(localStorage.getItem(key) || '[]');
-  all.push(entry);
-  localStorage.setItem(key, JSON.stringify(all));
-}
+/** Rate a delivered order (rating it again replaces the earlier rating). */
+export const saveOrderReview = (order, { rating, comment }) =>
+  submitFeedback({ kind: 'rating', orderId: order.id, rating: Number(rating), text: comment || undefined });
 
-export function saveOrderReview(order, user, { rating, comment }) {
-  append(REVIEWS_KEY, {
-    id: `rev-${Date.now()}`,
-    orderId: order.id,
-    pharmacyName: order.pharmacyName || DEFAULT_PHARMACY,
-    patientName: user?.name || 'Patient',
-    patientEmail: user?.email || '',
-    rating: Number(rating),
-    comment,
-    time: Date.now(),
-  });
-}
-
-export function saveOrderReport(order, user, { issueType, details }) {
-  append(REPORTS_KEY, {
-    id: `rep-${Date.now()}`,
-    orderId: order.id,
-    pharmacyName: order.pharmacyName || DEFAULT_PHARMACY,
-    patientName: user?.name || 'Patient',
-    patientEmail: user?.email || '',
-    issueType,
-    details,
-    status: 'pending',
-    time: Date.now(),
-  });
-}
+/** Complain about an order; the admin team is alerted. */
+export const saveOrderReport = (order, { issueType, details }) =>
+  submitFeedback({ kind: 'order', orderId: order.id, category: issueType, text: details });

@@ -12,11 +12,12 @@ import { fetchNotifications, markAllNotificationsRead, markNotificationRead } fr
 const POLL_MS = 30_000;
 const NotificationsContext = createContext(null);
 
-// Older versions kept notifications and chats in this browser only; they are on the server now.
+// Older versions kept these in this browser only; they are on the server now.
+const LEGACY_KEYS = ['medeasy_chats', 'medeasy_feedbacks', 'medeasy_doctor_reports', 'medeasy_pharmacy_reports', 'medeasy_pharmacy_reviews'];
 function removeLegacyStorage() {
   try {
     Object.keys(localStorage)
-      .filter((k) => k === 'medeasy_chats' || k.startsWith('medeasy_notifications_'))
+      .filter((k) => LEGACY_KEYS.includes(k) || k.startsWith('medeasy_notifications_'))
       .forEach((k) => localStorage.removeItem(k));
   } catch {
     /* storage unavailable */

@@ -271,7 +271,7 @@ export default function AppNavbar() {
         </div>
       </nav>
 
-      <FeedbackModal show={feedbackOpen} onClose={() => setFeedbackOpen(false)} user={user} />
+      <FeedbackModal show={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </header>
   );
 }

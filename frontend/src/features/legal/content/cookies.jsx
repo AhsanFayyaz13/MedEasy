@@ -4,9 +4,7 @@ import { BUSINESS } from '../../../lib/business';
 const STORAGE = [
   ['medeasy_access_token, medeasy_user', 'Session storage', 'Keeps you signed in on this browser tab.', 'Until you close the tab or log out'],
   ['medeasy_cart_v2', 'Local storage', 'Remembers the items in your cart.', 'Until checkout, logout or you clear it'],
-  ['medeasy_theme', 'Local storage', 'Remembers light or dark mode.', 'Until you change it'],
-  ['medeasy_feedbacks, medeasy_*_reports, medeasy_pharmacy_reviews', 'Local storage', 'Feedback and complaints you submit on this device.', 'Until cleared'],
-];
+  ['medeasy_theme', 'Local storage', 'Remembers light or dark mode.', 'Until you change it'],];
 
 const cookies = {
   title: 'Cookie Policy',

@@ -90,6 +90,7 @@ const privacy = {
         <ul>
           <li>Unverified sign-ups are deleted automatically after 15 minutes.</li>
           <li>Messages with your doctor are kept with the appointment as part of your consultation record. In-app notifications are deleted automatically after 90 days.</li>
+          <li>Feedback, complaints and ratings are kept so our team can follow them up and spot repeated problems.</li>
           <li>Account, order and prescription records are kept while your account is active and afterwards for as long as needed to meet legal, tax and pharmacy record-keeping requirements.</li>
           <li>Verification and password-reset codes expire after 15 minutes and are stored only in hashed form.</li>
         </ul>

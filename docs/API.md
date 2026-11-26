@@ -17,7 +17,7 @@ Base URL: `https://<api-host>/api` (local: `http://localhost:5000/api`).
   pending approval · `404` not found · `409` duplicate · `413` body too large · `429` rate limited · `500`
   unexpected (no internals in production).
 - **Rate limits:** 600 requests / 15 min per IP overall (polling for notifications and chat messages is
-  instead limited to 900 / 15 min per user; sending messages 30 / min per user); sign-in, sign-up, codes and password changes
+  instead limited to 900 / 15 min per user; sending messages 30 / min per user; feedback and complaints 15 / hour per user); sign-in, sign-up, codes and password changes
   10 / 15 min per IP + identifier; uploads and contact form 20 / hour; guest orders and tracking 10 / hour.
 - **Caching:** responses to signed-in requests are `Cache-Control: private, no-store`.
 
@@ -108,6 +108,14 @@ Roles: `patient`, `doctor`, `pharmacy` (owner), `pharmacist` (representative), `
 | PUT | `/notifications/read-all` | Signed in | Mark all as read |
 
 Types: `booking`, `cancel`, `chat`, `prescription`, `order`, `account`, `system`.
+
+## Feedback & complaints — `/feedback`
+
+| Method | Path | Access | Description |
+| --- | --- | --- | --- |
+| POST | `/feedback` | signed in | `kind: 'site'` + `category` (suggestion, bug, compliment, other), `subject`, `text`, optional `rating`; `kind: 'doctor'` + `appointmentId`, `category`, `text` (own appointment); `kind: 'order'` + `orderId`, `category`, `text` (own order, not pending); `kind: 'rating'` + `orderId`, `rating` 1–5, optional `text` (own delivered order; replaces an earlier rating). Complaints alert admins. |
+| GET | `/feedback?kind=` | admin | Newest first (up to 500), with author name and email, doctor, order number |
+| PUT | `/feedback/:id` | admin | `{ action }`: `resolved` (default), `sanction` (doctor suspended) or `archived`. Resolving a complaint notifies the patient. |
 
 ## Reviews — `/reviews`
 

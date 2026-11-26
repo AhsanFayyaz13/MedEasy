@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FiCalendar, FiPlusCircle } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import { fetchDoctors, bookAppointment, fetchMyAppointments, cancelAppointment } from '../../../services/api/appointmentService';
 import { Card, EmptyState, ErrorState, PageHeader, Skeleton } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
+import { feedbackError, submitFeedback } from '../../../services/api/feedbackService';
 import ReviewSection from '../../reviews/components/ReviewSection';
 import BookingForm from '../components/BookingForm';
 import AppointmentCard from '../components/AppointmentCard';
@@ -15,7 +15,6 @@ import './AppointmentBooking.css';
 
 export default function AppointmentBooking() {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [searchParams] = useSearchParams();
 
   const [doctors, setDoctors] = useState([]);
@@ -87,26 +86,11 @@ export default function AppointmentBooking() {
 
   const handleReport = async ({ issueType, details }) => {
     try {
-      const all = JSON.parse(localStorage.getItem('medeasy_doctor_reports') || '[]');
-      all.push({
-        id: `rep-${Date.now()}`,
-        appointmentId: reportApt.id,
-        doctorId: reportApt.doctorId,
-        doctorName: reportApt.doctorName,
-        specialty: reportApt.specialty,
-        patientName: user?.name || 'Patient',
-        patientEmail: user?.email || '',
-        issueType,
-        details,
-        status: 'pending',
-        time: Date.now(),
-      });
-      localStorage.setItem('medeasy_doctor_reports', JSON.stringify(all));
-      toast.success('Your report has been submitted to the medical board.');
+      await submitFeedback({ kind: 'doctor', appointmentId: reportApt.id, category: issueType, text: details });
+      toast.success('Your report has been sent to our team. We’ll look into it.');
       setReportApt(null);
     } catch (err) {
-      console.error(err);
-      toast.error('Failed to submit the report.');
+      toast.error(feedbackError(err, 'Your report wasn’t sent. Please try again.'));
     }
   };
 

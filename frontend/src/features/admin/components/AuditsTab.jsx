@@ -2,32 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { FaStar } from 'react-icons/fa';
 import { FiCheck, FiInbox, FiSlash } from 'react-icons/fi';
 import api from '../../../services/api/client';
+import { fetchFeedback, feedbackError, resolveFeedback } from '../../../services/api/feedbackService';
 import { useToast } from '../../../context/ToastContext';
-import { Badge, Button, Card, EmptyState, Modal, Tabs } from '../../../components/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, Modal, Skeleton, Tabs } from '../../../components/ui';
 import { formatDate } from '../../../lib/format';
 import { REPORT_TYPES } from '../../orders/lib/orderFeedback';
 import { shortId } from './adminShared';
 
-/*
- * NOTE: feedback, complaints and pharmacy ratings are still stored in the browser
- * (localStorage) by the pages that collect them, so this tab only sees what was
- * submitted on this device. Moving them to the API is on the to-do list.
- */
-const KEYS = {
-  feedback: 'medeasy_feedbacks',
-  doctors: 'medeasy_doctor_reports',
-  pharmacies: 'medeasy_pharmacy_reports',
-  ratings: 'medeasy_pharmacy_reviews',
-};
-const read = (key) => {
-  try {
-    return JSON.parse(localStorage.getItem(key) || '[]').sort((a, b) => (b.time || 0) - (a.time || 0));
-  } catch {
-    return [];
-  }
-};
-const write = (key, list) => localStorage.setItem(key, JSON.stringify(list));
 const issueLabel = (v) => REPORT_TYPES.find((t) => t.value === v)?.label || v;
+const tidy = (v) => String(v || '').replace(/-/g, ' ');
 
 function Item({ title, meta, badge, children, actions }) {
   return (
@@ -47,146 +30,172 @@ function Item({ title, meta, badge, children, actions }) {
   );
 }
 
-/** Patient feedback, complaints about doctors and pharmacies, and pharmacy ratings. */
+/** Patient feedback, complaints about doctors and orders, and pharmacy ratings (stored on the server). */
 export default function AuditsTab({ users = [], setUsers }) {
   const { toast } = useToast();
   const [tab, setTab] = useState('doctors');
-  const [data, setData] = useState({ feedback: [], doctors: [], pharmacies: [], ratings: [] });
+  const [items, setItems] = useState([]);
+  const [state, setState] = useState({ loading: true, error: null });
   const [suspending, setSuspending] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(null);
 
-  const load = useCallback(() => setData(Object.fromEntries(Object.entries(KEYS).map(([k, key]) => [k, read(key)]))), []);
+  const load = useCallback(async () => {
+    setState({ loading: true, error: null });
+    try {
+      setItems(await fetchFeedback());
+      setState({ loading: false, error: null });
+    } catch (e) {
+      setState({ loading: false, error: feedbackError(e, 'Couldn’t load the audit queues.') });
+    }
+  }, []);
 
   useEffect(() => {
-    load();
-    // Pick up submissions made in other tabs of this browser.
-    const onStorage = (e) => Object.values(KEYS).includes(e.key) && load();
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    const t = setTimeout(load, 0);
+    return () => clearTimeout(t);
   }, [load]);
 
-  const update = (kind, id, patch) => {
-    const list = read(KEYS[kind]).map((x) => (x.id === id ? { ...x, ...patch } : x));
-    write(KEYS[kind], list);
-    setData((d) => ({ ...d, [kind]: list }));
-  };
-  const remove = (kind, id) => {
-    const list = read(KEYS[kind]).filter((x) => x.id !== id);
-    write(KEYS[kind], list);
-    setData((d) => ({ ...d, [kind]: list }));
-  };
-
-  const resolve = (kind, item) => {
-    update(kind, item.id, { status: 'resolved', resolutionAction: 'resolved' });
-    toast.success('Marked as resolved.');
+  /** Record the outcome on the server, then update the list. Resolves to true on success. */
+  const settle = async (item, action, message) => {
+    setBusy(item.id);
+    try {
+      const res = await resolveFeedback(item.id, action);
+      setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, ...res } : x)));
+      if (message) toast.success(message);
+      return true;
+    } catch (e) {
+      toast.error(feedbackError(e, 'Couldn’t update this item.'));
+      return false;
+    } finally {
+      setBusy(null);
+    }
   };
 
   /** Really suspends the doctor's account via the API, then records the outcome. */
   const confirmSuspend = async () => {
     const report = suspending;
-    const doctor = users.find((u) => String(u.id) === String(report.doctorId));
-    setBusy(true);
+    const doctor = users.find((u) => String(u.id) === String(report.doctor?.id));
+    setBusy(report.id);
     try {
       if (doctor && doctor.status !== 'suspended') {
         const { data: res } = await api.put(`/admin/users/${doctor.id}/status`);
         setUsers?.((prev) => prev.map((u) => (u.id === doctor.id ? { ...u, status: res.user.status } : u)));
       }
-      update('doctors', report.id, { status: 'resolved', resolutionAction: 'sanction' });
-      toast.success(`${report.doctorName} has been suspended.`);
-      setSuspending(null);
     } catch (e) {
       toast.error(e.response?.data?.message || 'Could not suspend the account.');
-    } finally {
-      setBusy(false);
+      setBusy(null);
+      return;
     }
+    if (await settle(report, 'sanction', `${report.doctor?.name || 'The doctor'} has been suspended.`)) setSuspending(null);
   };
 
-  const open = (list) => list.filter((x) => x.status !== 'resolved').length || null;
+  const of = (kind, { hideDone = false } = {}) => items.filter((x) => x.kind === kind && (!hideDone || x.status !== 'resolved'));
+  const doctors = of('doctor');
+  const orders = of('order');
+  const ratings = of('rating', { hideDone: true });
+  const feedback = of('site', { hideDone: true });
+  const openCount = (list) => list.filter((x) => x.status !== 'resolved').length || null;
+
   const tabs = [
-    { id: 'doctors', label: 'Doctor complaints', badge: open(data.doctors) },
-    { id: 'pharmacies', label: 'Order complaints', badge: open(data.pharmacies) },
-    { id: 'ratings', label: 'Pharmacy ratings', badge: data.ratings.length || null },
-    { id: 'feedback', label: 'Site feedback', badge: data.feedback.length || null },
+    { id: 'doctors', label: 'Doctor complaints', badge: openCount(doctors) },
+    { id: 'pharmacies', label: 'Order complaints', badge: openCount(orders) },
+    { id: 'ratings', label: 'Pharmacy ratings', badge: ratings.length || null },
+    { id: 'feedback', label: 'Site feedback', badge: feedback.length || null },
   ];
 
   const statusBadge = (x) =>
-    x.resolutionAction === 'sanction' ? <Badge tone="error">Doctor suspended</Badge> : x.status === 'resolved' ? <Badge tone="success">Resolved</Badge> : <Badge tone="warning">Open</Badge>;
+    x.action === 'sanction' ? <Badge tone="error">Doctor suspended</Badge> : x.status === 'resolved' ? <Badge tone="success">Resolved</Badge> : <Badge tone="warning">Open</Badge>;
+  const replyTo = (x) => x.author.email && <p className="adm-muted">Reply to <a href={`mailto:${x.author.email}`}>{x.author.email}</a></p>;
+  const resolveButton = (x) => (
+    <Button size="sm" loading={busy === x.id} leftIcon={<FiCheck aria-hidden="true" />} onClick={() => settle(x, 'resolved', 'Marked as resolved. The patient has been told.')}>
+      Resolve
+    </Button>
+  );
 
   let body;
   if (tab === 'doctors') {
-    body = data.doctors.map((r) => (
+    body = doctors.map((r) => (
       <Item
         key={r.id}
-        title={`${r.patientName} about ${r.doctorName}`}
-        meta={`${r.specialty ? `${r.specialty} · ` : ''}appointment #APT-${shortId(r.appointmentId)} · ${formatDate(r.time)}`}
+        title={`${r.author.name} about ${r.doctor?.name || 'a doctor'}`}
+        meta={`${r.doctor?.specialty ? `${r.doctor.specialty} · ` : ''}appointment #APT-${shortId(r.appointmentId)} · ${formatDate(r.createdAt)}`}
         badge={statusBadge(r)}
         actions={
           r.status !== 'resolved' && (
             <>
-              <Button size="sm" leftIcon={<FiCheck aria-hidden="true" />} onClick={() => resolve('doctors', r)}>Resolve</Button>
-              {r.doctorId && <Button size="sm" variant="ghost" className="adm-danger" leftIcon={<FiSlash aria-hidden="true" />} onClick={() => setSuspending(r)}>Suspend doctor</Button>}
+              {resolveButton(r)}
+              {r.doctor?.id && (
+                <Button size="sm" variant="ghost" className="adm-danger" leftIcon={<FiSlash aria-hidden="true" />} onClick={() => setSuspending(r)}>
+                  Suspend doctor
+                </Button>
+              )}
             </>
           )
         }
       >
-        {r.issueType && <p className="adm-audit__tag">{r.issueType}</p>}
-        <p>{r.details}</p>
+        {r.category && <p className="adm-audit__tag">{tidy(r.category)}</p>}
+        <p>{r.text}</p>
+        {replyTo(r)}
       </Item>
     ));
   } else if (tab === 'pharmacies') {
-    body = data.pharmacies.map((r) => (
+    body = orders.map((r) => (
       <Item
         key={r.id}
-        title={`${r.patientName} — ${issueLabel(r.issueType)}`}
-        meta={`Order #${shortId(r.orderId)} · ${r.pharmacyName} · ${formatDate(r.time)}`}
+        title={`${r.author.name} — ${issueLabel(r.category)}`}
+        meta={`Order ${r.order?.ref || r.subject} · ${r.order?.pharmacyName || ''} · ${formatDate(r.createdAt)}`}
         badge={statusBadge(r)}
-        actions={r.status !== 'resolved' && <Button size="sm" leftIcon={<FiCheck aria-hidden="true" />} onClick={() => resolve('pharmacies', r)}>Resolve</Button>}
+        actions={r.status !== 'resolved' && resolveButton(r)}
       >
-        <p>{r.details}</p>
-        {r.patientEmail && <p className="adm-muted">Reply to <a href={`mailto:${r.patientEmail}`}>{r.patientEmail}</a></p>}
+        <p>{r.text}</p>
+        {replyTo(r)}
       </Item>
     ));
   } else if (tab === 'ratings') {
-    body = data.ratings.map((r) => (
+    body = ratings.map((r) => (
       <Item
         key={r.id}
-        title={`${r.patientName} rated ${r.pharmacyName}`}
-        meta={`Order #${shortId(r.orderId)} · ${formatDate(r.time)}`}
+        title={`${r.author.name} rated ${r.order?.pharmacyName || 'the pharmacy'}`}
+        meta={`Order ${r.order?.ref || r.subject} · ${formatDate(r.createdAt)}`}
         badge={<span className="adm-stars" aria-label={`${r.rating} out of 5`}>{Array.from({ length: r.rating }, (_, i) => <FaStar key={i} aria-hidden="true" />)}</span>}
-        actions={<Button size="sm" variant="ghost" onClick={() => remove('ratings', r.id)}>Archive</Button>}
+        actions={<Button size="sm" variant="ghost" loading={busy === r.id} onClick={() => settle(r, 'archived')}>Archive</Button>}
       >
-        <p>{r.comment}</p>
+        {r.text && <p>{r.text}</p>}
       </Item>
     ));
   } else {
-    body = data.feedback.map((f) => (
+    body = feedback.map((f) => (
       <Item
         key={f.id}
         title={f.subject || 'Feedback'}
-        meta={`${f.patientName}${f.patientEmail ? ` · ${f.patientEmail}` : ''} · ${formatDate(f.time)}`}
-        badge={<Badge tone={f.feedbackType === 'bug' ? 'error' : f.feedbackType === 'compliment' ? 'success' : 'info'}>{f.feedbackType}</Badge>}
-        actions={<Button size="sm" variant="ghost" leftIcon={<FiCheck aria-hidden="true" />} onClick={() => remove('feedback', f.id)}>Mark reviewed</Button>}
+        meta={`${f.author.name}${f.author.email ? ` · ${f.author.email}` : ''}${f.rating ? ` · ${f.rating}/5` : ''} · ${formatDate(f.createdAt)}`}
+        badge={<Badge tone={f.category === 'bug' ? 'error' : f.category === 'compliment' ? 'success' : 'info'}>{f.category}</Badge>}
+        actions={<Button size="sm" variant="ghost" loading={busy === f.id} leftIcon={<FiCheck aria-hidden="true" />} onClick={() => settle(f, 'archived')}>Mark reviewed</Button>}
       >
-        <p>{f.message}</p>
+        <p>{f.text}</p>
       </Item>
     ));
   }
 
+  let content;
+  if (state.loading) content = <Card><Skeleton lines={6} /></Card>;
+  else if (state.error) content = <ErrorState message={state.error} onRetry={load} />;
+  else if (body.length) content = <ul className="adm-audit-list">{body}</ul>;
+  else content = <EmptyState icon={<FiInbox />} title="Nothing here" description="New submissions will appear here." />;
+
   return (
     <div className="adm-section">
       <Tabs tabs={tabs} active={tab} onChange={setTab} label="Audit queues" />
-      <p className="adm-muted">Only submissions made in this browser appear here until feedback is stored on the server.</p>
-      {body.length ? <ul className="adm-audit-list">{body}</ul> : <EmptyState icon={<FiInbox />} title="Nothing here" description="New submissions will appear here." />}
+      {content}
 
       <Modal
         show={!!suspending}
         onClose={() => setSuspending(null)}
-        title={`Suspend ${suspending?.doctorName || 'this doctor'}?`}
+        title={`Suspend ${suspending?.doctor?.name || 'this doctor'}?`}
         description="They won’t be able to sign in until you reactivate them in Users. The complaint is marked resolved."
         footer={
           <>
             <Button variant="secondary" onClick={() => setSuspending(null)}>Cancel</Button>
-            <Button variant="danger" loading={busy} onClick={confirmSuspend}>Suspend account</Button>
+            <Button variant="danger" loading={busy === suspending?.id} onClick={confirmSuspend}>Suspend account</Button>
           </>
         }
       />

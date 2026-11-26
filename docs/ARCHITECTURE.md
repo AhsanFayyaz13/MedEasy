@@ -119,10 +119,15 @@ Both are stored on the server and work on the free hosting plans: no WebSockets 
   Resend's free quota.
 - Polling is rate-limited per user, not per IP, so people sharing a mobile network's IP don't block each other.
 
+## Feedback and complaints
+
+Site feedback, complaints about a consultation or an order, and pharmacy ratings are one `Feedback`
+collection (`kind`: `site`, `doctor`, `order`, `rating`). The API checks that a complaint or rating is about
+the sender's own appointment or order, and allows one rating per delivered order (rating again replaces it).
+New complaints alert admins; resolving one tells the patient. Admins work through them in the Audits tab.
+
 ## Known limitations
 
-- **Feedback, complaints and pharmacy ratings are stored in the browser** (`localStorage`), so admins only
-  see them on the device where they were submitted. They should move to the API.
 - **Uploaded files use public URLs**: anyone with a prescription's link can open it. Signed or
   authenticated URLs would be better for health data.
 - **Admin lists load every record**: fine at current volume; add server-side pagination as data grows.

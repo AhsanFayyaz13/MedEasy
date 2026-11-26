@@ -211,6 +211,36 @@ const notifications = {
   list: z.object({ limit: z.coerce.number().int().min(1).max(50).optional() }),
 };
 
+// ── Feedback, complaints and ratings ───────────────────────────────
+const stars = z.coerce.number().int().min(1, 'Rating must be 1–5').max(5, 'Rating must be 1–5');
+const details = trimmed(2000).min(10, 'Please describe what happened (at least 10 characters).');
+const feedback = {
+  submit: z.discriminatedUnion('kind', [
+    z.object({
+      kind: z.literal('site'),
+      category: z.enum(['suggestion', 'bug', 'compliment', 'other']).default('other'),
+      subject: trimmed(120).min(1, 'Please add a short subject.'),
+      text: trimmed(2000).min(10, 'Please describe your feedback (at least 10 characters).'),
+      rating: stars.optional(),
+    }),
+    z.object({
+      kind: z.literal('doctor'),
+      appointmentId: objectId,
+      category: z.enum(['no-show', 'conduct', 'incorrect-advice', 'overcharging', 'other']).default('other'),
+      text: details,
+    }),
+    z.object({
+      kind: z.literal('order'),
+      orderId: objectId,
+      category: z.enum(['wrong-medicine', 'expired-medicine', 'delay', 'rider-conduct', 'overcharging', 'other']).default('other'),
+      text: details,
+    }),
+    z.object({ kind: z.literal('rating'), orderId: objectId, rating: stars, text: optionalText(2000) }),
+  ]),
+  list: z.object({ kind: z.enum(['site', 'doctor', 'order', 'rating']).optional() }),
+  resolve: z.object({ action: z.enum(['resolved', 'sanction', 'archived']).optional() }),
+};
+
 // ── Prescriptions ──────────────────────────────────────────────────
 const prescriptions = {
   verify: z.object({ status: z.enum(['pending', 'verified', 'rejected']), doctorId: emptyToUndefined(objectId.optional()), rejectionReason: optionalText(500) }),
@@ -272,6 +302,7 @@ module.exports = {
   appointments,
   messages,
   notifications,
+  feedback,
   prescriptions,
   reviews,
   contact,

@@ -107,4 +107,15 @@ const messageLimiter = rateLimit({
   handler: json429('You’re sending messages too quickly. Please wait a moment.'),
 });
 
-module.exports = { sanitizeInput, stripOperators, apiLimiter, authLimiter, uploadLimiter, guestOrderLimiter, pollLimiter, messageLimiter };
+/** Feedback, complaints and ratings: plenty for real use, stops one account flooding the admin queue. */
+const feedbackLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 15,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: skipInTest,
+  keyGenerator: (req) => `user:${req.user?._id || ipKeyGenerator(req.ip)}`,
+  handler: json429('You’ve sent a lot of feedback recently. Please try again in an hour.'),
+});
+
+module.exports = { sanitizeInput, stripOperators, apiLimiter, authLimiter, uploadLimiter, guestOrderLimiter, pollLimiter, messageLimiter, feedbackLimiter };

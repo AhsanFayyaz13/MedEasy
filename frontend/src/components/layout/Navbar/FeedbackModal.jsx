@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Input, Modal, Select, Textarea } from '../../ui';
 import { useToast } from '../../../context/ToastContext';
+import { feedbackError, submitFeedback } from '../../../services/api/feedbackService';
 
 const TYPES = [
   { value: 'suggestion', label: 'Platform suggestion / idea' },
@@ -19,15 +20,16 @@ const RATINGS = [
 
 const EMPTY = { type: 'suggestion', rating: '5', subject: '', message: '' };
 
-/** Patient feedback form (stored locally and surfaced to admins in the Audits tab). */
-export default function FeedbackModal({ show, onClose, user }) {
+/** Feedback form: sent to the MedEasy team and shown to admins in the Audits tab. */
+export default function FeedbackModal({ show, onClose }) {
   const { toast } = useToast();
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     const next = {};
     if (!form.subject.trim()) next.subject = 'Please add a short subject.';
@@ -35,28 +37,22 @@ export default function FeedbackModal({ show, onClose, user }) {
     setErrors(next);
     if (Object.keys(next).length) return;
 
+    setSaving(true);
     try {
-      const all = JSON.parse(localStorage.getItem('medeasy_feedbacks') || '[]');
-      const now = Date.now();
-      all.push({
-        id: 'fb-' + now,
-        patientName: user?.name || 'Patient',
-        patientEmail: user?.email || '',
-        feedbackType: form.type,
+      await submitFeedback({
+        kind: 'site',
+        category: form.type,
         subject: form.subject.trim(),
-        message: form.message.trim(),
+        text: form.message.trim(),
         rating: Number(form.rating),
-        time: now,
       });
-      localStorage.setItem('medeasy_feedbacks', JSON.stringify(all));
-
-
-      toast.success('Thank you! Your feedback has been submitted.');
+      toast.success('Thank you! Your feedback has been sent to our team.');
       setForm(EMPTY);
       onClose();
     } catch (err) {
-      console.error(err);
-      toast.error('Could not save your feedback. Please try again.');
+      toast.error(feedbackError(err, 'Your feedback wasn’t sent. Please try again.'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -71,7 +67,7 @@ export default function FeedbackModal({ show, onClose, user }) {
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="feedback-form">
+          <Button type="submit" form="feedback-form" loading={saving}>
             Submit feedback
           </Button>
         </>

@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import { FiArrowRight, FiHelpCircle, FiMail, FiPhone, FiShoppingBag } from 'react-icons/fi';
 import { fetchOrders, cancelOrder } from '../../../services/api/orderService';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 import { Button, Card, EmptyState, ErrorState, PageHeader, SkeletonCard, Tabs } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import { BUSINESS } from '../../../lib/business';
@@ -11,6 +10,7 @@ import PatientOrderCard from '../components/PatientOrderCard';
 import PatientOrderDetail from '../components/PatientOrderDetail';
 import { CancelOrderDialog, RateOrderDialog, ReportOrderDialog } from '../components/OrderDialogs';
 import { saveOrderReport, saveOrderReview, orderRef } from '../lib/orderFeedback';
+import { feedbackError } from '../../../services/api/feedbackService';
 import './OrderTracking.css';
 
 const FILTERS = [
@@ -26,7 +26,6 @@ const matches = (filter, order) => !filter.statuses || filter.statuses.includes(
 export default function OrderTracking() {
   const { orderId } = useParams();
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,11 +80,11 @@ export default function OrderTracking() {
 
   const submitFeedback = (save, message) => async (values) => {
     try {
-      save(dialog.order, user, values);
+      await save(dialog.order, values);
       toast.success(message);
       close();
-    } catch {
-      toast.error('Something went wrong. Please try again.');
+    } catch (e) {
+      toast.error(feedbackError(e));
     }
   };
 

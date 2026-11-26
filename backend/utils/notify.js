@@ -20,6 +20,7 @@ const STAFF_LINKS = {
   orders: { admin: '/admin?tab=orders', pharmacy: '/pharmacist?tab=orders' },
   prescriptions: { pharmacy: '/pharmacist?tab=prescriptions' },
   verifications: { admin: '/admin?tab=verifications' },
+  complaints: { admin: '/admin?tab=audits' },
 };
 
 /**
