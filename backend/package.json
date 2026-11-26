@@ -1,6 +1,8 @@
 {
   "name": "backend",
   "version": "1.0.0",
+  "private": true,
+  "license": "UNLICENSED",
   "description": "",
   "main": "server.js",
   "scripts": {
@@ -13,7 +15,6 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "bcryptjs": "^3.0.3",

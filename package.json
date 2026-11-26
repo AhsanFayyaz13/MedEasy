@@ -1,6 +1,8 @@
 {
     "name": "medeasy",
     "version": "1.0.0",
+    "private": true,
+    "license": "UNLICENSED",
     "scripts": {
         "install-all": "npm install --prefix frontend && npm install --prefix backend",
         "start-frontend": "npm run dev --prefix frontend",
