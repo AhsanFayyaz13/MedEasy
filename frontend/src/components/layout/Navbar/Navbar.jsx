@@ -16,7 +16,6 @@ import {
 } from 'react-icons/fi';
 import { useCart } from '../../../context/CartContext';
 import { useAuth } from '../../../context/AuthContext';
-import { useToast } from '../../../context/ToastContext';
 import { assetUrl } from '../../../lib/media';
 import { Avatar, Button, ThemeToggle } from '../../ui';
 import NotificationsMenu from './NotificationsMenu';
@@ -70,7 +69,6 @@ function accountLinks(isPatient, dashPath) {
 export default function AppNavbar() {
   const { totalItems, clearCart } = useCart();
   const { isAuthenticated, logout, user, userRole } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -119,7 +117,6 @@ export default function AppNavbar() {
     logout();
     clearCart();
     setDrawerOpen(false);
-    toast.success('You’ve been signed out.');
     // Shoppers carry on browsing; staff can only use the sign-in page.
     navigate(wasPatient ? '/' : '/login');
   };

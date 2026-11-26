@@ -3,7 +3,6 @@ import { FiArrowLeft, FiShoppingCart } from 'react-icons/fi';
 import { useCart } from '../../../context/CartContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useAuthModal } from '../../../context/AuthModalContext';
-import { useToast } from '../../../context/ToastContext';
 import { uploadPrescription, placeOrder } from '../../../services/api/orderService';
 import { Alert, Button, EmptyState, PageHeader, Steps } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
@@ -21,7 +20,6 @@ export default function Checkout() {
   const { openLoginModal } = useAuthModal();
   const isGuest = !isAuthenticated;
   const { cartItems, cartTotal, cartCount, clearCart } = useCart();
-  const { toast } = useToast();
 
   const [addr, setAddr] = useState(() => ({
     firstName: user?.name?.split(' ')[0] || '',
@@ -94,7 +92,6 @@ export default function Checkout() {
     setErrors(aErr);
     setFileError(fErr);
     if (Object.keys(aErr).length || fErr) {
-      toast.warning('Please fix the highlighted fields.');
       document.querySelector('[aria-invalid="true"]')?.focus();
       return;
     }
@@ -126,7 +123,6 @@ export default function Checkout() {
       clearCart();
       setPlaced({ orderId: result.orderId, orderNumber: result.orderNumber, phone: addr.phone.trim(), needsRx, guest: isGuest });
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      toast.success('Order placed successfully!');
 
       const shortId = result.orderNumber || String(result.orderId).slice(-8).toUpperCase();
       if (!isGuest) notifySelf(user, { text: `Order placed: #${shortId} for ${formatPrice(total)}.`, emoji: 'booking', link: `/orders/${result.orderId}` });
@@ -135,7 +131,6 @@ export default function Checkout() {
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
       setSubmitError(msg);
-      toast.error(msg);
     } finally {
       setSubmitting(false);
     }

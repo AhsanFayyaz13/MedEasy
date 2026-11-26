@@ -67,7 +67,7 @@ export default function AppointmentBooking() {
     try {
       const appt = await bookAppointment(payload);
       setLastBooked(appt);
-      toast.success('Appointment booked successfully!');
+      toast.success('Appointment booked. The doctor has been notified.');
       notifySelf(user, {
         text: `Booking confirmed: ${appt.doctorName} on ${fmtDate(appt.date)} at ${appt.time}.`,
         emoji: 'booking',

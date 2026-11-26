@@ -1,0 +1,116 @@
+/* ── Toasts: quiet neutral cards; colour is limited to the small icon ── */
+.app-toaster {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(380px, calc(100vw - 2 * var(--space-4)));
+  pointer-events: none; /* the empty area never blocks clicks */
+}
+
+.app-toast {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-strong);
+  pointer-events: auto;
+  animation: toast-in var(--duration-base) var(--ease-out) both;
+}
+
+.app-toast__icon {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+}
+
+.app-toast--success .app-toast__icon { color: var(--fg-accent); }
+.app-toast--error .app-toast__icon { color: var(--fg-error); }
+.app-toast--warning .app-toast__icon { color: var(--fg-warning); }
+.app-toast--info .app-toast__icon,
+.app-toast--cart .app-toast__icon { color: var(--fg-primary); }
+
+.app-toast__message {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.app-toast__action {
+  flex-shrink: 0;
+  margin: -0.125rem 0;
+  padding: 0.125rem var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.app-toast__action:hover,
+.app-toast__action:focus-visible {
+  background: var(--tint-primary-50);
+}
+
+.app-toast__close {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: -0.125rem 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.app-toast__close:hover,
+.app-toast__close:focus-visible {
+  background: var(--bg-subtle);
+  color: var(--text-strong);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Phones: full width at the bottom, clear of the home indicator. */
+@media (max-width: 575.98px) {
+  .app-toaster {
+    right: var(--space-4);
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+    left: var(--space-4);
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-toast {
+    animation: none;
+  }
+}

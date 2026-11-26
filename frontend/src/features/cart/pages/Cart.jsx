@@ -1,6 +1,5 @@
 import { FiArrowRight, FiShoppingBag, FiShoppingCart, FiTrash2 } from 'react-icons/fi';
 import { useCart } from '../../../context/CartContext';
-import { useToast } from '../../../context/ToastContext';
 import { Button, Card, EmptyState, PageHeader, Steps } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import { formatPrice } from '../../../lib/format';
@@ -11,7 +10,6 @@ import './Cart.css';
 
 export default function Cart() {
   const { cartItems, cartTotal, cartCount, clearCart, updateQuantity, removeFromCart } = useCart();
-  const { toast } = useToast();
   const delivery = cartTotal >= FREE_THRESHOLD ? 0 : DELIVERY_FEE;
   const total = cartTotal + delivery;
   const toFree = Math.max(0, FREE_THRESHOLD - cartTotal);
@@ -40,7 +38,6 @@ export default function Cart() {
 
   const remove = (item) => {
     removeFromCart(item.medicineId);
-    toast.info(`${item.brand || item.name} removed from cart`, { duration: 2200 });
   };
 
   return (
@@ -69,7 +66,6 @@ export default function Cart() {
                 onClick={() => {
                   if (window.confirm('Remove all items from your cart?')) {
                     clearCart();
-                    toast.info('Cart cleared');
                   }
                 }}
               >

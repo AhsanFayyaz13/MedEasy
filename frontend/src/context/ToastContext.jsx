@@ -1,58 +1,72 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import Toaster from '../components/feedback/Toaster';
 
 /**
- * ToastContext
- * ─────────────────────────────────────────────────────────────────
- * Lightweight app-wide toast notification system.
- * Keeps an array of toast objects; each auto-removes after `duration` ms.
+ * App-wide toasts: brief confirmations of actions that have no other visible result
+ * (e.g. "Order ME-… confirmed" in a table). Don't use them to repeat what the page
+ * already shows — prefer inline messages for form errors and page states.
  *
- * Each toast: { id, message, variant, icon, duration }
- * Variants: 'success' | 'danger' | 'warning' | 'info' | 'cart'
+ *   toast.success('Saved.')
+ *   toast.cart('Panadol added to cart', { action: { label: 'View cart', onClick: () => navigate('/cart') } })
+ *   toast.error('Could not save.')            // stays longer, announced assertively
  */
 
 const ToastContext = createContext(null);
 
-let _id = 0;
+const MAX_VISIBLE = 3;
+const DEFAULT_DURATION = { success: 4000, info: 4000, cart: 4000, warning: 6000, error: 7000 };
+let nextId = 0;
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const timers = useRef({});
 
   const dismiss = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
     clearTimeout(timers.current[id]);
     delete timers.current[id];
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  /**
-   * Show a toast.
-   * @param {string} message
-   * @param {object} [opts]
-   * @param {'success'|'danger'|'warning'|'info'|'cart'} [opts.variant='success']
-   * @param {string}  [opts.icon]       Emoji or text prefix
-   * @param {number}  [opts.duration]   Auto-dismiss delay in ms (default 3200)
-   */
-  const showToast = useCallback(({ message, variant = 'success', icon = '', duration = 3200 }) => {
-    const id = ++_id;
-    setToasts((prev) => [...prev.slice(-4), { id, message, variant, icon, duration }]);
+  const schedule = useCallback(
+    (id, ms) => {
+      clearTimeout(timers.current[id]);
+      timers.current[id] = setTimeout(() => dismiss(id), ms);
+    },
+    [dismiss]
+  );
 
-    timers.current[id] = setTimeout(() => dismiss(id), duration);
-    return id;
-  }, [dismiss]);
+  const show = useCallback(
+    (variant, message, { duration, action } = {}) => {
+      const id = ++nextId;
+      const ms = duration ?? DEFAULT_DURATION[variant];
+      setToasts((prev) => [...prev.slice(-(MAX_VISIBLE - 1)), { id, variant, message, action, duration: ms }]);
+      schedule(id, ms);
+      return id;
+    },
+    [schedule]
+  );
 
-  // Convenience helpers
-  const toast = {
-    success: (msg, opts) => showToast({ message: msg, variant: 'success', icon: '✅', ...opts }),
-    error:   (msg, opts) => showToast({ message: msg, variant: 'danger',  icon: '❌', ...opts }),
-    warning: (msg, opts) => showToast({ message: msg, variant: 'warning', icon: '⚠️', ...opts }),
-    info:    (msg, opts) => showToast({ message: msg, variant: 'info',    icon: 'ℹ️', ...opts }),
-    cart:    (msg, opts) => showToast({ message: msg, variant: 'cart',    icon: '🛒', ...opts }),
-  };
+  // Hovering or focusing a toast pauses it, so people have time to read or use the action.
+  const pause = useCallback((id) => clearTimeout(timers.current[id]), []);
+  const resume = useCallback((id) => schedule(id, 2500), [schedule]);
+
+  const toast = useMemo(
+    () => ({
+      success: (msg, opts) => show('success', msg, opts),
+      error: (msg, opts) => show('error', msg, opts),
+      warning: (msg, opts) => show('warning', msg, opts),
+      info: (msg, opts) => show('info', msg, opts),
+      cart: (msg, opts) => show('cart', msg, opts),
+    }),
+    [show]
+  );
+
+  const value = useMemo(() => ({ toasts, toast, dismiss }), [toasts, toast, dismiss]);
 
   return (
-    <ToastContext.Provider value={{ toasts, toast, dismiss }}>
+    <ToastContext.Provider value={value}>
       {children}
-      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <Toaster toasts={toasts} onDismiss={dismiss} onPause={pause} onResume={resume} />
     </ToastContext.Provider>
   );
 }
@@ -61,55 +75,6 @@ export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error('useToast must be used inside <ToastProvider>');
   return ctx;
-}
-
-// ─── Toast Container (renders toasts fixed bottom-right) ──────────────────────
-const VARIANT_STYLES = {
-  success: { bg: 'var(--color-accent-600)', text: 'var(--color-white)' },
-  danger:  { bg: 'var(--color-error-600)', text: 'var(--color-white)' },
-  warning: { bg: 'var(--color-warning-600)', text: 'var(--color-white)' },
-  info:    { bg: 'var(--color-primary-600)', text: 'var(--color-white)' },
-  cart:    { bg: 'var(--color-secondary-900)', text: 'var(--color-white)' },
-};
-
-function ToastContainer({ toasts, onDismiss }) {
-  if (!toasts.length) return null;
-
-  return (
-    <div
-      style={{
-        position:  'fixed',
-        bottom:    '1.5rem',
-        right:     '1.5rem',
-        zIndex:    9999,
-        display:   'flex',
-        flexDirection: 'column',
-        gap:       '0.6rem',
-        maxWidth:  '340px',
-        width:     'calc(100vw - 2rem)',
-      }}
-    >
-      {toasts.map((t) => {
-        const style = VARIANT_STYLES[t.variant] || VARIANT_STYLES.info;
-        return (
-          <div key={t.id} className="medeasy-toast" style={{ background: style.bg, color: style.text }}>
-            <span className="toast-body-content">
-              {t.icon && <span className="toast-icon">{t.icon}</span>}
-              {t.message}
-            </span>
-            <button
-              className="toast-close"
-              onClick={() => onDismiss(t.id)}
-              aria-label="Dismiss"
-              style={{ color: style.text }}
-            >
-              ×
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export default ToastContext;

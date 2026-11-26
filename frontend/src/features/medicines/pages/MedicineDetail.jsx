@@ -75,8 +75,9 @@ export default function MedicineDetail() {
 
   const add = () => {
     const result = addToCart(med, qty);
-    if (result === 'capped') toast.warning(`You already have the maximum (${med.stock}) of ${med.name} in your cart.`);
-    else toast.cart(`${qty > 1 ? `${qty} × ` : ''}${med.name} added to cart`, { duration: 2500 });
+    const title = med.brand || med.name;
+    if (result === 'capped') toast.warning(`You already have all ${med.stock} available ${title} in your cart.`);
+    else toast.cart(`${qty > 1 ? `${qty} × ` : ''}${title} added to your cart.`, { action: { label: 'View cart', onClick: () => navigate('/cart') } });
   };
 
   let content;

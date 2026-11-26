@@ -52,9 +52,10 @@ export default function MedicineCard({ medicine }) {
     }
     if (!inStock) return;
     const result = addToCart(medicine, 1);
-    if (result === 'capped') toast.warning(`Max stock (${stock}) already in cart for ${name}`);
-    else if (result === 'updated') toast.cart(`Quantity updated – ${name} in cart`, { duration: 2500 });
-    else toast.cart(`${name} added to cart`, { duration: 2500 });
+    const viewCart = { label: 'View cart', onClick: () => navigate('/cart') };
+    if (result === 'capped') toast.warning(`You already have all ${stock} available ${title} in your cart.`);
+    else if (result === 'updated') toast.cart(`Another ${title} added to your cart.`, { action: viewCart });
+    else toast.cart(`${title} added to your cart.`, { action: viewCart });
   };
 
   let action;
