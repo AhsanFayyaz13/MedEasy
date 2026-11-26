@@ -36,7 +36,7 @@ const privacy = {
               so the rider can navigate to it. If you tap “Use my current location”, your browser first asks your permission; your position is
               only used to centre the map, and we keep only the pin you confirm.
             </li>
-            <li><strong>Messages and feedback:</strong> chats with your doctor, contact-form messages, reviews and complaints.</li>
+            <li><strong>Messages and feedback:</strong> chats with your doctor, messages with the pharmacy about a prescription, contact-form messages, reviews and complaints.</li>
             <li><strong>Professional accounts:</strong> for doctors and pharmacies — PMC/PMDC or licence numbers, degrees, clinic or store address, storefront photos and availability.</li>
           </ul>
           <h3>Information collected automatically</h3>
@@ -65,7 +65,7 @@ const privacy = {
       body: (
         <>
           <ul>
-            <li><strong>Pharmacists and pharmacies</strong> fulfilling your order see the items, your prescription and delivery details.</li>
+            <li><strong>Pharmacists and pharmacies</strong> fulfilling your order see the items, your prescription and delivery details. If you send them an e-prescription from a MedEasy consultation, they see what the doctor prescribed.</li>
             <li><strong>Doctors</strong> you book with see your name, contact details, appointment reason and your consultation history with them.</li>
             <li><strong>Our administrators</strong> may access records to resolve complaints, verify professionals and keep the service safe.</li>
             <li>

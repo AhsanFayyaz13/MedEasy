@@ -1,28 +1,17 @@
 const Order = require('../models/Order');
 const Medicine = require('../models/Medicine');
 const Prescription = require('../models/Prescription');
-const crypto = require('crypto');
 const { commissionOn } = require('../config/partner');
 const { normalizePhone } = require('../utils/phone');
 const { sendEmail, escapeHtml } = require('../utils/mailer');
 const { notify, notifyStaff } = require('../utils/notify');
-
-const { orderRef: ref, notifyOrderStatus } = require('../utils/orders');
+const { orderRef: ref, notifyOrderStatus, deliveryFeeFor, newOrderNumber, reserveStock, releaseStock } = require('../utils/orders');
 
 const rs = (n) => `Rs. ${Number(n || 0).toLocaleString('en-PK')}`;
-
-// Must match the checkout page (frontend/src/features/cart/components/checkoutShared.jsx).
-const DELIVERY_FEE = 120;
-const FREE_DELIVERY_FROM = 1000;
-const deliveryFeeFor = (subtotal) => (subtotal >= FREE_DELIVERY_FROM ? 0 : DELIVERY_FEE);
 
 /** A guest may have at most this many orders in progress per phone number (fake-COD protection). */
 const MAX_OPEN_GUEST_ORDERS = 3;
 const OPEN_STATUSES = ['pending', 'confirmed', 'processing', 'dispatched'];
-
-// No 0/O/1/I so numbers are easy to read out over the phone.
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const newOrderNumber = () => `ME-${Array.from(crypto.randomBytes(8), (b) => ALPHABET[b % ALPHABET.length]).join('')}`;
 
 /** What a guest is allowed to see about their order. */
 const publicOrder = (o) => ({
@@ -104,22 +93,9 @@ exports.placeOrder = async (req, res) => {
     if (problem) return res.status(400).json({ message: problem, error: { code: 'PRESCRIPTION_UNUSABLE' } });
   }
 
-  // Reserve stock atomically: each decrement only succeeds if enough stock remains,
-  // so concurrent orders can never oversell. Roll back on partial failure.
-  const reserved = [];
-  for (const med of medicines) {
-    const qty = qtyById.get(med._id.toString());
-    const updated = await Medicine.findOneAndUpdate(
-      { _id: med._id, stock: { $gte: qty } },
-      { $inc: { stock: -qty } },
-      { returnDocument: 'after' }
-    );
-    if (!updated) {
-      await Promise.all(reserved.map((r) => Medicine.updateOne({ _id: r.id }, { $inc: { stock: r.qty } })));
-      return res.status(400).json({ message: `Insufficient stock for ${med.name}` });
-    }
-    reserved.push({ id: med._id, qty });
-  }
+  // Reserve stock atomically so concurrent orders can never oversell.
+  const { reserved, short } = await reserveStock(medicines, qtyById);
+  if (short) return res.status(400).json({ message: `Insufficient stock for ${short.name}` });
 
   // Prices always come from the database, never the client.
   const items = medicines.map((m) => ({ medicineId: m._id, quantity: qtyById.get(m._id.toString()), price: m.price }));
@@ -159,7 +135,7 @@ exports.placeOrder = async (req, res) => {
       text: `New ${isGuest ? 'guest ' : ''}order ${createdOrder.orderNumber} (${rs(totalAmount)})${requiresPrescription ? ' with a prescription to verify' : ''}.`,
     });
   } catch (error) {
-    await Promise.all(reserved.map((r) => Medicine.updateOne({ _id: r.id }, { $inc: { stock: r.qty } })));
+    await releaseStock(reserved);
     throw error;
   }
 };

@@ -184,3 +184,26 @@
     padding-top: var(--space-12);
   }
 }
+
+.rxu-item__hint.is-info {
+  color: var(--text-muted);
+}
+
+/* Opened from a notification */
+.rxu-item.is-highlighted {
+  border-color: var(--action);
+  box-shadow: var(--shadow-focus);
+}
+
+/* A doctor's prescription sent from a consultation */
+.rxu-item__doctor {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

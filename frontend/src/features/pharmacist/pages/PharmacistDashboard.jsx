@@ -14,7 +14,7 @@ import './PharmacistDashboard.css';
 const SECTIONS = [
   { key: 'overview', label: 'Overview', icon: <FiActivity /> }, // the banner says what's waiting
   { key: 'orders', label: 'Active orders', icon: <FiClipboard />, subtitle: 'Confirm, pack and dispatch customer orders.' },
-  { key: 'prescriptions', label: 'Verify prescriptions', icon: <FiFileText />, subtitle: 'Approve or decline uploaded prescriptions.' },
+  { key: 'prescriptions', label: 'Prescriptions', icon: <FiFileText />, subtitle: 'Check prescriptions, tell patients what you can supply and answer their questions.' },
   { key: 'medicines', label: 'Inventory', icon: <FiPackage />, subtitle: 'Manage catalogue, prices and stock levels.' },
   { key: 'pharmacist-rep', label: 'Pharmacist representative', icon: <FiUserCheck />, subtitle: 'The licensed pharmacist who signs in for your store.', ownerOnly: true },
   { key: 'history', label: 'Order history', icon: <FiArchive />, subtitle: 'Delivered and cancelled orders.' },

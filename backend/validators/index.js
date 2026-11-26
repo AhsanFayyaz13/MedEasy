@@ -155,6 +155,17 @@ const deliveryPin = z
     { message: 'The delivery pin must be inside Pakistan.' }
   )
   .transform((p) => ({ lat: Number(p.lat.toFixed(6)), lng: Number(p.lng.toFixed(6)) })); // ~10 cm
+const shippingAddress = z.object({
+  firstName: trimmed(60).min(1, 'First name is required'),
+  lastName: trimmed(60).min(1, 'Last name is required'),
+  address: trimmed(300).min(3, 'Address is required'),
+  city: trimmed(80).min(2, 'City is required'),
+  postalCode: optionalText(12),
+  phone,
+  notes: optionalText(500),
+  location: emptyToUndefined(deliveryPin.optional()),
+});
+
 const orders = {
   place: z.object({
     items: z
@@ -162,16 +173,7 @@ const orders = {
       .min(1, 'No order items')
       .max(50),
     prescriptionId: emptyToUndefined(objectId.optional()),
-    shippingAddress: z.object({
-      firstName: trimmed(60).min(1, 'First name is required'),
-      lastName: trimmed(60).min(1, 'Last name is required'),
-      address: trimmed(300).min(3, 'Address is required'),
-      city: trimmed(80).min(2, 'City is required'),
-      postalCode: optionalText(12),
-      phone,
-      notes: optionalText(500),
-      location: emptyToUndefined(deliveryPin.optional()),
-    }),
+    shippingAddress,
     paymentMethod: z.enum(['cod', 'jazz', 'easy', 'card']).default('cod'),
     notes: optionalText(500), // older clients sent delivery notes here; kept for compatibility
     // Guests only: where to send the order confirmation.
@@ -250,7 +252,30 @@ const prescriptions = {
     refillable: z.boolean().optional(),
     confirmOrders: z.boolean().optional(),
   }),
-  list: z.object({ view: z.enum(['queue', 'reviewed']).optional(), status: z.string().max(20).optional() }),
+  list: z.object({ view: z.enum(['queue', 'offers', 'reviewed']).optional(), status: z.string().max(20).optional() }),
+  // A pharmacist's offer: what they can supply from the prescription and what they can't.
+  offer: z.object({
+    items: z
+      .array(z.object({
+        medicineId: objectId,
+        quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1').max(100),
+        note: optionalText(300),
+        substituteFor: emptyToUndefined(optionalText(120)),
+      }))
+      .min(1, 'Add at least one medicine you can supply. If you can supply nothing, decline the prescription instead.')
+      .max(30)
+      .refine((xs) => new Set(xs.map((x) => x.medicineId)).size === xs.length, 'Each medicine can be added once.'),
+    unavailable: z.array(z.object({ name: trimmed(120).min(1, 'Name the medicine you can’t supply'), note: optionalText(300) })).max(30).default([]),
+    message: optionalText(1000),
+    refillable: z.boolean().optional(),
+  }),
+  accept: z.object({
+    version: z.coerce.number().int().min(1),
+    items: z.array(objectId).min(1, 'Choose at least one medicine.').max(30),
+    shippingAddress,
+    paymentMethod: z.literal('cod', { message: 'Offers are paid cash on delivery for now.' }).default('cod'),
+  }),
+  appointmentParam: z.object({ appointmentId: objectId }),
   upload: z.object({ fileUrl: emptyToUndefined(z.string().url().max(1000).optional()), notes: optionalText(500) }),
 };
 

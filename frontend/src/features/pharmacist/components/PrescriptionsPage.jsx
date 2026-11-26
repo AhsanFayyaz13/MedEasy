@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FiCheck, FiCheckCircle, FiExternalLink, FiFileText, FiMail, FiMapPin, FiPackage, FiPhone, FiX } from 'react-icons/fi';
+import { useSearchParams } from 'react-router-dom';
+import { FiCheck, FiCheckCircle, FiEdit3, FiExternalLink, FiFileText, FiMail, FiMapPin, FiMessageCircle, FiPackage, FiPhone, FiSend, FiX } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
-import { fetchPendingPrescriptions, fetchReviewedPrescriptions, verifyPrescription } from '../../../services/api/pharmacistService';
+import { useNotifications } from '../../../context/NotificationsContext';
+import { fetchOfferPrescriptions, fetchPendingPrescriptions, fetchReviewedPrescriptions, verifyPrescription } from '../../../services/api/pharmacistService';
+import PrescriptionChat from '../../prescriptions/components/PrescriptionChat';
+import { offerTotals, timeLeft } from '../../prescriptions/lib/offer';
+import { formatPrice } from '../../../lib/format';
+import OfferBuilder from './OfferBuilder';
 import { Badge, Button, Card, Checkbox, EmptyState, ErrorState, Modal, SkeletonCard, Tabs, Textarea } from '../../../components/ui';
 import { assetUrl } from '../../../lib/media';
 import { fmtDate } from './pharmacistShared';
@@ -29,10 +35,43 @@ const verifyLabel = (rx) => {
   return n === 1 ? 'Verify & confirm order' : `Verify & confirm ${n} orders`;
 };
 
-/** Pharmacist review of uploaded prescriptions: the waiting queue and the latest decisions. */
+const OFFER_STATE = {
+  open: { tone: 'primary', label: 'Waiting for patient' },
+  declined: { tone: 'neutral', label: 'Patient said no thanks' },
+  expired: { tone: 'warning', label: 'Offer expired' },
+  accepted: { tone: 'success', label: 'Accepted' },
+  closed: { tone: 'neutral', label: 'Closed' },
+};
+const VIEWS = ['queue', 'offers', 'reviewed'];
+const FETCH = { queue: fetchPendingPrescriptions, offers: fetchOfferPrescriptions, reviewed: fetchReviewedPrescriptions };
+
+/** One-line summary of an offer for the card. */
+function OfferSummary({ rx }) {
+  const cfg = OFFER_STATE[rx.offerState] || OFFER_STATE.closed;
+  const { total } = offerTotals(rx.offer.items);
+  const left = rx.offerState === 'open' ? timeLeft(rx.offer.expiresAt) : null;
+  const n = rx.offer.items.length;
+  const missing = rx.offer.unavailable?.length;
+  return (
+    <div className="ph-rx__offer">
+      <Badge tone={cfg.tone}>{cfg.label}</Badge>
+      <span>{left ? `${left} left · ` : ''}{n} item{n > 1 ? 's' : ''} · {formatPrice(total)}{missing ? ` · ${missing} not available` : ''}</span>
+    </div>
+  );
+}
+
+/**
+ * Pharmacist work on prescriptions: the waiting queue (prepare an offer, approve or decline),
+ * offers waiting on patients, and the latest decisions. Each prescription has a conversation
+ * with the patient.
+ */
 export default function PrescriptionsPage() {
   const { toast } = useToast();
-  const [view, setView] = useState('queue');
+  const { hasUnreadChat } = useNotifications();
+  const [params] = useSearchParams();
+  const [view, setView] = useState(() => (VIEWS.includes(params.get('view')) ? params.get('view') : 'queue'));
+  const [building, setBuilding] = useState(null);
+  const [chatting, setChatting] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,7 +85,7 @@ export default function PrescriptionsPage() {
     setLoading(true);
     setError(null);
     try {
-      setItems(view === 'reviewed' ? await fetchReviewedPrescriptions() : await fetchPendingPrescriptions());
+      setItems(await FETCH[view]());
     } catch (e) {
       setError(e.response?.data?.message || 'Could not load prescriptions.');
     } finally {
@@ -90,8 +129,15 @@ export default function PrescriptionsPage() {
     setRejecting(rx);
   };
 
+  const offerSent = (updated) => {
+    setBuilding(null);
+    // It leaves the waiting queue; elsewhere it is updated in place.
+    setItems((prev) => (view === 'queue' ? prev.filter((p) => p.id !== updated.id) : prev.map((p) => (p.id === updated.id ? { ...p, ...updated, userId: p.userId } : p))));
+  };
+
   const tabs = [
     { id: 'queue', label: 'Waiting' },
+    { id: 'offers', label: 'Offers sent' },
     { id: 'reviewed', label: 'Reviewed' },
   ];
 
@@ -101,16 +147,20 @@ export default function PrescriptionsPage() {
   } else if (error) {
     body = <ErrorState message={error} onRetry={load} />;
   } else if (!items.length) {
-    body = view === 'queue'
-      ? <EmptyState icon={<FiCheckCircle />} title="All caught up" description="There are no prescriptions waiting for review." />
-      : <EmptyState icon={<FiFileText />} title="Nothing reviewed yet" description="Prescriptions you approve or decline will be listed here." />;
+    body = {
+      queue: <EmptyState icon={<FiCheckCircle />} title="All caught up" description="There are no prescriptions waiting for review." />,
+      offers: <EmptyState icon={<FiSend />} title="No offers waiting" description="Offers you send are listed here until the patient accepts them." />,
+      reviewed: <EmptyState icon={<FiFileText />} title="Nothing reviewed yet" description="Prescriptions you approve or decline will be listed here." />,
+    }[view];
   } else {
     body = (
       <>
         <p className="ph-lead">
-          {view === 'queue'
-            ? `${items.length} prescription${items.length > 1 ? 's' : ''} waiting · oldest first`
-            : `Latest ${items.length} decision${items.length > 1 ? 's' : ''} · newest first`}
+          {{
+            queue: `${items.length} prescription${items.length > 1 ? 's' : ''} waiting · oldest first`,
+            offers: `${items.length} offer${items.length > 1 ? 's' : ''} · newest first`,
+            reviewed: `Latest ${items.length} decision${items.length > 1 ? 's' : ''} · newest first`,
+          }[view]}
         </p>
         <ul className="ph-rx-grid">
           {items.map((rx) => {
@@ -118,25 +168,30 @@ export default function PrescriptionsPage() {
             const isImage = href && rx.fileType !== 'application/pdf';
             const p = rx.userId && typeof rx.userId === 'object' ? rx.userId : {};
             const waiting = pendingOrders(rx);
+            const fromDoctor = rx.source === 'consultation';
+            // An offer can be prepared until an order uses the prescription or the patient accepts one.
+            const canOffer = rx.status !== 'rejected' && !rx.orders?.length && rx.offerState !== 'accepted' && new Date(rx.expiresAt) > new Date();
+            const replied = rx.lastMessageFrom === 'patient' || hasUnreadChat(`rx:${rx.id}`);
             return (
               <li key={rx.id}>
                 <Card padded={false} as="article" className="ph-rx" aria-label={`Prescription ${shortRx(rx.id)}`}>
                   <button type="button" className="ph-rx__preview" onClick={() => setViewing(rx)} aria-label={`View prescription ${shortRx(rx.id)}`}>
-                    {isImage ? <img src={href} alt="" loading="lazy" /> : <FiFileText aria-hidden="true" />}
+                    {isImage ? <img src={href} alt="" loading="lazy" /> : fromDoctor ? <span className="ph-rx__doctor-text">{rx.doctorText}</span> : <FiFileText aria-hidden="true" />}
                   </button>
                   <div className="ph-rx__body">
                     <div className="ph-rx__top">
-                      <strong>#{shortRx(rx.id)}</strong>
+                      <strong>#{shortRx(rx.id)}{fromDoctor ? ' · from a MedEasy doctor' : ''}</strong>
                       {rx.status === 'pending' && <Badge tone="warning">Pending</Badge>}
                       {rx.status === 'verified' && <Badge tone="success">{rx.refillable ? 'Verified · refillable' : 'Verified'}</Badge>}
                       {rx.status === 'rejected' && <Badge tone="error">Declined</Badge>}
                     </div>
                     <p className="ph-rx__date">
-                      Uploaded {fmtDate(rx.uploadedAt)}
+                      {fromDoctor ? 'Sent' : 'Uploaded'} {fmtDate(rx.uploadedAt)}
                       {rx.reviewedAt && <> · {rx.status === 'rejected' ? 'declined' : 'verified'} {fmtDate(rx.reviewedAt)}{rx.reviewedBy?.name ? ` by ${rx.reviewedBy.name}` : ''}</>}
                     </p>
                     {rx.notes && <p className="ph-rx__note">“{rx.notes}”</p>}
                     {rx.rejectionReason && <p className="ph-rx__note">Reason: {rx.rejectionReason}</p>}
+                    {rx.offer?.sentAt && <OfferSummary rx={rx} />}
                     {rx.orders?.length > 0 && (
                       <p className="ph-rx__orders">
                         <FiPackage aria-hidden="true" /> {rx.orders.length === 1 ? 'Order' : 'Orders'} {rx.orders.map((o) => `${o.orderNumber} (${o.status})`).join(', ')}
@@ -150,7 +205,20 @@ export default function PrescriptionsPage() {
                         <Field icon={<FiMapPin aria-hidden="true" />} value={p.address} />
                       </ul>
                     </div>
-                    {rx.status === 'pending' && (
+                    {rx.status === 'pending' && !waiting.length && (
+                      <div className="ph-rx__actions">
+                        <Button size="sm" leftIcon={<FiSend aria-hidden="true" />} disabled={!!acting} onClick={() => setBuilding(rx)}>
+                          Prepare offer
+                        </Button>
+                        <Button size="sm" variant="secondary" leftIcon={<FiCheck aria-hidden="true" />} loading={acting === `${rx.id}:verified`} disabled={!!acting} onClick={() => decide(rx, 'verified')}>
+                          Approve only
+                        </Button>
+                        <Button size="sm" variant="ghost" className="ph-danger" leftIcon={<FiX aria-hidden="true" />} disabled={!!acting} onClick={() => openReject(rx)}>
+                          Decline
+                        </Button>
+                      </div>
+                    )}
+                    {rx.status === 'pending' && waiting.length > 0 && (
                       <>
                         <Checkbox
                           label="Allows repeat orders"
@@ -166,9 +234,26 @@ export default function PrescriptionsPage() {
                             Decline
                           </Button>
                         </div>
-                        {waiting.length > 0 && <p className="ph-muted">Verifying also confirms {list(waiting)}.</p>}
+                        <p className="ph-muted">Verifying also confirms {list(waiting)}.</p>
                       </>
                     )}
+                    <div className="ph-rx__actions">
+                      {rx.status !== 'pending' && canOffer && (
+                        <Button size="sm" variant={rx.offer?.sentAt ? 'secondary' : 'primary'} leftIcon={<FiEdit3 aria-hidden="true" />} onClick={() => setBuilding(rx)}>
+                          {rx.offer?.sentAt ? 'Revise offer' : 'Prepare offer'}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={replied ? 'chat-unread' : undefined}
+                        leftIcon={<FiMessageCircle aria-hidden="true" />}
+                        onClick={() => setChatting(rx)}
+                        aria-label={replied ? 'Message the patient, new reply' : 'Message the patient'}
+                      >
+                        {rx.lastMessageFrom === 'patient' ? 'Patient replied' : 'Message patient'}
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               </li>
@@ -193,23 +278,35 @@ export default function PrescriptionsPage() {
         footer={
           viewing && (
             <>
-              <Button variant="secondary" href={assetUrl(viewing.fileUrl)} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>Open original</Button>
+              {viewing.fileUrl && <Button variant="secondary" href={assetUrl(viewing.fileUrl)} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>Open original</Button>}
               {viewing.status === 'pending' && (
                 <>
                   <Button variant="ghost" className="ph-danger" onClick={() => openReject(viewing)}>Decline</Button>
-                  <Button loading={acting === `${viewing.id}:verified`} onClick={() => decide(viewing, 'verified')}>{verifyLabel(viewing)}</Button>
+                  {pendingOrders(viewing).length ? (
+                    <Button loading={acting === `${viewing.id}:verified`} onClick={() => decide(viewing, 'verified')}>{verifyLabel(viewing)}</Button>
+                  ) : (
+                    <>
+                      <Button variant="secondary" loading={acting === `${viewing.id}:verified`} onClick={() => decide(viewing, 'verified')}>Approve only</Button>
+                      <Button leftIcon={<FiSend aria-hidden="true" />} onClick={() => { setBuilding(viewing); setViewing(null); }}>Prepare offer</Button>
+                    </>
+                  )}
                 </>
               )}
             </>
           )
         }
       >
-        {viewing && viewing.fileType !== 'application/pdf' && assetUrl(viewing.fileUrl) ? (
+        {viewing?.source === 'consultation' ? (
+          <pre className="ph-rx__doctor-full">{viewing.doctorText}</pre>
+        ) : viewing && viewing.fileType !== 'application/pdf' && assetUrl(viewing.fileUrl) ? (
           <img src={assetUrl(viewing.fileUrl)} alt={`Prescription ${shortRx(viewing.id)}`} className="ph-rx__full" />
         ) : (
           <p className="ph-muted">This is a PDF. Use “Open original” to read it.</p>
         )}
       </Modal>
+
+      <OfferBuilder rx={building} onClose={() => setBuilding(null)} onSent={offerSent} />
+      <PrescriptionChat rx={chatting} role="pharmacy" patientName={chatting?.userId?.name} onClose={() => setChatting(null)} />
 
       <Modal
         show={!!rejecting}

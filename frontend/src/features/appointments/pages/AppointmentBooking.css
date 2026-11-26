@@ -289,3 +289,7 @@
     top: calc(var(--nav-height) + var(--space-4));
   }
 }
+
+.appt-card__rx .ui-btn {
+  margin-top: var(--space-3);
+}

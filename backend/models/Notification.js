@@ -11,7 +11,7 @@ const notificationSchema = new mongoose.Schema(
     type: { type: String, enum: TYPES, default: 'system' },
     text: { type: String, required: true, trim: true, maxlength: 300 },
     link: { type: String, trim: true, maxlength: 200 },
-    // Groups repeated alerts into one (e.g. every unread message in one chat): `chat:<appointmentId>`.
+    // Groups repeated alerts into one (e.g. every unread message in one chat): `chat:<appointmentId>`, `chat:rx:<prescriptionId>`.
     thread: { type: String, maxlength: 60 },
     read: { type: Boolean, default: false },
     // When it last happened (a chat alert moves to the top when another message arrives).

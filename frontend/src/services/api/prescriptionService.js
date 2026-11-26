@@ -77,3 +77,38 @@ export async function deletePrescription(id) {
   await api.delete(`/prescriptions/${id}`);
   return { success: true };
 }
+
+// ─── Pharmacy offer & conversation ────────────────────────────────────────────
+/**
+ * Accept the pharmacy's offer for a prescription: the chosen lines become a confirmed order.
+ * @param {string} id  prescription id
+ * @param {{ version: number, items: string[], shippingAddress: object }} body
+ * @returns {Promise<{ order: { id, orderNumber, status, totalAmount } }>}
+ */
+export async function acceptOffer(id, body) {
+  const { data } = await api.post(`/prescriptions/${id}/offer/accept`, { ...body, paymentMethod: 'cod' });
+  return data;
+}
+
+/** Say no thanks to the pharmacy's offer. */
+export async function declineOffer(id) {
+  const { data } = await api.post(`/prescriptions/${id}/offer/decline`);
+  return mapPrescriptionToFrontend(data);
+}
+
+/** Messages about a prescription; with `after`, only newer ones. */
+export async function fetchRxMessages(id, after) {
+  const { data } = await api.get(`/prescriptions/${id}/messages`, { params: after ? { after } : undefined });
+  return data; // { messages, canSend, closesAt }
+}
+
+export async function sendRxMessage(id, text) {
+  const { data } = await api.post(`/prescriptions/${id}/messages`, { text });
+  return data;
+}
+
+/** Send the prescription a doctor wrote after a consultation to the pharmacy. */
+export async function sendConsultationPrescription(appointmentId) {
+  const { data } = await api.post(`/prescriptions/from-appointment/${appointmentId}`);
+  return mapPrescriptionToFrontend(data);
+}

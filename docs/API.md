@@ -78,10 +78,16 @@ Roles: `patient`, `doctor`, `pharmacy` (owner), `pharmacist` (representative), `
 
 | Method | Path | Access | Description |
 | --- | --- | --- | --- |
-| GET | `/prescriptions?view` | Patient (own, newest first); pharmacist, pharmacy, admin (waiting queue, oldest first; `view=reviewed` for the latest 100 decisions with `reviewedBy`) | Each has `expiresAt`, `orders` (orders that aren't cancelled), `usable` and `unusableReason` |
+| GET | `/prescriptions?view` | Patient (own, newest first); pharmacist, pharmacy, admin (waiting queue, oldest first; `view=offers` for offers waiting on patients or turned down; `view=reviewed` for the latest 100 decisions with `reviewedBy`) | Each has `expiresAt`, `orders` (orders that aren't cancelled), `usable`, `unusableReason`, `offer`, `offerState` (`open`, `expired`, `accepted`, `declined`, `closed`) and `lastMessageFrom` |
 | POST | `/prescriptions/upload` | Patient | Multipart `prescription` (JPG, PNG, WebP or PDF) + `notes` |
+| POST | `/prescriptions/from-appointment/:appointmentId` | Patient (the appointment's) | Sends the prescription the doctor wrote after a completed consultation to the pharmacy (`source: consultation`, `doctorText`). Sending again returns the one already sent with `alreadySent: true` |
 | DELETE | `/prescriptions/:id` | Patient | Delete own, only while pending and not attached to an order |
 | PUT | `/prescriptions/:id/verify` | Pharmacist, admin | `{status: verified|rejected, rejectionReason?, refillable?, confirmOrders?}`. Only pending prescriptions (`409` otherwise). `confirmOrders` also confirms the pending orders it is attached to; the response lists them as `confirmedOrders`. |
+| PUT | `/prescriptions/:id/offer` | Pharmacist, admin | Send or revise the pharmacy's offer: `{items:[{medicineId, quantity, note?, substituteFor?}], unavailable?:[{name, note?}], message?, refillable?}`. Prices come from the catalogue; quantity can't exceed stock. Approves a pending prescription. Refused (`409`) once an order uses the prescription or an offer was accepted. Each send bumps `offer.version` and gives the patient 48 hours |
+| POST | `/prescriptions/:id/offer/accept` | Patient (owner) | `{version, items:[medicineId], shippingAddress}`: the chosen lines become a **confirmed** cash-on-delivery order at the offered prices. `409 OFFER_CHANGED` if the pharmacy revised it meanwhile, `400 OFFER_EXPIRED` after 48 hours, `409 OFFER_CLOSED` if already answered |
+| POST | `/prescriptions/:id/offer/decline` | Patient (owner) | "No thanks". The conversation stays open and the pharmacy can revise the offer |
+| GET | `/prescriptions/:id/messages?after` | Patient (owner), pharmacy staff; admins read-only | Conversation about the prescription; marks the other side's messages read |
+| POST | `/prescriptions/:id/messages` | Patient (owner), pharmacy staff | `{text}` (max 2,000). Open until the prescription expires (`400 CHAT_CLOSED` after) |
 
 **Using a prescription to order:** `POST /orders` accepts a prescription that is pending or verified,
 uploaded in the last 30 days (180 days if the pharmacist marked it refillable), and, unless refillable,

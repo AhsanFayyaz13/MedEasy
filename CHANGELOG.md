@@ -6,6 +6,13 @@ deployed continuously from `main`, so entries are grouped by date.
 ## Unreleased
 
 ### Added
+- Pharmacy offers: when a patient sends a prescription, the pharmacist replies with what the pharmacy can
+  supply (quantities, notes such as "15 days' supply, prescribed 20", alternatives, and medicines it can't
+  supply) and the price. The patient accepts the lines they want within 48 hours and it becomes a confirmed
+  order; alternatives are only included if they tick them. They can also say no thanks.
+- Patients and the pharmacy can message each other about a prescription.
+- "Order these medicines" on a completed consultation sends the doctor's prescription to the pharmacy, which
+  replies with an offer.
 - Checkout offers prescriptions the patient already sent, so an approved prescription no longer has to be
   uploaded again. Prescriptions can be used for 30 days and for one order, unless the pharmacist marks them
   as allowing repeat orders (then 6 months).

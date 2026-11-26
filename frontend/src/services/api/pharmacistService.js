@@ -129,3 +129,19 @@ export async function verifyPrescription(id, status, { rejectionReason, refillab
   const { data } = await api.put(`/prescriptions/${id}/verify`, { status, rejectionReason: rejectionReason || undefined, refillable, confirmOrders });
   return data;
 }
+
+/** Offers sent to patients that are waiting for an answer (or were turned down), newest first. */
+export async function fetchOfferPrescriptions() {
+  const { data } = await api.get('/prescriptions/', { params: { view: 'offers' } });
+  return Array.isArray(data) ? data.map(mapPrescriptionToFrontend) : [];
+}
+
+/**
+ * Send (or revise) the offer for a prescription. Approves it if it was still waiting.
+ * @param {string} id
+ * @param {{ items: Array<{ medicineId, quantity, note?, substituteFor? }>, unavailable?: Array<{ name, note? }>, message?: string, refillable?: boolean }} offer
+ */
+export async function sendPrescriptionOffer(id, offer) {
+  const { data } = await api.put(`/prescriptions/${id}/offer`, offer);
+  return mapPrescriptionToFrontend(data);
+}

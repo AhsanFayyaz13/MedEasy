@@ -1,5 +1,9 @@
-import { FiAlertTriangle, FiCalendar, FiClock, FiFileText, FiMessageCircle, FiXCircle } from 'react-icons/fi';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FiAlertTriangle, FiCalendar, FiClock, FiFileText, FiMessageCircle, FiShoppingBag, FiXCircle } from 'react-icons/fi';
 import { Badge, Button } from '../../../components/ui';
+import { useToast } from '../../../context/ToastContext';
+import { sendConsultationPrescription } from '../../../services/api/prescriptionService';
 import { APPOINTMENT_TONE, fmtDate } from '../lib/appointmentUtils';
 import { useNotifications } from '../../../context/NotificationsContext';
 
@@ -7,6 +11,22 @@ import { useNotifications } from '../../../context/NotificationsContext';
 export default function AppointmentCard({ appointment: a, cancelling, onChat, onCancel, onReport }) {
   const actionable = a.status === 'scheduled' || a.status === 'completed';
   const unread = useNotifications().hasUnreadChat(a.id);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [ordering, setOrdering] = useState(false);
+
+  // The pharmacy reads the doctor's prescription and sends back what it can supply, with prices.
+  const orderMedicines = async () => {
+    setOrdering(true);
+    try {
+      const rx = await sendConsultationPrescription(a.id);
+      toast.success(rx.alreadySent ? 'Already sent to the pharmacy. Here it is.' : 'Sent to the pharmacy. They’ll tell you what they can supply and the price.');
+      navigate(`/prescriptions/upload?rx=${rx.id}`);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Couldn’t send the prescription to the pharmacy.');
+      setOrdering(false);
+    }
+  };
   const chatButton = (
     <Button
       size="sm"
@@ -47,6 +67,11 @@ export default function AppointmentCard({ appointment: a, cancelling, onChat, on
           <div>
             <strong>Prescription issued</strong>
             <pre>{a.prescription}</pre>
+            {a.status === 'completed' && (
+              <Button size="sm" variant="outline" leftIcon={<FiShoppingBag aria-hidden="true" />} loading={ordering} onClick={orderMedicines}>
+                Order these medicines
+              </Button>
+            )}
           </div>
         </div>
       )}

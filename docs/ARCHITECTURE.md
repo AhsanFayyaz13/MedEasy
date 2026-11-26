@@ -129,6 +129,15 @@ Both are stored on the server and work on the free hosting plans: no WebSockets 
    `models/Prescription.js` (`unusableReason`). Checkout lists the patient's usable prescriptions.
 3. An order can't be confirmed until its prescription is approved. Approving from the Prescriptions tab
    confirms the orders waiting on it in the same step.
+4. **Offers.** A prescription sent on its own (a photo, or a MedEasy doctor's e-prescription the patient
+   sends from a completed consultation) usually gets an offer instead: the pharmacist picks catalogue
+   medicines and quantities, notes changes ("15 days' supply, prescribed 20"), offers alternatives and lists
+   what can't be supplied. The offer is stored on the prescription (`offer`, with a `version`). The patient
+   has 48 hours (`OFFER_HOURS`) to accept the lines they want, at the offered prices; that creates a
+   confirmed order through the same stock reservation as checkout (`utils/orders.js`). Alternatives are
+   never pre-selected for the patient.
+5. Each prescription has a conversation between the patient and the pharmacy (`Message` with
+   `prescriptionId`, alerts on thread `chat:rx:<id>`), open while the prescription is valid.
 
 ## Feedback and complaints
 

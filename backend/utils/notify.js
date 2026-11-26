@@ -19,15 +19,17 @@ function notify(recipients, { type, text, link }) {
 const STAFF_LINKS = {
   orders: { admin: '/admin?tab=orders', pharmacy: '/pharmacist?tab=orders' },
   prescriptions: { pharmacy: '/pharmacist?tab=prescriptions' },
+  prescriptionOffers: { pharmacy: '/pharmacist?tab=prescriptions&view=offers' },
   verifications: { admin: '/admin?tab=verifications' },
   complaints: { admin: '/admin?tab=audits' },
 };
 
 /**
  * Notify staff about new work: active admins and approved pharmacies (their pharmacist representative
- * signs in to the same account, so they see it too). `area` picks who is told and where the link goes.
+ * signs in to the same account, so they see it too). With `thread`, each person keeps one unread
+ * alert per thread, which later events update instead of adding more. `area` picks who is told and where the link goes.
  */
-async function notifyStaff(area, { type, text }) {
+async function notifyStaff(area, { type, text, thread }) {
   try {
     const links = STAFF_LINKS[area];
     const roles = Object.keys(links);
@@ -37,7 +39,17 @@ async function notifyStaff(area, { type, text }) {
       $or: [{ role: 'admin' }, { isVerifiedProfile: true }],
     }).select('_id role').lean();
     if (!staff.length) return;
-    await Notification.insertMany(staff.map((u) => ({ recipient: u._id, type, text, link: links[u.role] })));
+    if (!thread) {
+      await Notification.insertMany(staff.map((u) => ({ recipient: u._id, type, text, link: links[u.role] })));
+      return;
+    }
+    await Notification.bulkWrite(staff.map((u) => ({
+      updateOne: {
+        filter: { recipient: u._id, thread, read: false },
+        update: { $set: { text, link: links[u.role], at: new Date() }, $setOnInsert: { type } },
+        upsert: true,
+      },
+    })));
   } catch (err) {
     log(err);
   }
@@ -48,9 +60,9 @@ async function notifyStaff(area, { type, text }) {
  * instead of adding more. Resolves to true when a new alert was created (the recipient wasn't
  * already waiting on this chat), which is when an email is worth sending.
  */
-async function notifyChat(recipient, appointmentId, { text, link }) {
+async function notifyChat(recipient, chatId, { text, link }) {
   try {
-    const thread = `chat:${appointmentId}`;
+    const thread = `chat:${chatId}`; // chatId: an appointment id, or rx:<prescription id>
     const existing = await Notification.findOneAndUpdate(
       { recipient: idOf(recipient), thread, read: false },
       { $set: { text, link, at: new Date() } },
@@ -66,8 +78,8 @@ async function notifyChat(recipient, appointmentId, { text, link }) {
 }
 
 /** Mark a chat's alert as read once the recipient has opened the conversation. */
-function markChatRead(recipient, appointmentId) {
-  return Notification.updateMany({ recipient: idOf(recipient), thread: `chat:${appointmentId}`, read: false }, { $set: { read: true } }).catch(log);
+function markChatRead(recipient, chatId) {
+  return Notification.updateMany({ recipient: idOf(recipient), thread: `chat:${chatId}`, read: false }, { $set: { read: true } }).catch(log);
 }
 
 module.exports = { notify, notifyStaff, notifyChat, markChatRead };

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { FiCheckCircle, FiClock, FiExternalLink, FiFileText, FiShield, FiTrash2, FiUpload, FiXCircle } from 'react-icons/fi';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { FiCheckCircle, FiClock, FiExternalLink, FiFileText, FiMessageCircle, FiShield, FiTrash2, FiUpload, FiXCircle } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
 import { uploadPrescription, fetchPrescriptions, deletePrescription } from '../../../services/api/prescriptionService';
 import { Alert, Badge, Button, Card, EmptyState, ErrorState, FileDropzone, Modal, PageHeader, SkeletonCard, Textarea } from '../../../components/ui';
@@ -8,6 +8,9 @@ import PageMeta from '../../../components/seo/PageMeta';
 import { formatDate } from '../../../lib/format';
 import { assetUrl } from '../../../lib/media';
 import { MAX_FILE_MB, validateFile } from '../../cart/components/checkoutShared';
+import OfferCard from '../components/OfferCard';
+import PrescriptionChat from '../components/PrescriptionChat';
+import { useNotifications } from '../../../context/NotificationsContext';
 import './PrescriptionUpload.css';
 
 const STATUS = {
@@ -26,24 +29,29 @@ const GUIDELINES = [
 const shortRxId = (id) => String(id || '').slice(-6).toUpperCase();
 const when = (iso) => formatDate(iso, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-function PrescriptionItem({ rx, onDelete }) {
+function PrescriptionItem({ rx, onDelete, onChanged, onMessage, highlighted }) {
   const cfg = STATUS[rx.status] || STATUS.pending;
   const href = rx.fileUrl ? assetUrl(rx.fileUrl) : null;
   const isImage = href && rx.fileType !== 'application/pdf';
+  const fromDoctor = rx.source === 'consultation';
+  const hasOffer = Boolean(rx.offer?.sentAt);
+  const canMessage = rx.status !== 'rejected' && new Date(rx.expiresAt) > new Date();
+  const unread = useNotifications().hasUnreadChat(`rx:${rx.id}`);
 
   return (
-    <li className="rxu-item">
+    <li className={`rxu-item${highlighted ? ' is-highlighted' : ''}`} id={`rx-${rx.id}`}>
       <div className="rxu-item__thumb">
         {isImage ? <img src={href} alt="" loading="lazy" /> : <FiFileText aria-hidden="true" />}
       </div>
       <div className="rxu-item__body">
         <div className="rxu-item__top">
           <div>
-            <h3>Prescription #{shortRxId(rx.id)}</h3>
-            <p className="rxu-item__meta">Uploaded {when(rx.uploadedAt)}</p>
+            <h3>{fromDoctor ? 'Doctor’s prescription' : 'Prescription'} #{shortRxId(rx.id)}</h3>
+            <p className="rxu-item__meta">{fromDoctor ? 'From your MedEasy consultation · sent' : 'Uploaded'} {when(rx.uploadedAt)}</p>
           </div>
           <Badge tone={cfg.tone} icon={cfg.icon}>{cfg.label}</Badge>
         </div>
+        {fromDoctor && rx.doctorText && <pre className="rxu-item__doctor">{rx.doctorText}</pre>}
         {rx.notes && <p className="rxu-item__note">“{rx.notes}”</p>}
         {rx.status === 'rejected' && (
           <p className="rxu-item__hint">
@@ -58,19 +66,35 @@ function PrescriptionItem({ rx, onDelete }) {
             ))}
           </p>
         )}
-        {rx.status !== 'rejected' && rx.usable && (
-          <p className={`rxu-item__hint${rx.status === 'verified' ? ' is-ok' : ''}`}>
-            {rx.status === 'verified'
-              ? `Approved${rx.refillable ? ' for repeat orders' : ''}. Choose it at checkout to order these medicines, until ${formatDate(rx.expiresAt)}.`
-              : `You can already choose it at checkout. The order is confirmed once a pharmacist approves it. Usable until ${formatDate(rx.expiresAt)}.`}
+        {rx.status === 'pending' && !rx.orders?.length && (
+          <p className="rxu-item__hint is-info">
+            A pharmacist is checking it and will send you what they can supply, with the price. You can then accept it here.
+            {!fromDoctor && ' You can also choose it at checkout if you’ve already added the medicines to your cart.'}
+          </p>
+        )}
+        {rx.status === 'verified' && !hasOffer && rx.usable && (
+          <p className="rxu-item__hint is-ok">
+            {`Approved${rx.refillable ? ' for repeat orders' : ''}. Choose it at checkout to order these medicines, until ${formatDate(rx.expiresAt)}.`}
           </p>
         )}
         {/* "Used for order …" already explains a used one; this covers expiry. */}
         {rx.status !== 'rejected' && !rx.usable && !rx.orders?.length && rx.unusableReason && <p className="rxu-item__meta">{rx.unusableReason}</p>}
+        {hasOffer && <OfferCard key={rx.offer.version} rx={rx} onChanged={onChanged} onMessage={canMessage ? () => onMessage(rx) : undefined} />}
         <div className="rxu-item__actions">
           {href && (
             <Button size="sm" variant="secondary" href={href} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>
               View file
+            </Button>
+          )}
+          {canMessage && !hasOffer && (
+            <Button
+              size="sm"
+              variant="secondary"
+              className={unread ? 'chat-unread' : undefined}
+              leftIcon={<FiMessageCircle aria-hidden="true" />}
+              onClick={() => onMessage(rx)}
+            >
+              Message the pharmacy
             </Button>
           )}
           {rx.status === 'pending' && !rx.orders?.length && (
@@ -87,6 +111,8 @@ function PrescriptionItem({ rx, onDelete }) {
 export default function PrescriptionUpload() {
   const { toast } = useToast();
   const requiredFor = useLocation().state?.requiredForMedicine;
+  const focusId = useSearchParams()[0].get('rx');
+  const [chatting, setChatting] = useState(null);
 
   const [file, setFile] = useState(null);
   const [notes, setNotes] = useState(requiredFor ? `Prescription for: ${requiredFor}` : '');
@@ -115,6 +141,18 @@ export default function PrescriptionUpload() {
     load();
   }, [load]);
 
+  // Opened from a notification: bring that prescription into view.
+  useEffect(() => {
+    if (!focusId || loading) return;
+    document.getElementById(`rx-${focusId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [focusId, loading]);
+
+  /** After an offer changes: use the updated prescription if we have it, otherwise reload. */
+  const changed = (updated) => {
+    if (updated?.id) setItems((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    else load();
+  };
+
   const pick = (f) => {
     setFile(f);
     setFileError(f ? validateFile(f, true) : null);
@@ -127,7 +165,7 @@ export default function PrescriptionUpload() {
     setUploading(true);
     try {
       await uploadPrescription(file, notes.trim());
-      toast.success('Prescription uploaded. A pharmacist will review it shortly.');
+      toast.success('Prescription sent. A pharmacist will tell you what they can supply.');
       setFile(null);
       setNotes('');
       load();
@@ -161,7 +199,9 @@ export default function PrescriptionUpload() {
   else {
     history = (
       <ul className="rxu-list">
-        {items.map((rx) => <PrescriptionItem key={rx.id} rx={rx} onDelete={setDeleting} />)}
+        {items.map((rx) => (
+          <PrescriptionItem key={rx.id} rx={rx} onDelete={setDeleting} onChanged={changed} onMessage={setChatting} highlighted={rx.id === focusId} />
+        ))}
       </ul>
     );
   }
@@ -172,8 +212,8 @@ export default function PrescriptionUpload() {
       <div className="container">
         <PageHeader
           eyebrow="Prescriptions"
-          title="Upload a prescription"
-          subtitle="A licensed pharmacist checks every prescription before prescription-only medicines are dispensed."
+          title="Send a prescription"
+          subtitle="Send a photo of your prescription. A licensed pharmacist checks it and tells you what they can supply and the price, then you accept it with one click."
         />
 
         <div className="rxu-layout">
@@ -226,6 +266,8 @@ export default function PrescriptionUpload() {
           </section>
         </div>
       </div>
+
+      <PrescriptionChat rx={chatting} role="patient" onClose={() => setChatting(null)} />
 
       <Modal
         show={!!deleting}

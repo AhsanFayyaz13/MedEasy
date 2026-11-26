@@ -39,7 +39,7 @@ const skipInTest = () => process.env.NODE_ENV === 'test' && process.env.ENABLE_R
  * limited per signed-in user by pollLimiter instead, so many people sharing one mobile-network IP
  * don't use up each other's allowance.
  */
-const isPoll = (req) => req.method === 'GET' && /^\/(notifications\/?|appointments\/[a-f\d]{24}\/messages\/?)$/i.test(req.path);
+const isPoll = (req) => req.method === 'GET' && /^\/(notifications\/?|(appointments|prescriptions)\/[a-f\d]{24}\/messages\/?)$/i.test(req.path);
 
 /** Whole-API limiter: generous, protects against floods. */
 const apiLimiter = rateLimit({

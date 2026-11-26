@@ -58,7 +58,7 @@ export default function OverviewPage({ setActiveSection }) {
         {activeOrders.length > 0 ? (
           <Button size="sm" onClick={() => setActiveSection('orders')}>Process orders</Button>
         ) : rx.length > 0 ? (
-          <Button size="sm" onClick={() => setActiveSection('prescriptions')}>Verify prescriptions</Button>
+          <Button size="sm" onClick={() => setActiveSection('prescriptions')}>Review prescriptions</Button>
         ) : null}
       </WelcomeBanner>
 

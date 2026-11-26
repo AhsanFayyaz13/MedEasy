@@ -1,0 +1,181 @@
+/* The pharmacy's offer on a prescription (patient view) */
+.rx-offer {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--tint-primary-200, var(--border));
+  border-radius: var(--radius-lg);
+  background: var(--tint-primary-50);
+}
+
+.rx-offer__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rx-offer__head h4 {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--text-base);
+}
+
+.rx-offer__head svg {
+  color: var(--fg-primary);
+}
+
+.rx-offer__message {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+.rx-offer__lines {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rx-offer__line {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.rx-offer__line input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--action);
+}
+
+.rx-offer__line.is-off .rx-offer__what strong,
+.rx-offer__line.is-off .rx-offer__price {
+  color: var(--text-muted);
+}
+
+.rx-offer__line.is-na {
+  background: var(--surface-sunken);
+}
+
+.rx-offer__line.is-na strong {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.rx-offer__tick {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--fg-primary);
+}
+
+.rx-offer__line.is-na .rx-offer__tick {
+  color: var(--text-subtle);
+}
+
+.rx-offer__what {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.rx-offer__what strong {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+}
+
+.rx-offer__what span {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.rx-offer__what .rx-offer__alt {
+  color: var(--fg-warning);
+  font-weight: var(--weight-medium);
+}
+
+.rx-offer__what .rx-offer__note {
+  color: var(--text);
+}
+
+.rx-offer__price {
+  color: var(--text-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.rx-offer__totals {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.rx-offer__totals div {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+.rx-offer__totals dt {
+  color: var(--text-muted);
+  font-weight: var(--weight-regular);
+}
+
+.rx-offer__totals dd {
+  margin: 0;
+  color: var(--text-strong);
+  font-weight: var(--weight-semibold);
+}
+
+.rx-offer__totals .is-total {
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.rx-offer__totals .is-total dd {
+  color: var(--fg-primary);
+  font-size: var(--text-base);
+}
+
+.rx-offer__done,
+.rx-offer__fine {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.rx-offer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.rx-offer__state {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+span.rx-offer__tick {
+  width: 1em;
+}
