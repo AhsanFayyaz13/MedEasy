@@ -46,4 +46,3 @@ Only the current `main` branch (what runs on medeasy.systems) receives security 
 ## Known gaps
 
 - Uploaded prescriptions are served from unguessable but public URLs; signed URLs are planned.
-- Feedback, complaints and pharmacy ratings are stored in the browser, not on the server.
