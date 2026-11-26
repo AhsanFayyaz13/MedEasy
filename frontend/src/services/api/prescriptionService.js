@@ -73,6 +73,12 @@ export async function fetchPrescriptions() {
  * Delete a pending prescription.
  * @param {string} id
  */
+/** A prescription's file, for lists that left it out (`fileInline`). */
+export async function fetchPrescriptionFile(id) {
+  const { data } = await api.get(`/prescriptions/${id}/file`);
+  return data.fileUrl;
+}
+
 export async function deletePrescription(id) {
   await api.delete(`/prescriptions/${id}`);
   return { success: true };

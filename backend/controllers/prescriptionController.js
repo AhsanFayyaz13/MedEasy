@@ -49,6 +49,26 @@ async function describe(list) {
   return list.map((rx) => withUsage(rx, usage.get(String(rx._id))));
 }
 
+/**
+ * Lists leave the file out (`.select(LIST_FIELDS)`): early prescriptions were stored inside the record as
+ * a data: URL, often megabytes each, and a page of them timed out the free server. Links are added back
+ * here; stored files are marked `fileInline` and fetched one at a time from GET /prescriptions/:id/file.
+ */
+const LIST_FIELDS = '-fileUrl';
+async function describeList(list) {
+  const ids = list.map((rx) => rx._id);
+  const linked = await Prescription.find({ _id: { $in: ids }, fileUrl: { $exists: true, $not: /^data:/ } }).select('fileUrl').lean();
+  const urls = new Map(linked.map((r) => [String(r._id), r.fileUrl]));
+  const inline = new Set(
+    (await Prescription.find({ _id: { $in: ids }, fileUrl: /^data:/ }).select('_id').lean()).map((r) => String(r._id))
+  );
+  return (await describe(list)).map((rx) => {
+    const id = String(rx._id);
+    if (urls.has(id)) return { ...rx, fileUrl: urls.get(id) };
+    return inline.has(id) ? { ...rx, fileInline: true } : rx;
+  });
+}
+
 // @desc    Upload prescription
 // @route   POST /api/prescriptions/upload
 // @access  Private (Patient)
@@ -104,11 +124,21 @@ exports.getPrescriptions = async (req, res) => {
     } else {
       query = Prescription.find({ status: 'pending' }).sort({ createdAt: 1 });
     }
-    const list = await query.populate('userId', 'name email phone address');
-    return res.json(await describe(list));
+    const list = await query.select(LIST_FIELDS).populate('userId', 'name email phone address');
+    return res.json(await describeList(list));
   }
-  const list = await Prescription.find({ userId: req.user._id }).sort({ createdAt: -1 });
-  return res.json(await describe(list));
+  const list = await Prescription.find({ userId: req.user._id, hiddenByPatient: { $ne: true } }).select(LIST_FIELDS).sort({ createdAt: -1 });
+  return res.json(await describeList(list));
+};
+
+// @desc    The prescription's file, for lists that left it out (`fileInline`).
+// @route   GET /api/prescriptions/:id/file
+// @access  Private (the patient who sent it, pharmacy staff, admin)
+exports.getPrescriptionFile = async (req, res) => {
+  const rx = await Prescription.findById(req.params.id).select('userId fileUrl').lean();
+  if (!rx) throw new AppError(404, 'Prescription not found');
+  if (!STAFF.includes(req.user.role) && String(rx.userId) !== String(req.user._id)) throw new AppError(403, 'Not authorized to view this prescription');
+  res.json({ fileUrl: rx.fileUrl || null });
 };
 
 // @desc    Approve or decline a prescription. With confirmOrders, approving also confirms the
@@ -168,15 +198,25 @@ exports.deletePrescription = async (req, res) => {
     return res.status(403).json({ message: 'Not authorized to delete this prescription' });
   }
 
-  // Only allow deleting pending prescriptions that no order relies on
-  if (prescription.status !== 'pending') {
-    return res.status(400).json({ message: 'Only pending prescriptions can be deleted' });
-  }
-  if (await Order.exists({ prescriptionId: prescription._id, status: { $ne: 'cancelled' } })) {
-    return res.status(400).json({ message: 'This prescription is attached to an order. Cancel the order first if you want to remove it.' });
+  // Waiting prescriptions can go unless an order relies on them; expired and declined ones can always go.
+  const finished = prescription.status === 'rejected' || expiresAt(prescription) < new Date();
+  if (!finished) {
+    if (prescription.status !== 'pending') {
+      throw new AppError(400, 'An approved prescription can be removed once it expires or is declined.');
+    }
+    if (await Order.exists({ prescriptionId: prescription._id, status: { $ne: 'cancelled' } })) {
+      throw new AppError(400, 'This prescription is attached to an order. Cancel the order first if you want to remove it.');
+    }
   }
 
-  await prescription.deleteOne();
+  // An order (even a cancelled one) points at it: hide it from the patient, keep it for the pharmacy's records.
+  if (await Order.exists({ prescriptionId: prescription._id })) {
+    prescription.hiddenByPatient = true;
+    await prescription.save();
+  } else {
+    await Message.deleteMany({ prescriptionId: prescription._id });
+    await prescription.deleteOne();
+  }
   res.json({ message: 'Prescription removed successfully' });
 };
 

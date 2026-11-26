@@ -33,6 +33,9 @@ deployed continuously from `main`, so entries are grouped by date.
   representative are reviewed separately.
 - Toasts redesigned as quiet, accessible notifications; redundant ones removed.
 
+- Patients can delete expired and declined prescriptions. One that an order used disappears from their list
+  but stays on record for the pharmacy.
+
 ### Removed
 - Offline "mock data" mode and its datasets; use `npm run dev:memory` (real API on an in-memory database).
 - Unused Firebase verification path on the server; verification codes must now be exactly 6 digits.
@@ -40,6 +43,9 @@ deployed continuously from `main`, so entries are grouped by date.
 - Old documentation (project report, system specification, run guide), replaced by `docs/`.
 
 ### Fixed
+- The pharmacist's Reviewed prescriptions failed to load: early prescriptions were stored inside the
+  database record, and a page of them was too large for the server. Lists now leave those files out and load
+  each one only when it is opened. The pharmacy's order list does the same.
 - Appointment dates no longer depend on the server's time zone.
 - The booking page showed a made-up 4.7 rating for every doctor, and turned a free consultation into
   Rs. 1,000. Only real profile data is shown now.

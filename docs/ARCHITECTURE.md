@@ -65,7 +65,7 @@ time), so they can't be used to discover who has an account.
 | `PendingUser` | registration details + hashed code | TTL 15 minutes |
 | `Medicine` | name (generic + strength), brand, category, price, originalPrice, stock, requiresPrescription, imageUrl | One shared catalogue |
 | `Order` | userId **or** guest {name, phone, email}, orderNumber `ME-XXXXXXXX`, items (price copied from the DB), deliveryFee, commission, totalAmount, status, payment, shippingAddress {…, notes, location {lat, lng}} | Stock is reserved atomically when placing; cancelling restocks once |
-| `Prescription` | userId, fileUrl, status, notes, rejectionReason, reviewedBy | Verified by a pharmacist before Rx orders are confirmed |
+| `Prescription` | userId, source, fileUrl, status, notes, rejectionReason, reviewedBy, offer, hiddenByPatient | Verified by a pharmacist before Rx orders are confirmed |
 | `Appointment` | patientId, doctorId, date, time, status, reason, notes, prescription, fee, commission | Only approved, active doctors can be booked |
 | `Review` | userId, targetType (`medicine`/`doctor`/`pharmacy`), targetId, rating, comment | One review per user per target |
 | `Contact` | name, email, phone, subject, message, role | Also emailed to support |

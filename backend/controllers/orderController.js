@@ -265,7 +265,8 @@ exports.getAllOrders = async (req, res) => {
   const orders = await Order.find(filter)
     .populate('userId', 'name email')
     .populate('items.medicineId', 'name brand imageUrl requiresPrescription')
-    .populate('prescriptionId')
+    // The file is fetched when an order is opened (GET /prescriptions/:id/file): old ones are stored inline.
+    .populate('prescriptionId', '-fileUrl')
     .sort({ createdAt: -1 });
   res.json(orders);
 };

@@ -20,6 +20,7 @@ router.post(
 );
 // A doctor's prescription from a completed MedEasy consultation, sent to the pharmacy.
 router.post('/from-appointment/:appointmentId', protect, authorizeRoles('patient'), uploadLimiter, validate({ params: v.appointmentParam }), ctrl.fromAppointment);
+router.get('/:id/file', protect, authorizeRoles('patient', 'pharmacist', 'pharmacy', 'admin'), validate({ params: idParam }), ctrl.getPrescriptionFile);
 router.delete('/:id', protect, authorizeRoles('patient'), validate({ params: idParam }), ctrl.deletePrescription);
 router.put('/:id/verify', protect, authorizeRoles('pharmacist', 'admin'), validate({ params: idParam, body: v.verify }), ctrl.verifyPrescription);
 

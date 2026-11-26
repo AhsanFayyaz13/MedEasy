@@ -134,3 +134,61 @@ describe('prescription review', () => {
     assert.equal(queue.body.length, 1);
   });
 });
+
+describe('prescription files in lists', () => {
+  it('leaves files stored in the record out of lists and serves them one at a time', async () => {
+    const { patient, pharmacist } = await setupPeople();
+    const other = await createUser({ name: 'Someone Else' });
+    const Prescription = require('../models/Prescription');
+    const big = `data:image/png;base64,${'A'.repeat(200000)}`;
+    const stored = await Prescription.create({ userId: patient._id, fileUrl: big, status: 'verified', reviewedAt: new Date() });
+    const linked = await Prescription.create({ userId: patient._id, fileUrl: 'https://example.com/rx.jpg', status: 'rejected', reviewedAt: new Date() });
+
+    const reviewed = await request(app).get('/api/prescriptions?view=reviewed').set(auth(pharmacist));
+    assert.equal(reviewed.status, 200);
+    const byId = Object.fromEntries(reviewed.body.map((r) => [r._id, r]));
+    assert.equal(byId[stored._id].fileUrl, undefined);
+    assert.equal(byId[stored._id].fileInline, true);
+    assert.equal(byId[linked._id].fileUrl, 'https://example.com/rx.jpg');
+    assert.equal(byId[linked._id].fileInline, undefined);
+    assert.ok(JSON.stringify(reviewed.body).length < 10000, 'the list stays small');
+
+    const own = await request(app).get('/api/prescriptions').set(auth(patient));
+    assert.equal(own.body.find((r) => r._id === String(stored._id)).fileInline, true);
+
+    const file = await request(app).get(`/api/prescriptions/${stored._id}/file`).set(auth(pharmacist));
+    assert.equal(file.status, 200);
+    assert.equal(file.body.fileUrl, big);
+    assert.equal((await request(app).get(`/api/prescriptions/${stored._id}/file`).set(auth(patient))).status, 200);
+    assert.equal((await request(app).get(`/api/prescriptions/${stored._id}/file`).set(auth(other))).status, 403);
+  });
+});
+
+describe('removing prescriptions', () => {
+  it('lets the patient remove expired and declined prescriptions, keeping ones an order used', async () => {
+    const { patient, pharmacist, med } = await setupPeople();
+    const Prescription = require('../models/Prescription');
+    const Order = require('../models/Order');
+    const del = (rx) => request(app).delete(`/api/prescriptions/${rx._id}`).set(auth(patient));
+
+    const current = await prescription(patient, { status: 'verified' });
+    assert.equal((await del(current)).status, 400, 'an approved prescription that is still valid stays');
+
+    const declined = await prescription(patient, { status: 'rejected' });
+    assert.equal((await del(declined)).status, 200);
+    assert.equal(await Prescription.exists({ _id: declined._id }), null, 'never used: deleted');
+
+    const used = await prescription(patient, { status: 'verified' });
+    const placed = await order(patient, med, used);
+    assert.equal(placed.status, 201, JSON.stringify(placed.body));
+    await Prescription.updateOne({ _id: used._id }, { uploadedAt: new Date(Date.now() - 31 * DAY) });
+    assert.equal((await del(used)).status, 200);
+    assert.equal((await Prescription.findById(used._id)).hiddenByPatient, true, 'used by an order: kept, hidden');
+    assert.ok(await Order.exists({ prescriptionId: used._id }));
+
+    const mine = await request(app).get('/api/prescriptions').set(auth(patient));
+    assert.deepEqual(mine.body.map((r) => r._id), [String(current._id)]);
+    const staff = await request(app).get('/api/prescriptions?view=reviewed').set(auth(pharmacist));
+    assert.ok(staff.body.some((r) => r._id === String(used._id)), 'the pharmacy still sees it');
+  });
+});

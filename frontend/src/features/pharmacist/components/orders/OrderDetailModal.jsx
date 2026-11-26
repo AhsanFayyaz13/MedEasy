@@ -2,9 +2,10 @@ import { FiCreditCard, FiExternalLink, FiFileText, FiMapPin, FiPhone, FiShopping
 import { Badge, Button, Modal } from '../../../../components/ui';
 import { formatPhone, formatPrice, phoneHref } from '../../../../lib/format';
 import OrderTimeline from '../../../orders/components/OrderTimeline';
-import { PAYMENT_LABELS, fmtDate, serverUrl } from '../pharmacistShared';
+import { PAYMENT_LABELS, fmtDate } from '../pharmacistShared';
 import DeliveryLocation from '../../../orders/components/DeliveryLocation';
 import { orderRef } from '../../../orders/lib/orderFeedback';
+import useRxFile from '../../../prescriptions/lib/useRxFile';
 
 // Pharmacists need both: "Panadol (Paracetamol 500mg)".
 const itemName = (i) => {
@@ -12,12 +13,12 @@ const itemName = (i) => {
   if (med.brand && med.name) return `${med.brand} (${med.name})`;
   return i.name || med.brand || med.name || 'Medicine';
 };
-const fileHref = (url) => (url.startsWith('http') || url.startsWith('data:') ? url : `${serverUrl}${url}`);
 
 /** Invoice-style details of an order for pharmacy staff. */
 export default function OrderDetailModal({ order, onClose }) {
   const rx = order?.prescriptionId && typeof order.prescriptionId === 'object' ? order.prescriptionId : null;
   const addr = order?.shippingAddress || {};
+  const file = useRxFile(rx);
 
   return (
     <Modal show={!!order} onClose={onClose} size="lg" title={`Order ${orderRef(order)}`} description={order ? `Placed ${fmtDate(order.createdAt)}` : undefined}>
@@ -71,8 +72,8 @@ export default function OrderDetailModal({ order, onClose }) {
                   <h3><FiFileText aria-hidden="true" /> Prescription</h3>
                   <p className="ph-invoice__rx">
                     <Badge tone={rx?.status === 'verified' ? 'success' : 'warning'}>{rx?.status || 'attached'}</Badge>
-                    {rx?.fileUrl && (
-                      <Button size="sm" variant="secondary" href={fileHref(rx.fileUrl)} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>
+                    {file.href && (
+                      <Button size="sm" variant="secondary" href={file.href} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>
                         View
                       </Button>
                     )}

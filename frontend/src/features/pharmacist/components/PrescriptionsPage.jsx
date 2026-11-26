@@ -10,6 +10,7 @@ import { formatPrice } from '../../../lib/format';
 import OfferBuilder from './OfferBuilder';
 import { Badge, Button, Card, Checkbox, EmptyState, ErrorState, Modal, SkeletonCard, Tabs, Textarea } from '../../../components/ui';
 import { assetUrl } from '../../../lib/media';
+import useRxFile from '../../prescriptions/lib/useRxFile';
 import { fmtDate } from './pharmacistShared';
 import { formatPhone, phoneHref } from '../../../lib/format';
 
@@ -80,6 +81,7 @@ export default function PrescriptionsPage() {
   const [reason, setReason] = useState('');
   const [acting, setActing] = useState(null);
   const [refill, setRefill] = useState({});
+  const viewingFile = useRxFile(viewing);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -278,7 +280,7 @@ export default function PrescriptionsPage() {
         footer={
           viewing && (
             <>
-              {viewing.fileUrl && <Button variant="secondary" href={assetUrl(viewing.fileUrl)} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>Open original</Button>}
+              {viewingFile.href && <Button variant="secondary" href={viewingFile.href} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>Open original</Button>}
               {viewing.status === 'pending' && (
                 <>
                   <Button variant="ghost" className="ph-danger" onClick={() => openReject(viewing)}>Decline</Button>
@@ -298,10 +300,14 @@ export default function PrescriptionsPage() {
       >
         {viewing?.source === 'consultation' ? (
           <pre className="ph-rx__doctor-full">{viewing.doctorText}</pre>
-        ) : viewing && viewing.fileType !== 'application/pdf' && assetUrl(viewing.fileUrl) ? (
-          <img src={assetUrl(viewing.fileUrl)} alt={`Prescription ${shortRx(viewing.id)}`} className="ph-rx__full" />
-        ) : (
+        ) : viewingFile.loading ? (
+          <p className="ph-muted">Loading the prescription…</p>
+        ) : viewingFile.href && !viewingFile.isPdf ? (
+          <img src={viewingFile.href} alt={`Prescription ${shortRx(viewing.id)}`} className="ph-rx__full" />
+        ) : viewingFile.href ? (
           <p className="ph-muted">This is a PDF. Use “Open original” to read it.</p>
+        ) : (
+          <p className="ph-muted">The file for this prescription couldn’t be loaded.</p>
         )}
       </Modal>
 

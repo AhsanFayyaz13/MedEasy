@@ -54,6 +54,8 @@ const prescriptionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
+  // The patient removed it from their list, but an order used it, so the record is kept for the pharmacy.
+  hiddenByPatient: { type: Boolean, default: false },
   // An uploaded photo or PDF, or (source "consultation") the prescription a MedEasy doctor
   // wrote after a consultation, sent to the pharmacy by the patient.
   source: { type: String, enum: ['upload', 'consultation'], default: 'upload' },

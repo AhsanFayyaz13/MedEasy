@@ -3,7 +3,7 @@ import { FiExternalLink, FiPlus, FiSend, FiSlash, FiTrash2 } from 'react-icons/f
 import { useToast } from '../../../context/ToastContext';
 import { fetchAllMedicines, sendPrescriptionOffer } from '../../../services/api/pharmacistService';
 import { Alert, Button, Checkbox, Input, Modal, SearchInput, Spinner, Textarea } from '../../../components/ui';
-import { assetUrl } from '../../../lib/media';
+import useRxFile from '../../prescriptions/lib/useRxFile';
 import { formatPrice } from '../../../lib/format';
 import { OFFER_HOURS, offerTotals, rxLabel } from '../../prescriptions/lib/offer';
 
@@ -94,7 +94,8 @@ export default function OfferBuilder({ rx, onClose, onSent }) {
     }
   };
 
-  const href = rx?.fileUrl ? assetUrl(rx.fileUrl) : null;
+  const file = useRxFile(rx);
+  const href = file.href;
   const patient = rx?.userId && typeof rx.userId === 'object' ? rx.userId : {};
 
   return (
@@ -122,7 +123,7 @@ export default function OfferBuilder({ rx, onClose, onSent }) {
                 <strong>Written by a MedEasy doctor</strong>
                 <pre>{rx.doctorText}</pre>
               </>
-            ) : href && rx.fileType !== 'application/pdf' ? (
+            ) : href && !file.isPdf ? (
               <a href={href} target="_blank" rel="noreferrer" title="Open full size"><img src={href} alt={`Prescription ${rxLabel(rx)}`} /></a>
             ) : (
               <Button variant="secondary" href={href} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>Open the PDF</Button>

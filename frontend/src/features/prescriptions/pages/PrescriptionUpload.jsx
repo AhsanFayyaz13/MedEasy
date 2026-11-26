@@ -6,7 +6,7 @@ import { uploadPrescription, fetchPrescriptions, deletePrescription } from '../.
 import { Alert, Badge, Button, Card, EmptyState, ErrorState, FileDropzone, Modal, PageHeader, SkeletonCard, Textarea } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import { formatDate } from '../../../lib/format';
-import { assetUrl } from '../../../lib/media';
+import useRxFile from '../lib/useRxFile';
 import { MAX_FILE_MB, validateFile } from '../../cart/components/checkoutShared';
 import OfferCard from '../components/OfferCard';
 import PrescriptionChat from '../components/PrescriptionChat';
@@ -26,13 +26,16 @@ const GUIDELINES = [
   'Clear, well-lit and readable',
 ];
 
+/** Expired and declined prescriptions can always be removed from the list. */
+const removable = (rx) => rx.status === 'rejected' || new Date(rx.expiresAt) < new Date();
 const shortRxId = (id) => String(id || '').slice(-6).toUpperCase();
 const when = (iso) => formatDate(iso, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 function PrescriptionItem({ rx, onDelete, onChanged, onMessage, highlighted }) {
   const cfg = STATUS[rx.status] || STATUS.pending;
-  const href = rx.fileUrl ? assetUrl(rx.fileUrl) : null;
-  const isImage = href && rx.fileType !== 'application/pdf';
+  const file = useRxFile(rx);
+  const href = file.href;
+  const isImage = href && !file.isPdf;
   const fromDoctor = rx.source === 'consultation';
   const hasOffer = Boolean(rx.offer?.sentAt);
   const canMessage = rx.status !== 'rejected' && new Date(rx.expiresAt) > new Date();
@@ -97,7 +100,7 @@ function PrescriptionItem({ rx, onDelete, onChanged, onMessage, highlighted }) {
               Message the pharmacy
             </Button>
           )}
-          {rx.status === 'pending' && !rx.orders?.length && (
+          {(removable(rx) || (rx.status === 'pending' && !rx.orders?.length)) && (
             <Button size="sm" variant="ghost" className="rxu-item__delete" leftIcon={<FiTrash2 aria-hidden="true" />} onClick={() => onDelete(rx)}>
               Delete
             </Button>
@@ -273,7 +276,10 @@ export default function PrescriptionUpload() {
         show={!!deleting}
         onClose={() => setDeleting(null)}
         title="Delete this prescription?"
-        description="It hasn’t been reviewed yet. You can upload it again later."
+        description={deleting && removable(deleting)
+          ? (deleting.status === 'rejected' ? 'It was declined, so it can’t be used to order.' : 'It has expired, so it can’t be used to order any more.') +
+            (deleting.orders?.length ? ' Your orders keep their record of it.' : ' This can’t be undone.')
+          : 'It hasn’t been reviewed yet. You can upload it again later.'}
         footer={
           <>
             <Button variant="secondary" onClick={() => setDeleting(null)}>Keep it</Button>
