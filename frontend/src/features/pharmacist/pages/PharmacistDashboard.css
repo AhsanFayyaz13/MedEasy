@@ -312,6 +312,20 @@
   overflow-wrap: anywhere;
 }
 
+.ph-rx__orders {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.ph-rx .ui-check {
+  margin-top: var(--space-3);
+}
+
 .ph-rx__patient {
   margin-top: var(--space-3);
   padding: var(--space-3);

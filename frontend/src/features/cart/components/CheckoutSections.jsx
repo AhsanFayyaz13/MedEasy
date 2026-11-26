@@ -1,7 +1,7 @@
-import { FiCheckCircle, FiCreditCard, FiDollarSign, FiFileText, FiLock, FiMapPin, FiShoppingBag, FiSmartphone } from 'react-icons/fi';
+import { FiCheckCircle, FiCreditCard, FiDollarSign, FiFileText, FiLock, FiMapPin, FiShoppingBag, FiSmartphone, FiUploadCloud } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, FileDropzone, Input, Select, Textarea } from '../../../components/ui';
-import { formatPrice } from '../../../lib/format';
+import { formatDate, formatPrice } from '../../../lib/format';
 import MedicalIcon from '../../medicines/components/MedicalIcon';
 import { CITIES, FREE_THRESHOLD, MAX_FILE_MB, PAYMENT_METHODS } from './checkoutShared';
 import DeliveryPinField from './DeliveryPinField';
@@ -39,14 +39,47 @@ export function AddressSection({ addr, errors, onChange, onPin, guest = false, o
   );
 }
 
-export function PrescriptionSection({ file, onFile, error }) {
+const rxLabel = (rx) => `#RX-${String(rx.id).slice(-6).toUpperCase()}`;
+
+/**
+ * Prescription for Rx items: pick one the pharmacist has already approved (or is reviewing),
+ * or upload a new one. `choice` is a prescription id or 'new'.
+ */
+export function PrescriptionSection({ saved = [], choice, onChoice, file, onFile, error }) {
+  const options = [
+    ...saved.map((rx) => ({
+      id: rx.id,
+      title: `${rxLabel(rx)} · ${rx.status === 'verified' ? 'Approved' : 'Awaiting review'}${rx.refillable ? ' · refillable' : ''}`,
+      desc: `Uploaded ${formatDate(rx.uploadedAt)} · valid until ${formatDate(rx.expiresAt)}`,
+    })),
+    { id: 'new', title: 'Upload a new prescription', desc: 'A pharmacist checks it before your order is confirmed.' },
+  ];
   return (
     <Card as="section" aria-labelledby="chk-rx-title" className="chk-rx">
       <h2 id="chk-rx-title" className="chk-title"><FiFileText aria-hidden="true" /> Prescription required</h2>
       <p className="chk-muted">
-        One or more items need a valid prescription. Our pharmacist will verify it before your order is confirmed.
+        {saved.length
+          ? 'One or more items need a prescription. Use one you’ve already sent us, or upload a new one. Each prescription can be used for one order unless your pharmacist marked it for repeats.'
+          : 'One or more items need a valid prescription. Our pharmacist will verify it before your order is confirmed.'}
       </p>
-      <FileDropzone file={file} onFile={onFile} error={error} label="Drag & drop your prescription" hint={`JPG, PNG, WebP or PDF · max ${MAX_FILE_MB} MB`} />
+      {saved.length > 0 && (
+        <div className="chk-pay chk-rx__choices" role="radiogroup" aria-labelledby="chk-rx-title">
+          {options.map((o) => (
+            <label key={o.id} className={`chk-pay__option${choice === o.id ? ' is-selected' : ''}`}>
+              <input type="radio" name="prescription" value={o.id} checked={choice === o.id} onChange={() => onChoice(o.id)} />
+              <span className="chk-pay__icon" aria-hidden="true">{o.id === 'new' ? <FiUploadCloud /> : <FiFileText />}</span>
+              <span className="chk-pay__text">
+                <strong>{o.title}</strong>
+                <span>{o.desc}</span>
+              </span>
+              {choice === o.id && <FiCheckCircle className="chk-pay__check" aria-hidden="true" />}
+            </label>
+          ))}
+        </div>
+      )}
+      {choice === 'new' && (
+        <FileDropzone file={file} onFile={onFile} error={error} label="Drag & drop your prescription" hint={`JPG, PNG, WebP or PDF · max ${MAX_FILE_MB} MB`} />
+      )}
     </Card>
   );
 }
@@ -72,7 +105,7 @@ export function PaymentSection({ value, onChange }) {
   );
 }
 
-export function OrderSummary({ items, count, subtotal, delivery, total, needsRx, rxFile, submitting }) {
+export function OrderSummary({ items, count, subtotal, delivery, total, needsRx, rxReady, submitting }) {
   return (
     <Card as="aside" className="chk-summary" aria-labelledby="chk-summary-title">
       <h2 id="chk-summary-title" className="chk-title">
@@ -102,8 +135,8 @@ export function OrderSummary({ items, count, subtotal, delivery, total, needsRx,
       </dl>
 
       {needsRx && (
-        <Alert tone={rxFile ? 'success' : 'warning'}>
-          {rxFile ? <>Prescription attached: <em>{rxFile.name}</em></> : 'Please attach your prescription.'}
+        <Alert tone={rxReady ? 'success' : 'warning'}>
+          {rxReady ? <>Prescription: <em>{rxReady}</em></> : 'Please attach your prescription.'}
         </Alert>
       )}
 

@@ -107,18 +107,25 @@ export async function updateOrderStatus(id, newStatus, reason) {
 /* ─────────────────────────── PRESCRIPTIONS ───────────────────────────────── */
 
 export async function fetchPendingPrescriptions() {
-  const { data } = await api.get('/prescriptions/', { params: { status: 'pending' } });
-  const list = data.results ?? data;
-  return Array.isArray(list) ? list.map(mapPrescriptionToFrontend) : [];
+  const { data } = await api.get('/prescriptions/');
+  return Array.isArray(data) ? data.map(mapPrescriptionToFrontend) : [];
+}
+
+/** The latest approved and declined prescriptions (up to 100), newest decision first. */
+export async function fetchReviewedPrescriptions() {
+  const { data } = await api.get('/prescriptions/', { params: { view: 'reviewed' } });
+  return Array.isArray(data) ? data.map(mapPrescriptionToFrontend) : [];
 }
 
 /**
- * Verify or reject a prescription.
+ * Approve or decline a prescription.
  * @param {string} id
  * @param {'verified'|'rejected'} status
- * @param {string} [rejectionReason]
+ * @param {{ rejectionReason?: string, refillable?: boolean, confirmOrders?: boolean }} [options]
+ *   confirmOrders: also confirm the pending orders this prescription is attached to.
+ * @returns {Promise<object>} the prescription, with `confirmedOrders`
  */
-export async function verifyPrescription(id, status, rejectionReason = '') {
-  const { data } = await api.put(`/prescriptions/${id}/verify/`, { status, rejectionReason: rejectionReason || undefined });
+export async function verifyPrescription(id, status, { rejectionReason, refillable, confirmOrders } = {}) {
+  const { data } = await api.put(`/prescriptions/${id}/verify`, { status, rejectionReason: rejectionReason || undefined, refillable, confirmOrders });
   return data;
 }

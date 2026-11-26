@@ -78,10 +78,15 @@ Roles: `patient`, `doctor`, `pharmacy` (owner), `pharmacist` (representative), `
 
 | Method | Path | Access | Description |
 | --- | --- | --- | --- |
-| GET | `/prescriptions` | Patient (own); pharmacist, admin (pending queue) | List |
+| GET | `/prescriptions?view` | Patient (own, newest first); pharmacist, pharmacy, admin (waiting queue, oldest first; `view=reviewed` for the latest 100 decisions with `reviewedBy`) | Each has `expiresAt`, `orders` (orders that aren't cancelled), `usable` and `unusableReason` |
 | POST | `/prescriptions/upload` | Patient | Multipart `prescription` (JPG, PNG, WebP or PDF) + `notes` |
-| DELETE | `/prescriptions/:id` | Patient | Delete own |
-| PUT | `/prescriptions/:id/verify` | Pharmacist, admin | `{status: verified|rejected, rejectionReason?}` |
+| DELETE | `/prescriptions/:id` | Patient | Delete own, only while pending and not attached to an order |
+| PUT | `/prescriptions/:id/verify` | Pharmacist, admin | `{status: verified|rejected, rejectionReason?, refillable?, confirmOrders?}`. Only pending prescriptions (`409` otherwise). `confirmOrders` also confirms the pending orders it is attached to; the response lists them as `confirmedOrders`. |
+
+**Using a prescription to order:** `POST /orders` accepts a prescription that is pending or verified,
+uploaded in the last 30 days (180 days if the pharmacist marked it refillable), and, unless refillable,
+not already attached to another order that isn't cancelled. Otherwise it answers `400` with code
+`PRESCRIPTION_UNUSABLE`.
 
 ## Doctors & appointments
 

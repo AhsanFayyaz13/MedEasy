@@ -8,7 +8,7 @@ const { idParam, prescriptions: v } = require('../validators');
 
 const router = express.Router();
 
-router.get('/', protect, ctrl.getPrescriptions);
+router.get('/', protect, validate({ query: v.list }), ctrl.getPrescriptions);
 router.post(
   '/upload',
   protect,

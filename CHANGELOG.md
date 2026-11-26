@@ -6,6 +6,11 @@ deployed continuously from `main`, so entries are grouped by date.
 ## Unreleased
 
 ### Added
+- Checkout offers prescriptions the patient already sent, so an approved prescription no longer has to be
+  uploaded again. Prescriptions can be used for 30 days and for one order, unless the pharmacist marks them
+  as allowing repeat orders (then 6 months).
+- Pharmacists can approve a prescription and confirm the order waiting on it in one step, and see the
+  prescriptions they've reviewed, with who decided.
 - Feedback, complaints about doctors and orders, and pharmacy ratings are now sent to the server, so
   admins see them from any device. Admins are alerted to new complaints, and patients are told when
   theirs has been reviewed. Rating an order again replaces the earlier rating.

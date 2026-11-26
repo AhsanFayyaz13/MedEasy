@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { FiCheckCircle, FiClock, FiExternalLink, FiFileText, FiShield, FiTrash2, FiUpload, FiXCircle } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
 import { uploadPrescription, fetchPrescriptions, deletePrescription } from '../../../services/api/prescriptionService';
@@ -13,7 +13,7 @@ import './PrescriptionUpload.css';
 const STATUS = {
   pending: { label: 'Awaiting review', tone: 'warning', icon: <FiClock /> },
   verified: { label: 'Verified', tone: 'success', icon: <FiCheckCircle /> },
-  rejected: { label: 'Rejected', tone: 'error', icon: <FiXCircle /> },
+  rejected: { label: 'Declined', tone: 'error', icon: <FiXCircle /> },
 };
 
 const GUIDELINES = [
@@ -51,14 +51,29 @@ function PrescriptionItem({ rx, onDelete }) {
             Please upload a clearer or newer prescription.
           </p>
         )}
-        {rx.status === 'verified' && <p className="rxu-item__hint is-ok">You can now order the medicines on this prescription.</p>}
+        {rx.orders?.length > 0 && (
+          <p className="rxu-item__meta">
+            Used for {rx.orders.map((o, i) => (
+              <span key={o.id}>{i > 0 && ', '}<Link to={`/orders/${o.id}`}>order {o.orderNumber}</Link></span>
+            ))}
+          </p>
+        )}
+        {rx.status !== 'rejected' && rx.usable && (
+          <p className={`rxu-item__hint${rx.status === 'verified' ? ' is-ok' : ''}`}>
+            {rx.status === 'verified'
+              ? `Approved${rx.refillable ? ' for repeat orders' : ''}. Choose it at checkout to order these medicines, until ${formatDate(rx.expiresAt)}.`
+              : `You can already choose it at checkout. The order is confirmed once a pharmacist approves it. Usable until ${formatDate(rx.expiresAt)}.`}
+          </p>
+        )}
+        {/* "Used for order …" already explains a used one; this covers expiry. */}
+        {rx.status !== 'rejected' && !rx.usable && !rx.orders?.length && rx.unusableReason && <p className="rxu-item__meta">{rx.unusableReason}</p>}
         <div className="rxu-item__actions">
           {href && (
             <Button size="sm" variant="secondary" href={href} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>
               View file
             </Button>
           )}
-          {rx.status === 'pending' && (
+          {rx.status === 'pending' && !rx.orders?.length && (
             <Button size="sm" variant="ghost" className="rxu-item__delete" leftIcon={<FiTrash2 aria-hidden="true" />} onClick={() => onDelete(rx)}>
               Delete
             </Button>

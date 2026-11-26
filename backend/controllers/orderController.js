@@ -7,14 +7,9 @@ const { normalizePhone } = require('../utils/phone');
 const { sendEmail, escapeHtml } = require('../utils/mailer');
 const { notify, notifyStaff } = require('../utils/notify');
 
+const { orderRef: ref, notifyOrderStatus } = require('../utils/orders');
+
 const rs = (n) => `Rs. ${Number(n || 0).toLocaleString('en-PK')}`;
-const STATUS_TEXT = {
-  confirmed: 'has been confirmed by the pharmacy',
-  processing: 'is being prepared',
-  dispatched: 'is on its way',
-  delivered: 'has been delivered',
-};
-const ref = (order) => order.orderNumber || `#${String(order._id).slice(-8).toUpperCase()}`;
 
 // Must match the checkout page (frontend/src/features/cart/components/checkoutShared.jsx).
 const DELIVERY_FEE = 120;
@@ -102,10 +97,11 @@ exports.placeOrder = async (req, res) => {
       return res.status(403).json({ message: 'Prescription does not belong to user' });
     }
     // A freshly uploaded (pending) prescription is fine — the pharmacy must verify it
-    // before the order can be confirmed (enforced in updateOrderStatus).
-    if (prescription.status === 'rejected') {
-      return res.status(400).json({ message: 'This prescription was rejected. Please upload a valid prescription.' });
-    }
+    // before the order can be confirmed (enforced in updateOrderStatus). Declined, expired or
+    // already-used (and not refillable) prescriptions are refused.
+    const used = await Order.countDocuments({ prescriptionId: prescription._id, status: { $ne: 'cancelled' } });
+    const problem = Prescription.unusableReason(prescription, used);
+    if (problem) return res.status(400).json({ message: problem, error: { code: 'PRESCRIPTION_UNUSABLE' } });
   }
 
   // Reserve stock atomically: each decrement only succeeds if enough stock remains,
@@ -240,9 +236,7 @@ exports.updateOrderStatus = async (req, res) => {
   order.status = status;
   const updatedOrder = await order.save();
   res.json(updatedOrder);
-  if (changed && order.userId && STATUS_TEXT[status]) {
-    notify(order.userId, { type: 'order', text: `Order ${ref(order)} ${STATUS_TEXT[status]}.`, link: `/orders/${order._id}` });
-  }
+  if (changed) notifyOrderStatus(order, status);
 };
 
 // @desc    Cancel order

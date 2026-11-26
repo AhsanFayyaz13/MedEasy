@@ -119,6 +119,17 @@ Both are stored on the server and work on the free hosting plans: no WebSockets 
   Resend's free quota.
 - Polling is rate-limited per user, not per IP, so people sharing a mobile network's IP don't block each other.
 
+## Prescriptions
+
+1. A patient uploads a prescription, either on its own page or at checkout. A pharmacist approves or
+   declines it; decisions are final and listed under **Reviewed**.
+2. An order for prescription-only medicines must carry a prescription that is pending or approved, at most
+   30 days old, and not already used by another order that isn't cancelled. A pharmacist can mark a
+   prescription as allowing repeat orders, which makes it reusable for 180 days. The rules live in
+   `models/Prescription.js` (`unusableReason`). Checkout lists the patient's usable prescriptions.
+3. An order can't be confirmed until its prescription is approved. Approving from the Prescriptions tab
+   confirms the orders waiting on it in the same step.
+
 ## Feedback and complaints
 
 Site feedback, complaints about a consultation or an order, and pharmacy ratings are one `Feedback`

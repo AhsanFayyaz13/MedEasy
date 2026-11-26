@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FiCheck, FiCheckCircle, FiExternalLink, FiFileText, FiMail, FiMapPin, FiPhone, FiX } from 'react-icons/fi';
+import { FiCheck, FiCheckCircle, FiExternalLink, FiFileText, FiMail, FiMapPin, FiPackage, FiPhone, FiX } from 'react-icons/fi';
 import { useToast } from '../../../context/ToastContext';
-import { fetchPendingPrescriptions, verifyPrescription } from '../../../services/api/pharmacistService';
-import { Badge, Button, Card, EmptyState, ErrorState, Modal, SkeletonCard, Textarea } from '../../../components/ui';
+import { fetchPendingPrescriptions, fetchReviewedPrescriptions, verifyPrescription } from '../../../services/api/pharmacistService';
+import { Badge, Button, Card, Checkbox, EmptyState, ErrorState, Modal, SkeletonCard, Tabs, Textarea } from '../../../components/ui';
 import { assetUrl } from '../../../lib/media';
 import { fmtDate } from './pharmacistShared';
 import { formatPhone, phoneHref } from '../../../lib/format';
 
 const shortRx = (id) => String(id || '').slice(-6).toUpperCase();
 const REJECT_PRESETS = ['Signature or stamp missing', 'Prescription is older than 30 days', 'Image is unclear', 'Name doesn’t match the account'];
+const pendingOrders = (rx) => (rx.orders || []).filter((o) => o.status === 'pending');
+const list = (xs) => xs.map((o) => o.orderNumber).join(', ');
 
 function Field({ icon, value, href }) {
   if (!value) return null;
@@ -20,47 +22,64 @@ function Field({ icon, value, href }) {
   );
 }
 
-/** Queue of uploaded prescriptions waiting for a pharmacist's decision. */
+/** What approving does, in the button's own words. */
+const verifyLabel = (rx) => {
+  const n = pendingOrders(rx).length;
+  if (!n) return 'Verify';
+  return n === 1 ? 'Verify & confirm order' : `Verify & confirm ${n} orders`;
+};
+
+/** Pharmacist review of uploaded prescriptions: the waiting queue and the latest decisions. */
 export default function PrescriptionsPage() {
   const { toast } = useToast();
-  const [list, setList] = useState([]);
+  const [view, setView] = useState('queue');
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [rejecting, setRejecting] = useState(null);
   const [reason, setReason] = useState('');
   const [acting, setActing] = useState(null);
+  const [refill, setRefill] = useState({});
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setList(await fetchPendingPrescriptions());
+      setItems(view === 'reviewed' ? await fetchReviewedPrescriptions() : await fetchPendingPrescriptions());
     } catch (e) {
       setError(e.response?.data?.message || 'Could not load prescriptions.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [view]);
 
   useEffect(() => {
-    load();
+    const t = setTimeout(load, 0);
+    return () => clearTimeout(t);
   }, [load]);
 
   const decide = async (rx, status, why = '') => {
     setActing(`${rx.id}:${status}`);
     try {
-      await verifyPrescription(rx.id, status, why);
-      setList((prev) => prev.filter((p) => p.id !== rx.id));
+      const res = await verifyPrescription(rx.id, status, {
+        rejectionReason: why,
+        refillable: status === 'verified' && Boolean(refill[rx.id]),
+        // Approving is what the attached orders were waiting for, so confirm them in the same step.
+        confirmOrders: status === 'verified',
+      });
+      setItems((prev) => prev.filter((p) => p.id !== rx.id));
+      const confirmed = res.confirmedOrders || [];
       if (status === 'verified') {
-        toast.success(`Prescription #${shortRx(rx.id)} verified.`);
+        toast.success(`Prescription #${shortRx(rx.id)} verified${confirmed.length ? ` and order ${list(confirmed)} confirmed` : ''}.`);
       } else {
-        toast.success(`Prescription #${shortRx(rx.id)} declined.`);
+        toast.success(`Prescription #${shortRx(rx.id)} declined.${pendingOrders(rx).length ? ` Order ${list(pendingOrders(rx))} is still pending: cancel it in Orders if it can’t go ahead.` : ''}`);
       }
       setRejecting(null);
       setViewing(null);
     } catch (e) {
       toast.error(e.response?.data?.message || 'Could not save the decision.');
+      if (e.response?.status === 409) load();
     } finally {
       setActing(null);
     }
@@ -71,57 +90,99 @@ export default function PrescriptionsPage() {
     setRejecting(rx);
   };
 
+  const tabs = [
+    { id: 'queue', label: 'Waiting' },
+    { id: 'reviewed', label: 'Reviewed' },
+  ];
+
+  let body;
   if (loading) {
-    return <div className="ph-rx-grid">{[0, 1, 2].map((i) => <SkeletonCard key={i} />)}</div>;
-  }
-  if (error) return <ErrorState message={error} onRetry={load} />;
-  if (!list.length) {
-    return <EmptyState icon={<FiCheckCircle />} title="All caught up" description="There are no prescriptions waiting for review." />;
+    body = <div className="ph-rx-grid">{[0, 1, 2].map((i) => <SkeletonCard key={i} />)}</div>;
+  } else if (error) {
+    body = <ErrorState message={error} onRetry={load} />;
+  } else if (!items.length) {
+    body = view === 'queue'
+      ? <EmptyState icon={<FiCheckCircle />} title="All caught up" description="There are no prescriptions waiting for review." />
+      : <EmptyState icon={<FiFileText />} title="Nothing reviewed yet" description="Prescriptions you approve or decline will be listed here." />;
+  } else {
+    body = (
+      <>
+        <p className="ph-lead">
+          {view === 'queue'
+            ? `${items.length} prescription${items.length > 1 ? 's' : ''} waiting · oldest first`
+            : `Latest ${items.length} decision${items.length > 1 ? 's' : ''} · newest first`}
+        </p>
+        <ul className="ph-rx-grid">
+          {items.map((rx) => {
+            const href = assetUrl(rx.fileUrl);
+            const isImage = href && rx.fileType !== 'application/pdf';
+            const p = rx.userId && typeof rx.userId === 'object' ? rx.userId : {};
+            const waiting = pendingOrders(rx);
+            return (
+              <li key={rx.id}>
+                <Card padded={false} as="article" className="ph-rx" aria-label={`Prescription ${shortRx(rx.id)}`}>
+                  <button type="button" className="ph-rx__preview" onClick={() => setViewing(rx)} aria-label={`View prescription ${shortRx(rx.id)}`}>
+                    {isImage ? <img src={href} alt="" loading="lazy" /> : <FiFileText aria-hidden="true" />}
+                  </button>
+                  <div className="ph-rx__body">
+                    <div className="ph-rx__top">
+                      <strong>#{shortRx(rx.id)}</strong>
+                      {rx.status === 'pending' && <Badge tone="warning">Pending</Badge>}
+                      {rx.status === 'verified' && <Badge tone="success">{rx.refillable ? 'Verified · refillable' : 'Verified'}</Badge>}
+                      {rx.status === 'rejected' && <Badge tone="error">Declined</Badge>}
+                    </div>
+                    <p className="ph-rx__date">
+                      Uploaded {fmtDate(rx.uploadedAt)}
+                      {rx.reviewedAt && <> · {rx.status === 'rejected' ? 'declined' : 'verified'} {fmtDate(rx.reviewedAt)}{rx.reviewedBy?.name ? ` by ${rx.reviewedBy.name}` : ''}</>}
+                    </p>
+                    {rx.notes && <p className="ph-rx__note">“{rx.notes}”</p>}
+                    {rx.rejectionReason && <p className="ph-rx__note">Reason: {rx.rejectionReason}</p>}
+                    {rx.orders?.length > 0 && (
+                      <p className="ph-rx__orders">
+                        <FiPackage aria-hidden="true" /> {rx.orders.length === 1 ? 'Order' : 'Orders'} {rx.orders.map((o) => `${o.orderNumber} (${o.status})`).join(', ')}
+                      </p>
+                    )}
+                    <div className="ph-rx__patient">
+                      <strong>{p.name || 'Patient'}</strong>
+                      <ul>
+                        <Field icon={<FiPhone aria-hidden="true" />} value={formatPhone(p.phone)} href={p.phone && `tel:${phoneHref(p.phone)}`} />
+                        <Field icon={<FiMail aria-hidden="true" />} value={p.email} href={p.email && `mailto:${p.email}`} />
+                        <Field icon={<FiMapPin aria-hidden="true" />} value={p.address} />
+                      </ul>
+                    </div>
+                    {rx.status === 'pending' && (
+                      <>
+                        <Checkbox
+                          label="Allows repeat orders"
+                          hint="Tick if the prescription permits refills. It can then be reused for 6 months."
+                          checked={Boolean(refill[rx.id])}
+                          onChange={(e) => setRefill((r) => ({ ...r, [rx.id]: e.target.checked }))}
+                        />
+                        <div className="ph-rx__actions">
+                          <Button size="sm" leftIcon={<FiCheck aria-hidden="true" />} loading={acting === `${rx.id}:verified`} disabled={!!acting} onClick={() => decide(rx, 'verified')}>
+                            {verifyLabel(rx)}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="ph-danger" leftIcon={<FiX aria-hidden="true" />} disabled={!!acting} onClick={() => openReject(rx)}>
+                            Decline
+                          </Button>
+                        </div>
+                        {waiting.length > 0 && <p className="ph-muted">Verifying also confirms {list(waiting)}.</p>}
+                      </>
+                    )}
+                  </div>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      </>
+    );
   }
 
   return (
     <>
-      <p className="ph-lead">{list.length} prescription{list.length > 1 ? 's' : ''} waiting · oldest first</p>
-      <ul className="ph-rx-grid">
-        {list.map((rx) => {
-          const href = assetUrl(rx.fileUrl);
-          const isImage = href && rx.fileType !== 'application/pdf';
-          const p = rx.userId && typeof rx.userId === 'object' ? rx.userId : {};
-          return (
-            <li key={rx.id}>
-              <Card padded={false} as="article" className="ph-rx" aria-label={`Prescription ${shortRx(rx.id)}`}>
-                <button type="button" className="ph-rx__preview" onClick={() => setViewing(rx)} aria-label={`View prescription ${shortRx(rx.id)}`}>
-                  {isImage ? <img src={href} alt="" loading="lazy" /> : <FiFileText aria-hidden="true" />}
-                </button>
-                <div className="ph-rx__body">
-                  <div className="ph-rx__top">
-                    <strong>#{shortRx(rx.id)}</strong>
-                    <Badge tone="warning">Pending</Badge>
-                  </div>
-                  <p className="ph-rx__date">Uploaded {fmtDate(rx.uploadedAt)}</p>
-                  {rx.notes && <p className="ph-rx__note">“{rx.notes}”</p>}
-                  <div className="ph-rx__patient">
-                    <strong>{p.name || 'Patient'}</strong>
-                    <ul>
-                      <Field icon={<FiPhone aria-hidden="true" />} value={formatPhone(p.phone)} href={p.phone && `tel:${phoneHref(p.phone)}`} />
-                      <Field icon={<FiMail aria-hidden="true" />} value={p.email} href={p.email && `mailto:${p.email}`} />
-                      <Field icon={<FiMapPin aria-hidden="true" />} value={p.address} />
-                    </ul>
-                  </div>
-                  <div className="ph-rx__actions">
-                    <Button size="sm" leftIcon={<FiCheck aria-hidden="true" />} loading={acting === `${rx.id}:verified`} disabled={!!acting} onClick={() => decide(rx, 'verified')}>
-                      Verify
-                    </Button>
-                    <Button size="sm" variant="ghost" className="ph-danger" leftIcon={<FiX aria-hidden="true" />} disabled={!!acting} onClick={() => openReject(rx)}>
-                      Decline
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            </li>
-          );
-        })}
-      </ul>
+      <Tabs tabs={tabs} active={view} onChange={setView} label="Prescription lists" />
+      {body}
 
       <Modal
         show={!!viewing}
@@ -133,8 +194,12 @@ export default function PrescriptionsPage() {
           viewing && (
             <>
               <Button variant="secondary" href={assetUrl(viewing.fileUrl)} target="_blank" rel="noreferrer" rightIcon={<FiExternalLink aria-hidden="true" />}>Open original</Button>
-              <Button variant="ghost" className="ph-danger" onClick={() => openReject(viewing)}>Decline</Button>
-              <Button loading={acting === `${viewing.id}:verified`} onClick={() => decide(viewing, 'verified')}>Verify</Button>
+              {viewing.status === 'pending' && (
+                <>
+                  <Button variant="ghost" className="ph-danger" onClick={() => openReject(viewing)}>Decline</Button>
+                  <Button loading={acting === `${viewing.id}:verified`} onClick={() => decide(viewing, 'verified')}>{verifyLabel(viewing)}</Button>
+                </>
+              )}
             </>
           )
         }

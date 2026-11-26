@@ -243,7 +243,14 @@ const feedback = {
 
 // ── Prescriptions ──────────────────────────────────────────────────
 const prescriptions = {
-  verify: z.object({ status: z.enum(['pending', 'verified', 'rejected']), doctorId: emptyToUndefined(objectId.optional()), rejectionReason: optionalText(500) }),
+  verify: z.object({
+    status: z.enum(['verified', 'rejected']),
+    doctorId: emptyToUndefined(objectId.optional()),
+    rejectionReason: optionalText(500),
+    refillable: z.boolean().optional(),
+    confirmOrders: z.boolean().optional(),
+  }),
+  list: z.object({ view: z.enum(['queue', 'reviewed']).optional(), status: z.string().max(20).optional() }),
   upload: z.object({ fileUrl: emptyToUndefined(z.string().url().max(1000).optional()), notes: optionalText(500) }),
 };
 
