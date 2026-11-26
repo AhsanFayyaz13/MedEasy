@@ -23,8 +23,7 @@
 }
 
 .dash__identity,
-.dash__sidebar-foot,
-.dash__sidebar .dash-kpis {
+.dash__sidebar-foot {
   display: none;
 }
 
@@ -135,34 +134,6 @@
   animation: page-enter var(--duration-slow) var(--ease-out) both;
 }
 
-/* Sidebar KPI tiles (admin) */
-.dash-kpis {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-  padding: 0 var(--space-4) var(--space-4);
-}
-
-.dash-kpi {
-  padding: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-}
-
-.dash-kpi__value {
-  display: block;
-  color: var(--text-strong);
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
-}
-
-.dash-kpi__label {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
-
 /* ── ≥ 992px: real sidebar ─────────────────────────────────────── */
 @media (min-width: 992px) {
   .dash {
@@ -188,7 +159,6 @@
     padding: var(--space-6) var(--space-5) var(--space-4);
   }
 
-  .dash__sidebar .dash-kpis,
   .dash__sidebar-foot {
     display: grid;
   }
@@ -265,14 +235,6 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
   overflow: hidden;
-}
-
-.dash__content .card-header {
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-strong);
-  font-weight: var(--weight-semibold);
 }
 
 .dash__content .table {

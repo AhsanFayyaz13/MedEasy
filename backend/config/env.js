@@ -22,7 +22,6 @@ const schema = z.object({
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
   CLOUDINARY_FOLDER: z.string().default('Medeasy Uploads'),
-  FIREBASE_API_KEY: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);

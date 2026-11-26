@@ -1,14 +1,5 @@
-/**
- * prescriptionService.js
- * ─────────────────────────────────────────────────────────────────────────────
- * All prescription-related API calls, with mock fallbacks.
- */
-
+/** Prescription API calls. */
 import api from './client';
-import MOCK_PRESCRIPTIONS from '../../mocks/mockPrescriptions';
-
-import { USE_MOCK_API as USE_MOCK } from '../../lib/env';
-const delay    = (ms) => new Promise((res) => setTimeout(res, ms));
 
 export function mapPrescriptionToFrontend(rx) {
   if (!rx) return null;
@@ -54,25 +45,6 @@ export function mapPrescriptionToFrontend(rx) {
  * @returns {Promise<{ id, fileName, fileType, fileSize, status, notes, uploadedAt }>}
  */
 export async function uploadPrescription(file, notes = '') {
-  if (USE_MOCK) {
-    await delay(1100);
-    const newRx = {
-      id:              'RX-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
-      fileName:        file.name,
-      fileType:        file.type,
-      fileSize:        file.size,
-      status:          'pending',
-      notes,
-      uploadedAt:      new Date().toISOString(),
-      reviewedAt:      null,
-      reviewedBy:      null,
-      rejectionReason: null,
-      linkedOrderIds:  [],
-    };
-    // Prepend to mock list so it appears first
-    MOCK_PRESCRIPTIONS.unshift(newRx);
-    return newRx;
-  }
 
   const form = new FormData();
   form.append('prescription',  file); // Mapped to 'prescription' to match backend single-upload parser
@@ -90,13 +62,6 @@ export async function uploadPrescription(file, notes = '') {
  * @returns {Promise<Array>}
  */
 export async function fetchPrescriptions() {
-  if (USE_MOCK) {
-    await delay(500);
-    // newest first
-    return [...MOCK_PRESCRIPTIONS].sort(
-      (a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)
-    );
-  }
 
   const { data } = await api.get('/prescriptions/');
   const list = data.results ?? data;
@@ -109,12 +74,6 @@ export async function fetchPrescriptions() {
  * @param {string} id
  */
 export async function deletePrescription(id) {
-  if (USE_MOCK) {
-    await delay(500);
-    const idx = MOCK_PRESCRIPTIONS.findIndex((p) => p.id === id);
-    if (idx !== -1) MOCK_PRESCRIPTIONS.splice(idx, 1);
-    return { success: true };
-  }
   await api.delete(`/prescriptions/${id}`);
   return { success: true };
 }

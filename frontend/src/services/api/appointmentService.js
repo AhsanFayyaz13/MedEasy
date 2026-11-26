@@ -1,27 +1,21 @@
-/**
- * appointmentService.js
- * All appointment + doctor API calls with mock fallbacks.
- */
+/** Appointment and doctor API calls. */
 import api from './client';
-import MOCK_DOCTORS       from '../../mocks/mockDoctors';
-import MOCK_APPOINTMENTS  from '../../mocks/mockAppointments';
 
-import { USE_MOCK_API as USE_MOCK } from '../../lib/env';
-const delay    = (ms) => new Promise((r) => setTimeout(r, ms));
+/** Bookable times until doctors can set their own. */
+const DEFAULT_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00'];
 
 /* ── Doctors ─────────────────────────────────────────────────── */
 export async function fetchDoctors() {
-  if (USE_MOCK) { await delay(400); return [...MOCK_DOCTORS]; }
   const { data } = await api.get('/doctors/');
   const list = data.results ?? data;
-  return list.map(d => ({
+  // Only real profile data: no invented ratings or experience, and a fee of 0 means free.
+  return list.map((d) => ({
     ...d,
-    id: d._id || d.id, // Map Mongoose _id to id key
-    fee: d.consultationFee || 1000, // Map consultationFee to fee
-    experience: d.experience || 5,
-    slots: d.slots || ['09:00', '10:00', '11:00', '14:00', '15:00'], // Default clinical standard slots
-    rating: 4.7,
-    avatar: d.profileImage || '👨‍⚕️'
+    id: d._id || d.id,
+    fee: d.consultationFee ?? 0,
+    experience: d.experience ?? null,
+    slots: d.slots || DEFAULT_SLOTS,
+    avatar: d.profileImage || '👨‍⚕️',
   }));
 }
 
@@ -29,12 +23,6 @@ export async function fetchDoctors() {
 
 /** Patient: fetch their own appointments */
 export async function fetchMyAppointments() {
-  if (USE_MOCK) {
-    await delay(500);
-    return [...MOCK_APPOINTMENTS].sort(
-      (a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`)
-    );
-  }
   const { data } = await api.get('/appointments/');
   const list = data.results ?? data;
   return list.map(a => ({
@@ -52,12 +40,6 @@ export async function fetchMyAppointments() {
 
 /** Doctor: fetch appointments assigned to them */
 export async function fetchDoctorAppointments(doctorId) {
-  if (USE_MOCK) {
-    await delay(500);
-    return MOCK_APPOINTMENTS
-      .filter(a => a.doctorId === doctorId)
-      .sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
-  }
   const { data } = await api.get('/appointments/', { params: { doctor: doctorId } });
   const list = data.results ?? data;
   return list.map(a => ({
@@ -75,44 +57,18 @@ export async function fetchDoctorAppointments(doctorId) {
 
 /** Book a new appointment */
 export async function bookAppointment({ doctorId, date, time, reason }) {
-  if (USE_MOCK) {
-    await delay(800);
-    const newAppt = {
-      id:          'APT-' + Math.random().toString(36).slice(2,6).toUpperCase(),
-      doctorId,
-      doctorName:  MOCK_DOCTORS.find(d => d.id === doctorId)?.name ?? 'Unknown',
-      specialty:   MOCK_DOCTORS.find(d => d.id === doctorId)?.specialty ?? '',
-      patientId:   99, patientName: 'Ahmed Khan', patientEmail: 'patient@medeasy.pk',
-      date, time, status: 'scheduled',
-      reason: reason || '', notes: '', prescription: '',
-    };
-    MOCK_APPOINTMENTS.unshift(newAppt);
-    return newAppt;
-  }
   const { data } = await api.post('/appointments/book/', { doctor: doctorId, date, time, reason });
   return data;
 }
 
 /** Cancel an appointment */
 export async function cancelAppointment(id) {
-  if (USE_MOCK) {
-    await delay(500);
-    const a = MOCK_APPOINTMENTS.find(a => a.id === id);
-    if (a) a.status = 'cancelled';
-    return a;
-  }
   const { data } = await api.patch(`/appointments/${id}/`, { status: 'cancelled' });
   return data;
 }
 
 /** Doctor: complete an appointment + save notes + prescription */
 export async function completeAppointment(id, { notes, prescription }) {
-  if (USE_MOCK) {
-    await delay(600);
-    const a = MOCK_APPOINTMENTS.find(a => a.id === id);
-    if (a) { a.status = 'completed'; a.notes = notes; a.prescription = prescription; }
-    return a;
-  }
   const { data } = await api.patch(`/appointments/${id}/`, {
     status: 'completed', notes, prescription,
   });

@@ -49,7 +49,4 @@ async function uploadToCloudinary(filePath, options = {}) {
   }
 }
 
-module.exports = {
-  cloudinary,
-  uploadToCloudinary
-};
+module.exports = { uploadToCloudinary };

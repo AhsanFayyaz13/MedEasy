@@ -8,6 +8,4 @@ export const ORDER_TONE = {
   cancelled: 'error',
 };
 
-export const ORDER_STEP_KEYS = ['pending', 'confirmed', 'dispatched', 'delivered'];
-
 export const PAYMENT_LABELS = { cod: 'Cash on Delivery', jazz: 'JazzCash', easy: 'EasyPaisa', card: 'Credit/Debit Card' };

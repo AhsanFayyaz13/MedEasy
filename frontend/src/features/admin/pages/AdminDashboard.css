@@ -1,9 +1,3 @@
-
-
-@media (max-width: 991px) {
-  .adm-sidebar.open { display: flex; }
-}
-
 /* ── Search bars and tools ── */
 
 /* Spin animation for refresh icon */

@@ -1,7 +1,6 @@
 const User = require('../models/User');
 const PendingUser = require('../models/PendingUser');
 const jwt = require('jsonwebtoken');
-const https = require('https');
 const { normalizePhone } = require('../utils/phone');
 const bcrypt = require('bcryptjs');
 const AppError = require('../utils/AppError');
@@ -29,47 +28,6 @@ const sessionPayload = (user, token, overrides = {}) => ({ ...User.toPublic(user
 // A real bcrypt hash at the same cost as stored passwords: comparing against it when the
 // account doesn't exist takes as long as a wrong password, so timing reveals nothing.
 const DUMMY_HASH = bcrypt.hashSync('medeasy-timing-equaliser', 12);
-
-const verifyFirebaseToken = (idToken, apiKey) => {
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify({ idToken });
-    const options = {
-      hostname: 'identitytoolkit.googleapis.com',
-      port: 443,
-      path: `/v1/accounts:lookup?key=${apiKey}`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': postData.length
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', (d) => { body += d; });
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(body);
-          if (res.statusCode === 200) {
-            resolve(parsed);
-          } else {
-            const msg = parsed.error?.message || 'Token verification failed';
-            reject(new Error(msg));
-          }
-        } catch (e) {
-          reject(e);
-        }
-      });
-    });
-
-    req.on('error', (error) => {
-      reject(error);
-    });
-
-    req.write(postData);
-    req.end();
-  });
-};
 
 exports.register = async (req, res) => {
   const { 
@@ -187,62 +145,15 @@ exports.verifyRegistration = async (req, res) => {
     return res.status(400).json({ message: 'Verification session expired or not found. Please register again.' });
   }
 
-  let isCodeValid;
-
-  // Detect if this is a Firebase ID Token (usually long dot-separated JWT strings) or standard 6-digit code
-  if (code.length > 6) {
-    const firebaseApiKey = process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY;
-    if (!firebaseApiKey) {
-      return res.status(400).json({ message: 'Firebase verification is not configured on the server.' });
-    }
-
-    try {
-      const googleResult = await verifyFirebaseToken(code, firebaseApiKey);
-      const firebaseUser = googleResult.users?.[0];
-      if (!firebaseUser) {
-        return res.status(400).json({ message: 'Firebase ID Token is invalid or expired.' });
-      }
-      
-      if (pending.verificationChannel === 'phone') {
-        const verifiedPhone = firebaseUser.phoneNumber;
-        if (!verifiedPhone) {
-          return res.status(400).json({ message: 'Firebase ID Token does not contain a verified phone number.' });
-        }
-        // Normalize both to compare them properly
-        const normVerified = normalizePhone(verifiedPhone);
-        if (normVerified !== normalizedPhone) {
-          return res.status(400).json({ message: 'Verified phone number does not match your registered phone number.' });
-        }
-        isCodeValid = true;
-      } else if (pending.verificationChannel === 'email') {
-        const verifiedEmail = firebaseUser.email;
-        if (!verifiedEmail) {
-          return res.status(400).json({ message: 'Firebase ID Token does not contain a verified email address.' });
-        }
-        if (verifiedEmail.toLowerCase() !== pending.email.toLowerCase()) {
-          return res.status(400).json({ message: 'Verified email address does not match your registered email.' });
-        }
-        if (!firebaseUser.emailVerified) {
-          return res.status(400).json({ message: 'Your email address is registered in Firebase but not yet verified. Please click the verification link in your inbox.' });
-        }
-        isCodeValid = true;
-      } else {
-        return res.status(400).json({ message: 'Unsupported verification channel.' });
-      }
-    } catch (err) {
-      return res.status(400).json({ message: `Firebase token verification failed: ${err.message}` });
-    }
-  } else {
-    // Standard 6-digit code check (hashed, constant-time, attempt-limited)
-    if ((pending.verificationAttempts || 0) >= MAX_OTP_ATTEMPTS) {
-      await PendingUser.deleteOne({ _id: pending._id });
-      return res.status(429).json({ message: 'Too many incorrect attempts. Please register again to get a new code.' });
-    }
-    isCodeValid = codeMatches(code, pending.verificationCode);
-    if (!isCodeValid) {
-      pending.verificationAttempts = (pending.verificationAttempts || 0) + 1;
-      await pending.save();
-    }
+  // 6-digit emailed code: hashed, constant-time compared, attempt-limited.
+  if ((pending.verificationAttempts || 0) >= MAX_OTP_ATTEMPTS) {
+    await PendingUser.deleteOne({ _id: pending._id });
+    return res.status(429).json({ message: 'Too many incorrect attempts. Please register again to get a new code.' });
+  }
+  const isCodeValid = codeMatches(code, pending.verificationCode);
+  if (!isCodeValid) {
+    pending.verificationAttempts = (pending.verificationAttempts || 0) + 1;
+    await pending.save();
   }
 
   if (!isCodeValid) {

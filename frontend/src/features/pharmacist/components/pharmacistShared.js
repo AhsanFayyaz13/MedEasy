@@ -15,20 +15,8 @@ export const fmtDate = (iso) => {
   }
 };
 
-export const fmtBytes = (b) => b < 1024 * 1024
-  ? `${(b / 1024).toFixed(0)} KB`
-  : `${(b / (1024 * 1024)).toFixed(1)} MB`;
-
-export const ORDER_STATUS_CFG = {
-  pending:   { color: 'warning', text: 'dark' },
-  confirmed: { color: 'primary', text: null },
-  dispatched:{ color: 'info',    text: null },
-  delivered: { color: 'success', text: null },
-  cancelled: { color: 'danger',  text: null },
-};
-
-
-export const PAYMENT_LABELS = { cod:'Cash on Delivery', jazz:'JazzCash', easy:'EasyPaisa', card:'Card' };
+// One wording for payment methods across the site.
+export { PAYMENT_LABELS } from '../../orders/lib/orderStatus';
 
 export const EMPTY_MED = {
   name:'', brand:'', category:'', price:'', original_price:'',

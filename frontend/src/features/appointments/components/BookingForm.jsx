@@ -22,12 +22,14 @@ export function DoctorSummary({ doctor }) {
         </div>
       </div>
       <div className="appt-doctor__meta">
-        <span><FiBriefcase aria-hidden="true" /> {doctor.experience ?? '—'} yrs experience</span>
+        {doctor.experience != null && (
+          <span><FiBriefcase aria-hidden="true" /> {doctor.experience} {doctor.experience === 1 ? 'year' : 'years'} experience</span>
+        )}
         {doctor.rating ? <span><FiStar aria-hidden="true" /> {doctor.rating} / 5</span> : null}
       </div>
       <div className="appt-doctor__fee">
         <span>Consultation fee</span>
-        <strong>{formatPrice(doctor.fee ?? doctor.consultationFee ?? 0)}</strong>
+        <strong>{doctor.fee ? formatPrice(doctor.fee) : 'Free'}</strong>
       </div>
     </div>
   );

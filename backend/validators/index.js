@@ -17,7 +17,7 @@ const password = z
   .min(8, 'Password must be at least 8 characters long')
   .max(128, 'Password is too long')
   .refine((v) => !/^\$2[aby]\$/.test(v), 'Password format not allowed');
-const otp = z.string().trim().min(4).max(4096); // 6-digit code or Firebase ID token
+const otp = z.string().trim().regex(/^[0-9]{6}$/, 'Enter the 6-digit code from your email.');
 const money = z.coerce.number().min(0).max(10_000_000);
 const bool = z.preprocess((v) => (v === 'false' || v === '0' ? false : v === 'true' || v === '1' ? true : v), z.boolean());
 const emptyToUndefined = (schema) => z.preprocess((v) => (v === '' || v === null ? undefined : v), schema);

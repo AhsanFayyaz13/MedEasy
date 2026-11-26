@@ -7,51 +7,6 @@
 @import './styles/tokens.css';
 @import './styles/bootstrap-overrides.css';
 @import './styles/base.css';
-@import './styles/legacy-aliases.css';
-
-/* ── 404 page ────────────────────────────────────────────────── */
-.not-found {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  gap: var(--space-3);
-  text-align: center;
-  padding: var(--space-8);
-}
-
-.not-found-emoji {
-  font-size: var(--text-6xl);
-  margin-bottom: var(--space-2);
-}
-
-.not-found h2 {
-  font-size: var(--text-4xl);
-  font-weight: var(--weight-extrabold);
-}
-
-.not-found p {
-  color: var(--text-muted);
-  max-width: 360px;
-}
-
-.not-found-link {
-  display: inline-block;
-  margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-6);
-  background: var(--action);
-  color: var(--text-on-primary);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  font-weight: var(--weight-semibold);
-  transition: background-color var(--transition-fast);
-}
-
-.not-found-link:hover {
-  background: var(--action-hover);
-  color: var(--text-on-primary);
-}
 
 /* ── Toast notifications ─────────────────────────────────────── */
 .medeasy-toast {
@@ -107,30 +62,6 @@
 
 .toast-close:hover {
   opacity: 1;
-}
-
-/* ── Page titles ─────────────────────────────────────────────── */
-.page-title {
-  font-size: var(--text-4xl);
-  font-weight: var(--weight-extrabold);
-  color: var(--text-strong);
-  position: relative;
-  margin-bottom: var(--space-8);
-  display: block;
-}
-
-.page-title::after {
-  content: '';
-  display: block;
-  width: 56px;
-  height: 4px;
-  background: linear-gradient(90deg, var(--color-primary-400), var(--color-accent-400));
-  border-radius: var(--radius-full);
-  margin-top: var(--space-2);
-}
-
-.text-navy {
-  color: var(--text-strong);
 }
 
 /* ── Responsive ──────────────────────────────────────────────── */

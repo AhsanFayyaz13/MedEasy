@@ -32,8 +32,4 @@ function normalizePhone(value) {
   return digits;
 }
 
-function isEmail(value) {
-  return typeof value === 'string' && value.includes('@');
-}
-
-module.exports = { normalizePhone, isEmail };
+module.exports = { normalizePhone };

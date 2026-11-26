@@ -1,17 +1,6 @@
-/**
- * pharmacistService.js
- * ─────────────────────────────────────────────────────────────────────────────
- * All pharmacist-facing API calls with mock fallbacks.
- * Controls: VITE_USE_MOCK_API === 'true' (opt-in)
- */
+/** Pharmacy-facing API calls: inventory, orders and prescription verification. */
 import api from './client';
-import MOCK_MEDICINES from '../../mocks/mockMedicines';
-import MOCK_ORDERS    from '../../mocks/mockOrders';
-import MOCK_PRESCRIPTIONS from '../../mocks/mockPrescriptions';
 import { mapPrescriptionToFrontend } from './prescriptionService';
-
-import { USE_MOCK_API as USE_MOCK } from '../../lib/env';
-const delay    = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* ─── Mapping Utilities ─────────────────────────────────────────────────── */
 function mapMedicineToFrontend(m) {
@@ -48,73 +37,29 @@ function mapMedicineToBackend(payload) {
 /* ─────────────────────────── MEDICINES ───────────────────────────────────── */
 
 export async function fetchAllMedicines() {
-  if (USE_MOCK) { await delay(400); return [...MOCK_MEDICINES]; }
   const { data } = await api.get('/medicines', { params: { limit: 500 } }); // full inventory, not the default page of 10
   const list = data.medicines ?? data.results ?? data;
   return Array.isArray(list) ? list.map(mapMedicineToFrontend) : [];
 }
 
 export async function createMedicine(payload) {
-  if (USE_MOCK) {
-    await delay(600);
-    const newMed = {
-      ...payload,
-      id: Math.max(...MOCK_MEDICINES.map((m) => m.id)) + 1,
-      rating: 0, reviews_count: 0,
-      discount_pct: payload.original_price && payload.price
-        ? Math.round(((payload.original_price - payload.price) / payload.original_price) * 100)
-        : 0,
-    };
-    MOCK_MEDICINES.push(newMed);
-    return newMed;
-  }
   const backendPayload = mapMedicineToBackend(payload);
   const { data } = await api.post('/medicines', backendPayload);
   return mapMedicineToFrontend(data);
 }
 
 export async function updateMedicine(id, payload) {
-  if (USE_MOCK) {
-    await delay(500);
-    const idx = MOCK_MEDICINES.findIndex((m) => m.id === id);
-    if (idx !== -1) {
-      MOCK_MEDICINES[idx] = {
-        ...MOCK_MEDICINES[idx],
-        ...payload,
-        discount_pct: payload.original_price && payload.price
-          ? Math.round(((payload.original_price - payload.price) / payload.original_price) * 100)
-          : MOCK_MEDICINES[idx].discount_pct,
-      };
-      return MOCK_MEDICINES[idx];
-    }
-    throw new Error('Medicine not found');
-  }
   const backendPayload = mapMedicineToBackend(payload);
   const { data } = await api.put(`/medicines/${id}`, backendPayload);
   return mapMedicineToFrontend(data);
 }
 
 export async function deleteMedicine(id) {
-  if (USE_MOCK) {
-    await delay(500);
-    const idx = MOCK_MEDICINES.findIndex((m) => m.id === id);
-    if (idx !== -1) MOCK_MEDICINES.splice(idx, 1);
-    return { success: true };
-  }
   await api.delete(`/medicines/${id}`);
   return { success: true };
 }
 
 export async function uploadMedicinePhoto(file) {
-  if (USE_MOCK) {
-    await delay(500);
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve({ imageUrl: reader.result });
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
   const formData = new FormData();
   formData.append('medicinePhoto', file);
   const { data } = await api.post('/medicines/upload-photo', formData, {
@@ -147,13 +92,6 @@ function mapOrderToFrontend(o) {
 }
 
 export async function fetchAllOrders(filters = {}) {
-  if (USE_MOCK) {
-    await delay(500);
-    let orders = [...MOCK_ORDERS];
-    if (filters.status && filters.status !== 'all')
-      orders = orders.filter((o) => o.status === filters.status);
-    return orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }
   const params = {};
   if (filters.status && filters.status !== 'all') params.status = filters.status;
   const { data } = await api.get('/orders/all', { params });
@@ -162,12 +100,6 @@ export async function fetchAllOrders(filters = {}) {
 }
 
 export async function updateOrderStatus(id, newStatus, reason) {
-  if (USE_MOCK) {
-    await delay(500);
-    const order = MOCK_ORDERS.find((o) => o.id === id);
-    if (order) { order.status = newStatus; order.updatedAt = new Date().toISOString(); }
-    return order;
-  }
   const { data } = await api.put(`/orders/${id}/status`, { status: newStatus, ...(reason ? { reason } : {}) });
   return mapOrderToFrontend(data);
 }
@@ -175,12 +107,6 @@ export async function updateOrderStatus(id, newStatus, reason) {
 /* ─────────────────────────── PRESCRIPTIONS ───────────────────────────────── */
 
 export async function fetchPendingPrescriptions() {
-  if (USE_MOCK) {
-    await delay(400);
-    return MOCK_PRESCRIPTIONS
-      .filter((p) => p.status === 'pending')
-      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  }
   const { data } = await api.get('/prescriptions/', { params: { status: 'pending' } });
   const list = data.results ?? data;
   return Array.isArray(list) ? list.map(mapPrescriptionToFrontend) : [];
@@ -193,17 +119,6 @@ export async function fetchPendingPrescriptions() {
  * @param {string} [rejectionReason]
  */
 export async function verifyPrescription(id, status, rejectionReason = '') {
-  if (USE_MOCK) {
-    await delay(700);
-    const rx = MOCK_PRESCRIPTIONS.find((p) => p.id === id);
-    if (rx) {
-      rx.status          = status;
-      rx.reviewedAt      = new Date().toISOString();
-      rx.reviewedBy      = 'Dr. Farhan Qureshi (PharmD)'; // current mock pharmacist
-      rx.rejectionReason = status === 'rejected' ? rejectionReason : null;
-    }
-    return rx;
-  }
   const { data } = await api.put(`/prescriptions/${id}/verify/`, { status, rejectionReason: rejectionReason || undefined });
   return data;
 }

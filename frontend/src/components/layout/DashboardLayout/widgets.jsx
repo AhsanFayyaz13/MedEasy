@@ -74,7 +74,3 @@ export function Panel({ title, icon, actions, children, className, flush = false
   );
 }
 
-/** Small toolbar row (search + filters) above tables. */
-export function Toolbar({ children }) {
-  return <div className="dw-toolbar">{children}</div>;
-}
