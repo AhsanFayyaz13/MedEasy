@@ -62,6 +62,12 @@ const userSchema = new mongoose.Schema({
   availableDays: { type: [String], default: [] }, // e.g. ['Monday', 'Wednesday']
   consultationFee: { type: Number }, // Consultation fee in PKR
   termsAcceptedAt: { type: Date }, // when the user accepted the Terms of Service and Privacy Policy
+  // Partner Agreement (doctors and pharmacies): which version and commission rate they accepted, and when.
+  partnerAgreement: {
+    version: { type: String },
+    commissionRate: { type: Number, min: 0, max: 1 },
+    acceptedAt: { type: Date },
+  },
   
   // Password recovery fields
   resetPasswordCode: { type: String }, // SHA-256 hash of the OTP

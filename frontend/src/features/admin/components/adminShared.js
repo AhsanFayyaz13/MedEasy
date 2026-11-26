@@ -25,3 +25,25 @@ export const chartOpts = () => ({
     x: { grid: { display: false }, ticks: { color: tokenColor('--color-neutral-500') } },
   },
 });
+
+/**
+ * Applications to review. A pharmacy and its pharmacist representative are separate applications:
+ * the store is approved first; a pharmacist it adds later is reviewed on its own.
+ *   subject 'account'        → a doctor or pharmacy account
+ *   subject 'representative' → a pharmacy's pharmacist
+ */
+export function reviewItems(users) {
+  const pending = [];
+  const declined = [];
+  for (const u of users) {
+    if (u.role !== 'doctor' && u.role !== 'pharmacy') continue;
+    if (!u.isVerifiedProfile) {
+      (u.verificationDeclinedAt ? declined : pending).push({ key: `${u.id}:account`, user: u, subject: 'account', kind: u.role });
+    }
+    const rep = u.pharmacistDetails?.status;
+    if (u.role === 'pharmacy' && u.isVerifiedProfile && (rep === 'pending' || rep === 'declined')) {
+      (rep === 'pending' ? pending : declined).push({ key: `${u.id}:representative`, user: u, subject: 'representative', kind: 'pharmacist' });
+    }
+  }
+  return { pending, declined };
+}

@@ -19,7 +19,7 @@ router.get('/users/pending', ctrl.listPendingProfessionals);
 router.post('/users', validate({ body: v.createUser }), ctrl.createAdminUser);
 router.put('/users/:id/status', validate({ params: idParam }), ctrl.toggleUserStatus);
 router.put('/users/:id/role', validate({ params: idParam, body: v.role }), ctrl.updateUserRole);
-router.put('/users/:id/approve', validate({ params: idParam }), ctrl.approveProfessional);
+router.put('/users/:id/approve', validate({ params: idParam, body: v.approve }), ctrl.approveProfessional);
 router.put('/users/:id/decline', validate({ params: idParam, body: v.decline }), ctrl.declineProfessional);
 router.delete('/users/:id', validate({ params: idParam }), ctrl.deleteUser);
 

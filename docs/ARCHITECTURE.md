@@ -27,10 +27,17 @@ graph LR
 | --- | --- | --- |
 | Guest | – | Browse, buy over-the-counter medicines, track an order by number + phone, contact support |
 | Patient | Self (email code) | Order (including prescription medicines), upload prescriptions, book doctors, review |
-| Doctor | Self, then **admin approval** | Manage schedule, complete consultations, issue e-prescriptions |
-| Pharmacy (owner) | Self | Inventory, orders, prescription verification, manage its pharmacist representative |
+| Doctor | Self + Partner Agreement, then **admin approval** | Manage schedule, complete consultations, issue e-prescriptions |
+| Pharmacy (owner) | Self + Partner Agreement, then **admin approval** | Inventory, orders, prescription verification, manage its pharmacist representative |
 | Pharmacist (representative) | Added by a pharmacy, **admin-approved** | Same operational access as the pharmacy; signs in with their own email |
 | Admin | Created by an admin | Users, verifications, catalogue, orders, appointments, reports, settings |
+
+**Partners and commission.** Doctors and pharmacies accept the Partner Agreement (`/partner-agreement`,
+version and rate in `backend/config/partner.js` and `frontend/src/lib/business.js`) at sign-up; the version,
+rate and date are stored on the user. Partners who joined under an older version must accept the current one
+in their dashboard before continuing. Every order records `commission` (10% of the medicines subtotal,
+delivery excluded) and every booked consultation records `fee` and `commission` (10% of the fee); the admin
+overview totals commission for the month.
 
 Routes are guarded twice: in the SPA (`ProtectedRoute`, staff are redirected to their dashboards) and,
 authoritatively, in the API (`protect` + `authorizeRoles`).
@@ -39,7 +46,8 @@ authoritatively, in the API (`protect` + `authorizeRoles`).
 
 1. **Sign-up** stores a `PendingUser` (bcrypt password, SHA-256 of a 6-digit code) and emails the code.
 2. **Verification** compares the code in constant time (5 attempts max), creates the `User` and returns a JWT.
-   Doctors get `pendingReview` instead of a session until an admin approves them.
+   Doctors and pharmacies get `pendingReview` instead of a session until an admin approves them; a
+   pharmacy's pharmacist representative is approved separately and can't sign in while the store is unapproved.
 3. **Sessions** are JWTs (7 days) kept in `sessionStorage`, so each browser tab has its own session and
    closing the tab signs out. Tokens carry the user's `tokenVersion`; changing or resetting a password
    increments it, which ends every other session on the next request.
@@ -56,9 +64,9 @@ time), so they can't be used to discover who has an account.
 | `User` | name, email, phone, role, status, isVerifiedProfile, tokenVersion; doctor and pharmacy profile fields; `pharmacistDetails` (representative) | Phone normalised to `92XXXXXXXXXX` |
 | `PendingUser` | registration details + hashed code | TTL 15 minutes |
 | `Medicine` | name (generic + strength), brand, category, price, originalPrice, stock, requiresPrescription, imageUrl | One shared catalogue |
-| `Order` | userId **or** guest {name, phone, email}, orderNumber `ME-XXXXXXXX`, items (price copied from the DB), deliveryFee, totalAmount, status, payment, shippingAddress {…, notes, location {lat, lng}} | Stock is reserved atomically when placing; cancelling restocks once |
+| `Order` | userId **or** guest {name, phone, email}, orderNumber `ME-XXXXXXXX`, items (price copied from the DB), deliveryFee, commission, totalAmount, status, payment, shippingAddress {…, notes, location {lat, lng}} | Stock is reserved atomically when placing; cancelling restocks once |
 | `Prescription` | userId, fileUrl, status, notes, rejectionReason, reviewedBy | Verified by a pharmacist before Rx orders are confirmed |
-| `Appointment` | patientId, doctorId, date, time, status, reason, notes, prescription | Only approved, active doctors can be booked |
+| `Appointment` | patientId, doctorId, date, time, status, reason, notes, prescription, fee, commission | Only approved, active doctors can be booked |
 | `Review` | userId, targetType (`medicine`/`doctor`/`pharmacy`), targetId, rating, comment | One review per user per target |
 | `Contact` | name, email, phone, subject, message, role | Also emailed to support |
 

@@ -33,8 +33,8 @@ Roles: `patient`, `doctor`, `pharmacy` (owner), `pharmacist` (representative), `
 
 | Method | Path | Access | Description |
 | --- | --- | --- | --- |
-| POST | `/auth/register` | Public | Start sign-up (patient, doctor or pharmacy); emails a 6-digit code |
-| POST | `/auth/verify-registration` | Public | `{phone, code}` → session; doctors get `{pendingReview:true}` and no token |
+| POST | `/auth/register` | Public | Start sign-up (patient, doctor or pharmacy; partners must send `acceptPartnerAgreement: true`); emails a 6-digit code |
+| POST | `/auth/verify-registration` | Public | `{phone, code}` → session; doctors and pharmacies get `{pendingReview:true}` and no token |
 | POST | `/auth/resend-verification` | Public | Send a new code |
 | POST | `/auth/login` | Public | `{identifier (email or phone), password}` → `{…profile, token}` |
 | POST | `/auth/forgot-password` | Public | Emails a reset code; same reply whether or not the account exists |
@@ -42,6 +42,7 @@ Roles: `patient`, `doctor`, `pharmacy` (owner), `pharmacist` (representative), `
 | POST | `/auth/upload-pharmacy-image` | Public | Storefront photo during pharmacy sign-up (image only) |
 | GET | `/auth/profile` | Signed in | Current profile |
 | PUT | `/auth/profile` | Signed in | Update profile (changing a doctor's PMC number re-triggers review) |
+| POST | `/auth/partner-agreement` | Doctor, pharmacy owner | `{version}` — accept the current Partner Agreement (409 if the version is outdated) |
 | PUT | `/auth/password` | Signed in (not representatives) | `{currentPassword, newPassword}` → new token; other sessions end |
 | POST | `/auth/profile/photo` | Signed in | Profile photo |
 | PUT | `/auth/profile/pharmacist` | Pharmacy | Add or update the pharmacist representative (needs admin approval) |
@@ -113,12 +114,12 @@ Roles: `patient`, `doctor`, `pharmacy` (owner), `pharmacist` (representative), `
 | --- | --- | --- |
 | GET | `/admin/users` | User counts by role |
 | GET | `/admin/users/all` | All users (no secrets) |
-| GET | `/admin/users/pending` | Doctors and representatives awaiting approval |
+| GET | `/admin/users/pending` | Doctors, pharmacies and pharmacy representatives awaiting approval |
 | POST | `/admin/users` | Create an account (auto-verified) |
 | PUT | `/admin/users/:id/status` | Suspend or reactivate |
 | PUT | `/admin/users/:id/role` | Change role |
-| PUT | `/admin/users/:id/approve` | Approve a doctor or representative (emails them) |
-| PUT | `/admin/users/:id/decline` | `{reason}`; decline (emails them) |
+| PUT | `/admin/users/:id/approve` | `{subject?: account\|representative}` — approve the doctor or pharmacy account, or the pharmacy's representative (emails them) |
+| PUT | `/admin/users/:id/decline` | `{reason, subject?}` — decline; declining a representative leaves the store working (emails them) |
 | DELETE | `/admin/users/:id` | Delete a user |
 | GET | `/admin/sales` | Sales report |
 | GET | `/admin/inventory` | Inventory report |

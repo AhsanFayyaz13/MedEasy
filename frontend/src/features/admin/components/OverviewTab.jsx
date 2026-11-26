@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Bar } from 'react-chartjs-2';
-import { FiBarChart2, FiCalendar, FiDollarSign, FiShoppingBag, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { FiBarChart2, FiCalendar, FiDollarSign, FiPercent, FiShoppingBag, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { PARTNER_AGREEMENT } from '../../../lib/business';
 import { tokenColor } from '../../../lib/theme';
 import { useAuth } from '../../../context/AuthContext';
 import { Button, EmptyState } from '../../../components/ui';
@@ -81,9 +82,9 @@ export default function OverviewTab({ setActive, stats, orders, pendingVerificat
 
       <StatGrid
         stats={[
-          { label: 'Platform users', value: stats.usersCount, icon: <FiUsers />, tone: 'violet', hint: 'Registered accounts' },
           { label: 'Orders', value: stats.ordersCount, icon: <FiShoppingBag />, tone: 'primary', hint: 'Active and processed' },
-          { label: 'Revenue (MTD)', value: fmtRs(stats.revenueMtd), icon: <FiDollarSign />, tone: 'success', hint: 'Month to date' },
+          { label: 'Revenue (MTD)', value: fmtRs(stats.revenueMtd), icon: <FiDollarSign />, tone: 'success', hint: 'Orders this month' },
+          { label: 'Commission (MTD)', value: fmtRs(stats.commissionMtd || 0), icon: <FiPercent />, tone: 'violet', hint: `${Math.round(PARTNER_AGREEMENT.commissionRate * 100)}% of orders and consultations` },
           { label: 'Appointments', value: stats.aptsCount, icon: <FiCalendar />, tone: 'warning', hint: 'Active bookings' },
         ]}
       />

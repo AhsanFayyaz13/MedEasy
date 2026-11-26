@@ -65,7 +65,8 @@ The CSP lists the outside services the site may contact. **If one changes, updat
 - [ ] Cloudinary keys set
 - [ ] `/api/health` returns `{"status":"ok","database":"up"}`
 - [ ] Business details filled in `frontend/src/lib/business.js` (legal name, licence numbers)
-- [ ] Legal pages reviewed by a lawyer (refund window and timings are placeholders)
+- [ ] Legal pages reviewed by a lawyer (refund window and timings are placeholders), including the Partner
+      Agreement (10% commission, monthly statements, 15-day payment, 30-day notice)
 - [ ] Never run `npm run seed` against the production database (it deletes data)
 - [ ] MongoDB Atlas backups enabled; database user limited to the MedEasy database
 - [ ] Optional: uptime monitor on `/api/health`; error tracking (e.g. Sentry)

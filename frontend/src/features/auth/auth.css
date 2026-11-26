@@ -75,6 +75,30 @@
   font-weight: var(--weight-semibold);
 }
 
+/* Partner terms summary (doctor and pharmacy sign-up) */
+.auth-partner {
+  margin: var(--space-2) 0 var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  font-size: var(--text-sm);
+}
+
+.auth-partner__title {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--text-strong);
+}
+
+.auth-partner ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--text-muted);
+}
+
 /* "What happens next" list (doctor application received) */
 .auth-next {
   display: grid;

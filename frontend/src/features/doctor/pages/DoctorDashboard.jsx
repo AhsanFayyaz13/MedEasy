@@ -10,6 +10,7 @@ import useDashboardTab from '../../../components/layout/DashboardLayout/useDashb
 import { Button } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
 import ConsultationChat from '../../appointments/components/ConsultationChat';
+import PartnerAgreementGate from '../../legal/components/PartnerAgreementGate';
 import { sendNotification } from '../../../lib/notifications';
 import ConsultationModal, { PrescriptionViewModal } from '../components/ConsultationModal';
 import OverviewTab from '../components/OverviewTab';
@@ -116,6 +117,7 @@ export default function DoctorDashboard() {
   return (
     <>
       <PageMeta title="Doctor dashboard" noindex />
+      <PartnerAgreementGate />
       <DashboardLayout
         sections={SECTIONS.map((s) => (s.key === 'schedule' && scheduledToday ? { ...s, badge: scheduledToday } : s))}
         active={active}

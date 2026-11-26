@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api/client';
 import { useAuth } from './AuthContext';
+import { PARTNER_AGREEMENT } from '../lib/business';
 
 /**
  * DataContext
@@ -106,6 +107,10 @@ export function DataProvider({ children }) {
   // ── Pre-computed stats ──────────────────────────────────────
   const currentMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
+  const thisMonth = (d) => safeFmtJoined(d) === currentMonthYear;
+  // Orders placed before commission was recorded: 10% of the medicines (total minus delivery).
+  const orderCommission = (o) => o.commission ?? Math.round(((o.totalAmount || 0) - (o.deliveryFee || 0)) * PARTNER_AGREEMENT.commissionRate);
+
   const stats = {
     usersCount:  users.length,  // already excludes admins
     ordersCount: orders.filter(o => o.status !== 'cancelled').length,
@@ -114,6 +119,10 @@ export function DataProvider({ children }) {
       .filter(o => o.status !== 'cancelled' && safeFmtJoined(o.createdAt) === currentMonthYear)
       .reduce((sum, o) => sum + (o.totalAmount || 0), 0),
     medicinesCount: medicines.length,
+    // Partner Agreement commission earned this month: live orders + completed consultations.
+    commissionMtd:
+      orders.filter((o) => o.status !== 'cancelled' && thisMonth(o.createdAt)).reduce((sum, o) => sum + orderCommission(o), 0) +
+      apts.filter((a) => a.status === 'completed' && thisMonth(a.date)).reduce((sum, a) => sum + (a.commission || 0), 0),
   };
 
   return (

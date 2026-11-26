@@ -33,6 +33,7 @@ const Cookies = legal(() => import('../features/legal/content/cookies'));
 const RefundPolicy = legal(() => import('../features/legal/content/refunds'));
 const MedicalDisclaimer = legal(() => import('../features/legal/content/medical'));
 const LegalNotice = legal(() => import('../features/legal/content/notice'));
+const PartnerAgreement = legal(() => import('../features/legal/content/partner'));
 const TrackOrder = lazy(() => import('../features/orders/pages/TrackOrder'));
 const NotFound = lazy(() => import('../features/system/pages/NotFound'));
 
@@ -67,6 +68,7 @@ export default function AppRoutes() {
       <Route path="/refund-policy" element={<RefundPolicy />} />
       <Route path="/medical-disclaimer" element={<MedicalDisclaimer />} />
       <Route path="/legal" element={<LegalNotice />} />
+      <Route path="/partner-agreement" element={<PartnerAgreement />} />
 
       {/* Authenticated */}
       <Route path="/cart" element={shopper(<Cart />)} />

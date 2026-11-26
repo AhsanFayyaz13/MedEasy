@@ -6,25 +6,50 @@ import { Avatar, Badge, Button, Card, EmptyState, Modal, SearchInput, Tabs, Text
 import { assetUrl } from '../../../lib/media';
 import { formatDate, formatPhone, formatPrice } from '../../../lib/format';
 import { sendNotification } from '../../../lib/notifications';
+import { reviewItems } from './adminShared';
 
-/** A doctor awaiting review, or a pharmacy whose pharmacist is awaiting review. */
-const isPending = (u) =>
-  (u.role === 'doctor' && !u.isVerifiedProfile && !u.verificationDeclinedAt) || (u.role === 'pharmacy' && u.pharmacistDetails?.status === 'pending');
-const isDeclined = (u) => (u.role === 'doctor' && !u.isVerifiedProfile && u.verificationDeclinedAt) || (u.role === 'pharmacy' && u.pharmacistDetails?.status === 'declined');
+const KIND = {
+  doctor: { label: 'Doctor', tone: 'violet' },
+  pharmacy: { label: 'Pharmacy', tone: 'success' },
+  pharmacist: { label: 'Pharmacist', tone: 'info' },
+};
 
-const DECLINE_PRESETS = ['Registration number could not be verified', 'Degree details incomplete', 'Photo unclear or missing', 'Details don’t match official records'];
+const DECLINE_PRESETS = ['Registration or licence number could not be verified', 'Details incomplete', 'Photo unclear or missing', 'Details don’t match official records'];
 
-/** Credentials to check for each kind of applicant. */
-function facts(u) {
-  if (u.role === 'doctor') {
+const agreementLine = (u) =>
+  u.partnerAgreement?.acceptedAt ? `Accepted ${formatDate(u.partnerAgreement.acceptedAt)} (${Math.round(u.partnerAgreement.commissionRate * 100)}%)` : 'Not yet accepted';
+
+/** Name and one-line description for an application card. */
+function who(item) {
+  const u = item.user;
+  if (item.kind === 'pharmacist') return { name: u.pharmacistDetails?.name, sub: `Pharmacist for ${u.pharmacyName || u.name}`, photo: u.pharmacistDetails?.photo };
+  if (item.kind === 'pharmacy') return { name: u.pharmacyName || u.name, sub: u.ownerName ? `Owner: ${u.ownerName}` : 'Pharmacy', photo: u.pharmacyOutsidePicture };
+  return { name: u.name, sub: u.specialty || 'Doctor', photo: u.profileImage };
+}
+
+/** What the admin needs to check for each kind of application. */
+function facts(item) {
+  const u = item.user;
+  if (item.kind === 'doctor') {
     return [
       ['Specialty', u.specialty],
       ['PMC/PMDC no.', u.pmcRegistration],
       ['Degree', u.degree],
       ['Experience', u.experience !== undefined && `${u.experience} years`],
-      ['Consultation fee', u.consultationFee !== undefined && formatPrice(u.consultationFee)],
+      ['Consultation fee', u.consultationFee !== undefined && (u.consultationFee ? formatPrice(u.consultationFee) : 'Free')],
       ['Available', u.availableDays?.join(', ')],
       ['Clinic', u.clinicAddress],
+      ['Partner Agreement', agreementLine(u)],
+    ];
+  }
+  if (item.kind === 'pharmacy') {
+    return [
+      ['Store', u.pharmacyName || u.name],
+      ['Owner', u.ownerName],
+      ['Location', u.pharmacyLocation || u.address],
+      ['Phone', formatPhone(u.phone)],
+      ['Email', u.email],
+      ['Partner Agreement', agreementLine(u)],
     ];
   }
   const p = u.pharmacistDetails || {};
@@ -36,14 +61,13 @@ function facts(u) {
     ['Age', p.age && `${p.age} years`],
     ['Login email', p.email],
     ['Store', u.pharmacyName || u.name],
-    ['Location', u.pharmacyLocation || u.address],
   ];
 }
 
-function Facts({ user }) {
+function Facts({ item }) {
   return (
     <dl className="adm-facts">
-      {facts(user)
+      {facts(item)
         .filter(([, v]) => v)
         .map(([k, v]) => (
           <div key={k}><dt>{k}</dt><dd>{v}</dd></div>
@@ -52,7 +76,7 @@ function Facts({ user }) {
   );
 }
 
-/** Review queue for doctor profiles and pharmacy pharmacists. */
+/** Review queue for doctors, pharmacies and pharmacy pharmacists. */
 export default function VerificationsTab({ users, setUsers }) {
   const { toast } = useToast();
   const [view, setView] = useState('pending');
@@ -62,20 +86,34 @@ export default function VerificationsTab({ users, setUsers }) {
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(null);
 
+  const { pending, declined } = reviewItems(users);
   const q = search.trim().toLowerCase();
-  const pending = users.filter(isPending);
-  const declined = users.filter(isDeclined);
-  const list = (view === 'pending' ? pending : declined).filter((u) => !q || `${u.name} ${u.email || ''} ${u.pharmacistDetails?.name || ''}`.toLowerCase().includes(q));
+  const list = (view === 'pending' ? pending : declined).filter((it) => {
+    const u = it.user;
+    return !q || `${u.name} ${u.email || ''} ${u.pharmacyName || ''} ${u.pharmacistDetails?.name || ''}`.toLowerCase().includes(q);
+  });
 
-  const notify = (u, text, emoji) => sendNotification(u.role === 'pharmacy' ? 'pharmacist' : 'doctor', u.id, { text, emoji, link: u.role === 'pharmacy' ? '/pharmacist?tab=pharmacist-rep' : '/profile' });
+  const update = (data) => setUsers((prev) => prev.map((x) => (x.id === data.user._id || x._id === data.user._id ? { ...x, ...data.user, id: x.id } : x)));
 
-  const approve = async (u) => {
-    setBusy(`${u.id}:approve`);
+  const notify = (item, text, emoji) => {
+    const u = item.user;
+    const isStore = item.kind !== 'doctor';
+    sendNotification(isStore ? 'pharmacist' : 'doctor', u.id, { text, emoji, link: item.kind === 'pharmacist' ? '/pharmacist?tab=pharmacist-rep' : isStore ? '/pharmacist' : '/profile' });
+  };
+
+  const APPROVED_TEXT = {
+    doctor: 'Your doctor profile has been verified. Patients can now book you.',
+    pharmacy: 'Your pharmacy has been verified. You can now receive orders.',
+    pharmacist: 'Your pharmacist has been verified and can now sign in for your store.',
+  };
+
+  const approve = async (item) => {
+    setBusy(`${item.key}:approve`);
     try {
-      const { data } = await api.put(`/admin/users/${u.id}/approve`);
-      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, ...data.user, id: x.id } : x)));
-      toast.success(`${u.role === 'pharmacy' ? u.pharmacistDetails?.name : u.name} approved.`);
-      notify(u, u.role === 'pharmacy' ? `Pharmacist verified: ${u.pharmacistDetails?.name} can now sign in for your store.` : 'Your doctor profile has been verified. Patients can now book you.', 'welcome');
+      const { data } = await api.put(`/admin/users/${item.user.id}/approve`, { subject: item.subject });
+      update(data);
+      toast.success(`${who(item).name} approved.`);
+      notify(item, APPROVED_TEXT[item.kind], 'welcome');
       setViewing(null);
     } catch (e) {
       toast.error(e.response?.data?.message || 'Could not approve.');
@@ -85,13 +123,13 @@ export default function VerificationsTab({ users, setUsers }) {
   };
 
   const decline = async () => {
-    const u = declining;
-    setBusy(`${u.id}:decline`);
+    const item = declining;
+    setBusy(`${item.key}:decline`);
     try {
-      const { data } = await api.put(`/admin/users/${u.id}/decline`, { reason: reason.trim() });
-      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, ...data.user, id: x.id } : x)));
-      toast.success('Declined. The applicant has been told why.');
-      notify(u, `Verification declined: ${reason.trim()}. Please update your details and resubmit.`, 'cancel');
+      const { data } = await api.put(`/admin/users/${item.user.id}/decline`, { reason: reason.trim(), subject: item.subject });
+      update(data);
+      toast.success('Declined. The applicant has been emailed the reason.');
+      notify(item, `Verification declined: ${reason.trim()}. Please update your details and resubmit.`, 'cancel');
       setDeclining(null);
       setViewing(null);
     } catch (e) {
@@ -101,10 +139,13 @@ export default function VerificationsTab({ users, setUsers }) {
     }
   };
 
-  const openDecline = (u) => {
+  const openDecline = (item) => {
     setReason('');
-    setDeclining(u);
+    setDeclining(item);
   };
+
+  const isPendingItem = (item) => pending.some((p) => p.key === item.key);
+  const viewingWho = viewing ? who(viewing) : null;
 
   return (
     <div className="adm-section">
@@ -118,39 +159,44 @@ export default function VerificationsTab({ users, setUsers }) {
           onChange={setView}
           label="Verification queue"
         />
-        <SearchInput label="Search applicants" placeholder="Name or email" value={search} onChange={setSearch} />
+        <SearchInput label="Search applicants" placeholder="Name, store or email" value={search} onChange={setSearch} />
       </div>
 
       {list.length === 0 ? (
-        <EmptyState icon={<FiCheckCircle />} title={view === 'pending' ? 'All caught up' : 'No declined applications'} description={view === 'pending' ? 'No doctors or pharmacists are waiting for verification.' : undefined} />
+        <EmptyState
+          icon={<FiCheckCircle />}
+          title={view === 'pending' ? 'All caught up' : 'No declined applications'}
+          description={view === 'pending' ? 'No doctors, pharmacies or pharmacists are waiting for review.' : undefined}
+        />
       ) : (
         <ul className="adm-verify-grid">
-          {list.map((u) => {
-            const p = u.pharmacistDetails || {};
-            const name = u.role === 'pharmacy' ? p.name : u.name;
+          {list.map((item) => {
+            const w = who(item);
+            const u = item.user;
             return (
-              <li key={u.id}>
+              <li key={item.key}>
                 <Card as="article" className="adm-verify">
                   <header>
-                    <Avatar src={u.role === 'pharmacy' && p.photo ? assetUrl(p.photo) : undefined} name={name || ''} size={48} />
+                    <Avatar src={w.photo ? assetUrl(w.photo) : undefined} name={w.name || ''} size={48} />
                     <div>
-                      <strong>{name}</strong>
-                      <span>{u.role === 'pharmacy' ? `Pharmacist for ${u.pharmacyName || u.name}` : u.specialty || 'Doctor'}</span>
+                      <strong>{w.name}</strong>
+                      <span>{w.sub}</span>
                     </div>
-                    <Badge tone={u.role === 'doctor' ? 'violet' : 'success'}>{u.role === 'doctor' ? 'Doctor' : 'Pharmacist'}</Badge>
+                    <Badge tone={KIND[item.kind].tone}>{KIND[item.kind].label}</Badge>
                   </header>
-                  <Facts user={u} />
+                  <Facts item={item} />
                   {view === 'declined' && (
                     <p className="adm-verify__reason">
-                      Declined{u.verificationDeclinedAt ? ` ${formatDate(u.verificationDeclinedAt)}` : ''}: {u.verificationDeclineReason || p.declineReason || '—'}
+                      Declined{u.verificationDeclinedAt && item.subject === 'account' ? ` ${formatDate(u.verificationDeclinedAt)}` : ''}:{' '}
+                      {(item.subject === 'account' ? u.verificationDeclineReason : u.pharmacistDetails?.declineReason) || '—'}
                     </p>
                   )}
                   <div className="adm-actions adm-actions--start">
-                    <Button size="sm" loading={busy === `${u.id}:approve`} leftIcon={<FiCheck aria-hidden="true" />} onClick={() => approve(u)}>Approve</Button>
+                    <Button size="sm" loading={busy === `${item.key}:approve`} leftIcon={<FiCheck aria-hidden="true" />} onClick={() => approve(item)}>Approve</Button>
                     {view === 'pending' && (
-                      <Button size="sm" variant="ghost" className="adm-danger" leftIcon={<FiX aria-hidden="true" />} onClick={() => openDecline(u)}>Decline</Button>
+                      <Button size="sm" variant="ghost" className="adm-danger" leftIcon={<FiX aria-hidden="true" />} onClick={() => openDecline(item)}>Decline</Button>
                     )}
-                    <Button size="sm" variant="ghost" leftIcon={<FiEye aria-hidden="true" />} onClick={() => setViewing(u)}>Details</Button>
+                    <Button size="sm" variant="ghost" leftIcon={<FiEye aria-hidden="true" />} onClick={() => setViewing(item)}>Details</Button>
                   </div>
                 </Card>
               </li>
@@ -163,26 +209,26 @@ export default function VerificationsTab({ users, setUsers }) {
         show={!!viewing}
         onClose={() => setViewing(null)}
         size="lg"
-        title={viewing ? (viewing.role === 'pharmacy' ? viewing.pharmacistDetails?.name : viewing.name) : ''}
-        description={viewing ? `${viewing.email || ''}${viewing.phone ? ` · ${formatPhone(viewing.phone)}` : ''} · registered ${formatDate(viewing.createdAt)}` : undefined}
+        title={viewingWho?.name || ''}
+        description={viewing ? `${viewing.user.email || ''}${viewing.user.phone ? ` · ${formatPhone(viewing.user.phone)}` : ''} · registered ${formatDate(viewing.user.createdAt)}` : undefined}
         footer={
           viewing && (
             <>
-              {isPending(viewing) && <Button variant="ghost" className="adm-danger" onClick={() => openDecline(viewing)}>Decline</Button>}
-              <Button loading={busy === `${viewing.id}:approve`} onClick={() => approve(viewing)}>Approve</Button>
+              {isPendingItem(viewing) && <Button variant="ghost" className="adm-danger" onClick={() => openDecline(viewing)}>Decline</Button>}
+              <Button loading={busy === `${viewing.key}:approve`} onClick={() => approve(viewing)}>Approve</Button>
             </>
           )
         }
       >
         {viewing && (
           <div className="adm-verify-detail">
-            {viewing.role === 'pharmacy' && viewing.pharmacistDetails?.photo && (
-              <img src={assetUrl(viewing.pharmacistDetails.photo)} alt={`${viewing.pharmacistDetails.name}`} />
+            {viewing.kind === 'pharmacist' && viewing.user.pharmacistDetails?.photo && (
+              <img src={assetUrl(viewing.user.pharmacistDetails.photo)} alt={viewing.user.pharmacistDetails.name || 'Pharmacist'} />
             )}
-            {viewing.role === 'pharmacy' && viewing.pharmacyOutsidePicture && (
-              <img src={assetUrl(viewing.pharmacyOutsidePicture)} alt="Storefront" />
+            {viewing.kind !== 'doctor' && viewing.user.pharmacyOutsidePicture && (
+              <img src={assetUrl(viewing.user.pharmacyOutsidePicture)} alt="Storefront" />
             )}
-            <Facts user={viewing} />
+            <Facts item={viewing} />
           </div>
         )}
       </Modal>
@@ -191,11 +237,11 @@ export default function VerificationsTab({ users, setUsers }) {
         show={!!declining}
         onClose={() => setDeclining(null)}
         title="Decline verification"
-        description="The applicant sees this reason and can correct their details."
+        description="The applicant is emailed this reason and can correct their details."
         footer={
           <>
             <Button variant="secondary" onClick={() => setDeclining(null)}>Cancel</Button>
-            <Button variant="danger" disabled={!reason.trim()} loading={busy === `${declining?.id}:decline`} onClick={decline}>Decline</Button>
+            <Button variant="danger" disabled={!reason.trim()} loading={busy === `${declining?.key}:decline`} onClick={decline}>Decline</Button>
           </>
         }
       >

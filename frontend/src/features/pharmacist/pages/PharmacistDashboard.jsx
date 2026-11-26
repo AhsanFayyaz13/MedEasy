@@ -3,6 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import DashboardLayout from '../../../components/layout/DashboardLayout/DashboardLayout';
 import useDashboardTab from '../../../components/layout/DashboardLayout/useDashboardTab';
 import PageMeta from '../../../components/seo/PageMeta';
+import PartnerAgreementGate from '../../legal/components/PartnerAgreementGate';
 import MedicinesPage from '../components/MedicinesPage';
 import OrdersPage from '../components/OrdersPage';
 import PrescriptionsPage from '../components/PrescriptionsPage';
@@ -29,6 +30,7 @@ export default function PharmacistDashboard() {
   return (
     <>
       <PageMeta title="Pharmacy dashboard" noindex />
+      <PartnerAgreementGate />
       <DashboardLayout
         sections={sections}
         active={active}

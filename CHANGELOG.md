@@ -5,6 +5,14 @@ deployed continuously from `main`, so entries are grouped by date.
 
 ## Unreleased
 
+### Added
+- Partner Agreement (`/partner-agreement`): doctors and pharmacies accept a 10% commission at sign-up;
+  existing partners accept it once in their dashboard. Each order and consultation records its commission;
+  the admin overview shows commission for the month.
+- Pharmacies now need admin approval before they can sign in, like doctors. Store and pharmacist
+  representative are reviewed separately.
+- Toasts redesigned as quiet, accessible notifications; redundant ones removed.
+
 ### Removed
 - Offline "mock data" mode and its datasets; use `npm run dev:memory` (real API on an in-memory database).
 - Unused Firebase verification path on the server; verification codes must now be exactly 6 digits.

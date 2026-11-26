@@ -28,6 +28,8 @@ const orderSchema = new mongoose.Schema({
     ref: 'Prescription'
   },
   deliveryFee: { type: Number, min: 0, default: 0 },
+  // MedEasy's Partner Agreement commission on the medicines subtotal (delivery fee excluded).
+  commission: { type: Number, min: 0, default: 0 },
   // Items subtotal + deliveryFee: the amount the patient pays.
   totalAmount: {
     type: Number,

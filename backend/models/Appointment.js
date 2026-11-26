@@ -25,6 +25,9 @@ const appointmentSchema = new mongoose.Schema({
     default: 'scheduled'
   },
   reason: { type: String, trim: true, maxlength: 500 }, // patient's reason for the visit
+  // Doctor's fee when booked, and MedEasy's Partner Agreement commission on it.
+  fee: { type: Number, min: 0, default: 0 },
+  commission: { type: Number, min: 0, default: 0 },
   consultationNotes: {
     type: String
   },

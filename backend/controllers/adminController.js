@@ -105,70 +105,83 @@ exports.prescriptionAnalytics = async (req, res) => {
   });
 };
 
+/**
+ * What a verification decision applies to. A pharmacy account and its pharmacist representative are
+ * reviewed separately: the store first, then (optionally) the pharmacist who signs in for it.
+ */
+const reviewSubject = (user, requested) => {
+  if (requested) return requested;
+  if (user.role === 'pharmacy' && user.isVerifiedProfile && user.pharmacistDetails?.status === 'pending') return 'representative';
+  return 'account';
+};
+
 exports.listPendingProfessionals = async (req, res) => {
   const pendingUsers = await User.find({
     $or: [
-      { role: 'doctor', isVerifiedProfile: false },
-      { role: 'pharmacy', 'pharmacistDetails.status': 'pending' }
-    ]
-  }).select('-password');
+      { role: { $in: ['doctor', 'pharmacy'] }, isVerifiedProfile: false, verificationDeclinedAt: { $exists: false } },
+      { role: 'pharmacy', 'pharmacistDetails.status': 'pending' },
+    ],
+  });
   res.json(pendingUsers);
 };
 
 exports.approveProfessional = async (req, res) => {
   const user = await User.findById(req.params.id);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+  if (!user || !['doctor', 'pharmacy'].includes(user.role)) {
+    return res.status(404).json({ message: 'Applicant not found' });
   }
 
-  if (user.role === 'doctor') {
-    user.isVerifiedProfile = true;
-  } else if (user.role === 'pharmacy') {
-    if (user.pharmacistDetails) {
-      user.pharmacistDetails.status = 'approved';
+  const subject = reviewSubject(user, req.body?.subject);
+  if (subject === 'representative') {
+    if (user.role !== 'pharmacy' || !user.pharmacistDetails?.email) {
+      return res.status(400).json({ message: 'This account has no pharmacist representative to approve.' });
     }
+    user.pharmacistDetails.status = 'approved';
+    user.pharmacistDetails.declineReason = undefined;
+  } else {
     user.isVerifiedProfile = true;
+    user.verificationDeclineReason = undefined;
+    user.verificationDeclinedAt = undefined;
   }
-  user.verificationDeclineReason = undefined;
-  user.verificationDeclinedAt = undefined;
-
   await user.save();
-  // Email the outcome (declined doctors can't sign in to see it). Never block the response.
+
+  // Email the outcome (applicants can't sign in to see it). Never block the response.
   if (user.email) {
-    const who = user.role === 'pharmacy' ? `your pharmacist ${user.pharmacistDetails?.name || ''}`.trim() : 'your doctor profile';
-    sendVerificationDecisionEmail(user.email, { name: user.name, approved: true, reason: user.verificationDeclineReason, who })
+    const who = subject === 'representative' ? `your pharmacist ${user.pharmacistDetails?.name || ''}`.trim() : user.role === 'pharmacy' ? 'your pharmacy' : 'your doctor profile';
+    sendVerificationDecisionEmail(user.email, { name: user.name, approved: true, who })
       .catch((err) => console.error('Verification email failed:', err.message));
   }
-  res.json({ message: 'Approved successfully', user });
+  res.json({ message: 'Approved successfully', subject, user });
 };
 
 exports.declineProfessional = async (req, res) => {
-  const { reason } = req.body;
+  const reason = req.body.reason || 'The details could not be verified.';
   const user = await User.findById(req.params.id);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+  if (!user || !['doctor', 'pharmacy'].includes(user.role)) {
+    return res.status(404).json({ message: 'Applicant not found' });
   }
 
-  if (user.role === 'doctor') {
-    user.isVerifiedProfile = false;
-  } else if (user.role === 'pharmacy') {
-    if (user.pharmacistDetails) {
-      user.pharmacistDetails.status = 'declined';
-      user.pharmacistDetails.declineReason = reason || 'Credentials did not pass audit.';
+  const subject = reviewSubject(user, req.body.subject);
+  if (subject === 'representative') {
+    if (user.role !== 'pharmacy' || !user.pharmacistDetails?.email) {
+      return res.status(400).json({ message: 'This account has no pharmacist representative to decline.' });
     }
+    // Only the pharmacist is declined; the store keeps working.
+    user.pharmacistDetails.status = 'declined';
+    user.pharmacistDetails.declineReason = reason;
+  } else {
     user.isVerifiedProfile = false;
+    user.verificationDeclineReason = reason;
+    user.verificationDeclinedAt = new Date();
   }
-  user.verificationDeclineReason = reason || 'Credentials did not pass audit.';
-  user.verificationDeclinedAt = new Date();
-
   await user.save();
-  // Email the outcome (declined doctors can't sign in to see it). Never block the response.
+
   if (user.email) {
-    const who = user.role === 'pharmacy' ? `your pharmacist ${user.pharmacistDetails?.name || ''}`.trim() : 'your doctor profile';
-    sendVerificationDecisionEmail(user.email, { name: user.name, approved: false, reason: user.verificationDeclineReason, who })
+    const who = subject === 'representative' ? `your pharmacist ${user.pharmacistDetails?.name || ''}`.trim() : user.role === 'pharmacy' ? 'your pharmacy' : 'your doctor profile';
+    sendVerificationDecisionEmail(user.email, { name: user.name, approved: false, reason, who })
       .catch((err) => console.error('Verification email failed:', err.message));
   }
-  res.json({ message: 'Declined successfully', user });
+  res.json({ message: 'Declined successfully', subject, user });
 };
 
 // @desc    List all users

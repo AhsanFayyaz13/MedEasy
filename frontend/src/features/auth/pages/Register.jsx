@@ -11,6 +11,9 @@ import PasswordField from '../components/PasswordField';
 import { DoctorFields, PharmacyFields } from '../components/ProfessionalFields';
 import OtpVerification from '../components/OtpVerification';
 import { MIN_PASSWORD, REGISTER_INITIAL, toRegisterPayload, validateRegister } from '../lib/validation';
+import { BUSINESS, PARTNER_AGREEMENT } from '../../../lib/business';
+
+const COMMISSION = `${Math.round(PARTNER_AGREEMENT.commissionRate * 100)}%`;
 
 /**
  * Registration wizard: 1) choose role → 2) details → 3) verify OTP.
@@ -32,6 +35,7 @@ export default function Register() {
   const shown = (name) => (touched[name] ? errors[name] : undefined);
   const touchedErrors = Object.fromEntries(Object.entries(errors).filter(([k]) => touched[k]));
   const isPharmacy = fields.role === 'pharmacy';
+  const isPartner = fields.role === 'doctor' || isPharmacy;
   const roleMeta = ROLES.find((r) => r.value === fields.role);
 
   const setField = (name, value) => {
@@ -100,13 +104,13 @@ export default function Register() {
         <AuthShell
           icon={<FiClock />}
           title="Application received"
-          subtitle={<>Thanks, {fields.name.trim().split(' ')[0] || 'Doctor'}. Your email is verified.</>}
+          subtitle={<>Thanks, {(isPharmacy ? fields.ownerName : fields.name).trim().split(' ')[0] || 'there'}. Your email is verified.</>}
           footer={<>Questions? <Link to="/contact">Contact our team</Link></>}
         >
           <ol className="auth-next">
-            <li><FiCheckCircle aria-hidden="true" /> <span><strong>We check your PMC registration.</strong> This usually takes 1–2 working days.</span></li>
+            <li><FiCheckCircle aria-hidden="true" /> <span><strong>We check your {isPharmacy ? 'pharmacy details' : 'PMC registration'}.</strong> This usually takes 1–2 working days.</span></li>
             <li><FiMail aria-hidden="true" /> <span><strong>We email you the decision</strong> at <strong className="auth-destination">{fields.email.trim()}</strong>.</span></li>
-            <li><FiUser aria-hidden="true" /> <span><strong>Once approved, sign in</strong> to set up your schedule and start taking bookings.</span></li>
+            <li><FiUser aria-hidden="true" /> <span><strong>Once approved, sign in</strong> {isPharmacy ? 'to add your inventory and start receiving orders.' : 'to set up your schedule and start taking bookings.'}</span></li>
           </ol>
           <Button to="/" block size="lg" variant="secondary">Back to home</Button>
         </AuthShell>
@@ -194,8 +198,16 @@ export default function Register() {
             </div>
           </div>
 
-          {fields.role === 'doctor' && (
-            <Alert tone="info">Doctor accounts are reviewed by our team before you can sign in. We’ll verify your PMC registration.</Alert>
+          {isPartner && (
+            <div className="auth-partner" role="note">
+              <strong className="auth-partner__title">Before you start</strong>
+              <ul>
+                <li>Our team reviews {isPharmacy ? 'your pharmacy and licence' : 'your PMC registration'} before you can sign in, usually within 1–2 working days.</li>
+                <li>
+                  {BUSINESS.brand} charges a <strong>{COMMISSION} commission</strong> on {isPharmacy ? 'the medicines total of each order you fulfil (not on delivery fees)' : 'the fee of each consultation booked through us'}, billed monthly.
+                </li>
+              </ul>
+            </div>
           )}
 
           <Checkbox
@@ -215,6 +227,24 @@ export default function Register() {
               </>
             }
           />
+
+          {isPartner && (
+            <Checkbox
+              name="acceptPartnerAgreement"
+              required
+              checked={fields.acceptPartnerAgreement}
+              onChange={(e) => {
+                setField('acceptPartnerAgreement', e.target.checked);
+                setTouched((t) => ({ ...t, acceptPartnerAgreement: true }));
+              }}
+              error={shown('acceptPartnerAgreement')}
+              label={
+                <>
+                  I agree to the <Link to="/partner-agreement" target="_blank" rel="noopener">Partner Agreement</Link>, including the {COMMISSION} commission.
+                </>
+              }
+            />
+          )}
 
           <Button type="submit" block size="lg" loading={loading} id="register-submit-btn">
             Create account

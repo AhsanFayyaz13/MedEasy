@@ -24,6 +24,7 @@ router.post('/upload-pharmacy-image', uploadLimiter, imageUpload.single('pharmac
 router.get('/profile', protect, ctrl.getProfile);
 router.put('/profile', protect, validate({ body: v.updateProfile }), ctrl.updateProfile);
 router.put('/password', protect, authLimiter, validate({ body: v.changePassword }), ctrl.changePassword);
+router.post('/partner-agreement', protect, validate({ body: v.acceptPartnerAgreement }), ctrl.acceptPartnerAgreement);
 router.post('/profile/photo', protect, uploadLimiter, imageUpload.single('profilePhoto'), ctrl.uploadProfilePhoto);
 router.put('/profile/pharmacist', protect, validate({ body: v.pharmacistDetails }), ctrl.updatePharmacistDetails);
 router.delete('/profile/pharmacist', protect, ctrl.removePharmacistDetails);

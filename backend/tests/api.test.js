@@ -171,7 +171,10 @@ describe('authentication & authorization', () => {
   it('does not sign in a doctor until an admin approves them', async () => {
     const reg = { name: 'Dr Who', email: 'drwho@example.com', phone: '03004445555', password: 'Password123!', role: 'doctor', acceptTerms: true,
       specialty: 'Cardiology', pmcRegistration: 'PMC-12345', degree: 'MBBS', experience: 5, clinicAddress: 'Clinic 1, Lahore', availableDays: ['Monday'], consultationFee: 1500 };
-    assert.equal((await request(app).post('/api/auth/register').send(reg)).status, 200);
+    const noAgreement = await request(app).post('/api/auth/register').send(reg);
+    assert.equal(noAgreement.status, 400, 'partners must accept the Partner Agreement');
+    assert.match(noAgreement.body.message, /Partner Agreement/);
+    assert.equal((await request(app).post('/api/auth/register').send({ ...reg, acceptPartnerAgreement: true })).status, 200);
     const PendingUser = require('../models/PendingUser');
     const { hashCode } = require('../utils/verification');
     await PendingUser.updateOne({}, { verificationCode: hashCode('123456') });
@@ -182,6 +185,52 @@ describe('authentication & authorization', () => {
     const login = await request(app).post('/api/auth/login').send({ identifier: reg.email, password: reg.password });
     assert.equal(login.status, 403);
     assert.equal(login.body.error.code, 'PENDING_REVIEW');
+    const User = require('../models/User');
+    const doc = await User.findOne({ email: reg.email });
+    assert.equal(doc.partnerAgreement.commissionRate, 0.1);
+    assert.ok(doc.partnerAgreement.acceptedAt instanceof Date);
+  });
+
+  it('keeps a new pharmacy out until approved, and reviews its pharmacist separately', async () => {
+    const reg = { name: 'Shifa Pharmacy', email: 'shifa@example.com', phone: '03007778888', password: 'Password123!', role: 'pharmacy',
+      acceptTerms: true, acceptPartnerAgreement: true, pharmacyName: 'Shifa Pharmacy', pharmacyLocation: 'G-9 Markaz, Islamabad', pharmacyOutsidePicture: 'https://res.cloudinary.com/x/shop.jpg' };
+    assert.equal((await request(app).post('/api/auth/register').send(reg)).status, 200);
+    const PendingUser = require('../models/PendingUser');
+    const { hashCode } = require('../utils/verification');
+    await PendingUser.updateOne({}, { verificationCode: hashCode('123456') });
+    const verified = await request(app).post('/api/auth/verify-registration').send({ phone: reg.phone, code: '123456' });
+    assert.equal(verified.body.pendingReview, true);
+    assert.equal((await request(app).post('/api/auth/login').send({ identifier: reg.email, password: reg.password })).status, 403);
+
+    const User = require('../models/User');
+    const store = await User.findOne({ email: reg.email });
+    const admin = await createUser({ role: 'admin' });
+    const asAdmin = { Authorization: `Bearer ${tokenFor(admin)}` };
+    const pending = await request(app).get('/api/admin/users/pending').set(asAdmin);
+    assert.ok(pending.body.some((u) => String(u._id) === String(store._id)), 'new pharmacies appear in the review queue');
+
+    assert.equal((await request(app).put(`/api/admin/users/${store._id}/approve`).set(asAdmin).send({})).status, 200);
+    assert.equal((await request(app).post('/api/auth/login').send({ identifier: reg.email, password: reg.password })).status, 200);
+
+    // Declining the store's pharmacist must not take the store offline.
+    await User.updateOne({ _id: store._id }, { pharmacistDetails: { name: 'Rep', email: 'rep2@example.com', password: 'x', status: 'pending' } });
+    const declined = await request(app).put(`/api/admin/users/${store._id}/decline`).set(asAdmin).send({ reason: 'Licence unclear', subject: 'representative' });
+    assert.equal(declined.status, 200);
+    const after = await User.findById(store._id);
+    assert.equal(after.isVerifiedProfile, true);
+    assert.equal(after.pharmacistDetails.status, 'declined');
+  });
+
+  it('lets an existing partner accept the current Partner Agreement', async () => {
+    const doc = await createUser({ role: 'doctor', isVerifiedProfile: true });
+    const auth = { Authorization: `Bearer ${tokenFor(doc)}` };
+    const { PARTNER_AGREEMENT } = require('../config/partner');
+    assert.equal((await request(app).post('/api/auth/partner-agreement').set(auth).send({ version: 'old' })).status, 409);
+    const ok = await request(app).post('/api/auth/partner-agreement').set(auth).send({ version: PARTNER_AGREEMENT.VERSION });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.body.partnerAgreement.version, PARTNER_AGREEMENT.VERSION);
+    const patient = await createUser();
+    assert.equal((await request(app).post('/api/auth/partner-agreement').set({ Authorization: `Bearer ${tokenFor(patient)}` }).send({ version: PARTNER_AGREEMENT.VERSION })).status, 403);
   });
 
   it('rejects suspended users even with a valid token', async () => {
@@ -297,6 +346,7 @@ describe('orders', () => {
     // 2 × Rs 50 from the database, plus the Rs 120 delivery fee below Rs 1,000
     assert.equal(res.body.deliveryFee, 120);
     assert.equal(res.body.totalAmount, 220);
+    assert.equal(res.body.commission, 10, '10% commission on the Rs 100 of medicines, not on delivery');
     const Medicine = require('../models/Medicine');
     assert.equal((await Medicine.findById(med._id)).stock, 3);
   });

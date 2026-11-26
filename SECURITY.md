@@ -22,7 +22,7 @@ Only the current `main` branch (what runs on medeasy.systems) receives security 
 - Login and forgot-password don't reveal whether an account exists (same answer, same timing).
 - Sessions are JWTs (7 days) held in `sessionStorage`. Changing or resetting a password ends all other
   sessions; suspended accounts are rejected on every request.
-- Doctors and pharmacist representatives can't sign in until an admin approves them.
+- Doctors, pharmacies and pharmacist representatives can't sign in until an admin approves them.
 - API responses never include password hashes, reset codes or other secrets.
 
 **API**

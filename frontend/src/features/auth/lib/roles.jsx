@@ -21,6 +21,6 @@ export const ROLES = [
     icon: <FaHospital />,
     tone: 'rose',
     title: 'I run a pharmacy',
-    desc: 'List your store, manage inventory and fulfil patient orders.',
+    desc: 'List your store, manage inventory and fulfil patient orders. Requires admin verification.',
   },
 ];

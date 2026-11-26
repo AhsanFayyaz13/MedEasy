@@ -37,6 +37,7 @@ export const REGISTER_INITIAL = {
   availableDays: [],
   consultationFee: '',
   acceptTerms: false,
+  acceptPartnerAgreement: false,
 };
 
 const blank = (v) => v === undefined || v === null || String(v).trim() === '';
@@ -87,6 +88,9 @@ export function validateRegister(f) {
   else if (f.password !== f.confirmPassword) errors.confirmPassword = 'Passwords do not match.';
 
   if (!f.acceptTerms) errors.acceptTerms = 'Please accept the Terms of Service and Privacy Policy to continue.';
+  if ((f.role === 'doctor' || f.role === 'pharmacy') && !f.acceptPartnerAgreement) {
+    errors.acceptPartnerAgreement = 'Please accept the Partner Agreement to continue.';
+  }
 
   return errors;
 }
@@ -121,6 +125,7 @@ export function toRegisterPayload(f) {
     password: f.password,
     verificationChannel: 'email',
     acceptTerms: f.acceptTerms === true,
+    ...(f.role === 'doctor' || f.role === 'pharmacy' ? { acceptPartnerAgreement: f.acceptPartnerAgreement === true } : {}),
   };
   if (f.role === 'pharmacy') {
     Object.assign(payload, {

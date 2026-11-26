@@ -19,8 +19,14 @@ export const BUSINESS = {
   pharmacistInCharge: '', // name + registration of the responsible pharmacist
 };
 
+/**
+ * Partner Agreement for doctors and pharmacies. Keep in sync with backend/config/partner.js;
+ * bumping the version asks every partner to accept it again in their dashboard.
+ */
+export const PARTNER_AGREEMENT = { version: '2026-11-26', commissionRate: 0.1 };
+
 /** Date the legal documents were last revised (update when you change them). */
-export const LEGAL_LAST_UPDATED = '2026-11-25';
+export const LEGAL_LAST_UPDATED = '2026-11-26';
 
 export const LEGAL_LINKS = [
   { to: '/privacy', label: 'Privacy Policy' },
@@ -29,4 +35,5 @@ export const LEGAL_LINKS = [
   { to: '/refund-policy', label: 'Refund & Returns' },
   { to: '/medical-disclaimer', label: 'Medical Disclaimer' },
   { to: '/legal', label: 'Legal Notice' },
+  { to: '/partner-agreement', label: 'Partner Agreement' },
 ];

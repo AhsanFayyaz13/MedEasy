@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const Medicine = require('../models/Medicine');
 const Prescription = require('../models/Prescription');
 const crypto = require('crypto');
+const { commissionOn } = require('../config/partner');
 const { normalizePhone } = require('../utils/phone');
 const { sendEmail, escapeHtml } = require('../utils/mailer');
 
@@ -118,6 +119,7 @@ exports.placeOrder = async (req, res) => {
   const items = medicines.map((m) => ({ medicineId: m._id, quantity: qtyById.get(m._id.toString()), price: m.price }));
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const deliveryFee = deliveryFeeFor(subtotal);
+  const commission = commissionOn(subtotal); // Partner Agreement: 10% of the medicines, not the delivery fee
   const totalAmount = subtotal + deliveryFee;
 
   try {
@@ -129,6 +131,7 @@ exports.placeOrder = async (req, res) => {
       items,
       prescriptionId: requiresPrescription ? prescriptionId : undefined,
       deliveryFee,
+      commission,
       totalAmount,
       shippingAddress,
       paymentMethod,

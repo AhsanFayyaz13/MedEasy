@@ -17,6 +17,7 @@ import DashboardLayout from '../../../components/layout/DashboardLayout/Dashboar
 import useDashboardTab from '../../../components/layout/DashboardLayout/useDashboardTab';
 import { Alert, Button, SkeletonGrid } from '../../../components/ui';
 import PageMeta from '../../../components/seo/PageMeta';
+import { reviewItems } from '../components/adminShared';
 import OverviewTab from '../components/OverviewTab';
 import UsersTab from '../components/UsersTab';
 import VerificationsTab from '../components/VerificationsTab';
@@ -45,7 +46,7 @@ const SECTIONS = [
 const SUBTITLES = {
   overview: undefined, // the overview banner says what needs attention
   users: 'Manage accounts, roles and access.',
-  verifications: 'Review doctor and pharmacist credentials.',
+  verifications: 'Doctors, pharmacies and pharmacists can only work after you approve them.',
   medicines: 'Catalogue, pricing and stock.',
   appointments: 'Doctor schedules across the network.',
   orders: 'Track and update customer orders.',
@@ -65,9 +66,8 @@ export default function AdminDashboard() {
     stats,
   } = useData();
 
-  const pendingVerifications = users.filter(
-    (u) => (u.role === 'doctor' && !u.isVerifiedProfile && !u.verificationDeclinedAt) || (u.role === 'pharmacy' && u.pharmacistDetails?.status === 'pending')
-  ).length;
+  // Doctors, new pharmacies and pharmacy pharmacists waiting for review (same rule as the queue).
+  const pendingVerifications = reviewItems(users).pending.length;
   const sections = SECTIONS.map((s) => (s.key === 'verifications' && pendingVerifications ? { ...s, badge: pendingVerifications } : s));
 
   const globalStats = {
@@ -75,6 +75,7 @@ export default function AdminDashboard() {
     ordersCount: stats.ordersCount,
     aptsCount: stats.aptsCount,
     revenueMtd: stats.revenueMtd,
+    commissionMtd: stats.commissionMtd,
   };
 
   const refreshButton = (

@@ -14,6 +14,10 @@ const {
 } = require('../utils/verification');
 const { sendVerificationEmail, sendResetPasswordEmail } = require('../utils/mailer');
 const { uploadToCloudinary } = require('../utils/cloudinary');
+const { PARTNER_AGREEMENT, PARTNER_ROLES } = require('../config/partner');
+
+/** What gets recorded when a partner accepts the current agreement. */
+const agreementRecord = () => ({ version: PARTNER_AGREEMENT.VERSION, commissionRate: PARTNER_AGREEMENT.COMMISSION_RATE, acceptedAt: new Date() });
 
 /** tv = the user's tokenVersion; protect() rejects tokens whose version is out of date. */
 const generateToken = (id, role, tv = 0) => {
@@ -109,7 +113,9 @@ exports.register = async (req, res) => {
     clinicAddress,
     availableDays,
     consultationFee,
-    termsAcceptedAt: new Date() // the validator only lets acceptTerms: true through
+    termsAcceptedAt: new Date(), // the validator only lets acceptTerms: true through
+    // The validator requires partners (doctors, pharmacies) to accept the Partner Agreement.
+    partnerAgreement: PARTNER_ROLES.includes(role) ? agreementRecord() : undefined,
   });
 
   // Log the verification code for temporary local testing in terminal
@@ -189,7 +195,7 @@ exports.verifyRegistration = async (req, res) => {
     pharmacyLocation: pending.pharmacyLocation,
     pharmacyOutsidePicture: pending.pharmacyOutsidePicture,
     ownerName: pending.ownerName,
-    isVerifiedProfile: pending.role === 'pharmacy' ? true : false,
+    isVerifiedProfile: false, // doctors and pharmacies start working only after an admin approves them
     pharmacistDetails: {
       status: 'none'
     },
@@ -200,7 +206,8 @@ exports.verifyRegistration = async (req, res) => {
     clinicAddress: pending.clinicAddress,
     availableDays: pending.availableDays,
     consultationFee: pending.consultationFee,
-    termsAcceptedAt: pending.termsAcceptedAt
+    termsAcceptedAt: pending.termsAcceptedAt,
+    partnerAgreement: pending.partnerAgreement?.acceptedAt ? pending.partnerAgreement : undefined
   };
   if (pending.email) {
     userFields.email = pending.email;
@@ -211,14 +218,14 @@ exports.verifyRegistration = async (req, res) => {
   // Clean up all pending registers for this phone number
   await PendingUser.deleteMany({ phone: normalizedPhone });
 
-  // Doctors can't sign in until an admin has checked their PMC registration, so no session yet.
-  if (user.role === 'doctor' && !user.isVerifiedProfile) {
+  // Doctors and pharmacies can't sign in until an admin has checked their details, so no session yet.
+  if (PARTNER_ROLES.includes(user.role) && !user.isVerifiedProfile) {
     return res.status(201).json({
       pendingReview: true,
       role: user.role,
       name: user.name,
       email: user.email,
-      message: 'Your email is verified. Our team will check your PMC registration and email you once your account is approved.',
+      message: `Your email is verified. Our team will check your ${user.role === 'doctor' ? 'PMC registration' : 'pharmacy details'} and email you once your account is approved.`,
     });
   }
 
@@ -309,6 +316,9 @@ exports.login = async (req, res) => {
   }
 
   if (isSubAccount) {
+    if (!user.isVerifiedProfile) {
+      throw new AppError(403, 'The pharmacy you work for is still being reviewed. You’ll be able to sign in once it’s approved.', 'PENDING_REVIEW');
+    }
     if (user.pharmacistDetails.status !== 'approved') {
       throw new AppError(403, 'Your pharmacist account is waiting for approval by our team. You’ll be able to sign in once it’s approved.', 'PENDING_APPROVAL');
     }
@@ -322,14 +332,28 @@ exports.login = async (req, res) => {
     );
   }
 
-  if (user.role === 'doctor' && !user.isVerifiedProfile) {
+  if (PARTNER_ROLES.includes(user.role) && !user.isVerifiedProfile) {
+    const kind = user.role === 'doctor' ? 'doctor' : 'pharmacy';
     const declined = user.verificationDeclinedAt
-      ? `Your doctor application wasn’t approved${user.verificationDeclineReason ? `: ${user.verificationDeclineReason}` : '.'} Please contact support to update your details.`
-      : 'Your doctor account is being reviewed. We’ll email you as soon as it’s approved — usually within 1–2 working days.';
+      ? `Your ${kind} application wasn’t approved${user.verificationDeclineReason ? `: ${user.verificationDeclineReason}` : '.'} Please contact support to update your details.`
+      : `Your ${kind} account is being reviewed. We’ll email you as soon as it’s approved — usually within 1–2 working days.`;
     throw new AppError(403, declined, user.verificationDeclinedAt ? 'APPLICATION_DECLINED' : 'PENDING_REVIEW');
   }
 
   return res.json(sessionPayload(user, generateToken(user._id, user.role, user.tokenVersion)));
+};
+
+// @desc    Accept the current Partner Agreement (doctors and pharmacy owners who signed up under an older one)
+// @route   POST /api/auth/partner-agreement
+exports.acceptPartnerAgreement = async (req, res) => {
+  if (!PARTNER_ROLES.includes(req.user.role)) {
+    throw new AppError(403, 'Only doctors and pharmacy owners sign the Partner Agreement.', 'NOT_A_PARTNER');
+  }
+  if (req.body.version !== PARTNER_AGREEMENT.VERSION) {
+    throw new AppError(409, 'The agreement has been updated. Please reload the page and review the latest version.', 'AGREEMENT_OUTDATED');
+  }
+  const user = await User.findByIdAndUpdate(req.user._id, { partnerAgreement: agreementRecord() }, { returnDocument: 'after' });
+  res.json(user);
 };
 
 // @desc    Change password (signed in). Ends every other session.

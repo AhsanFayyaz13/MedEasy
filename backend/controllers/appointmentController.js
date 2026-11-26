@@ -1,5 +1,6 @@
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
+const { commissionOn } = require('../config/partner');
 
 // @desc    Book a new appointment
 // @route   POST /api/appointments/book
@@ -49,6 +50,9 @@ exports.bookAppointment = async (req, res) => {
     date: bookingDate,
     time,
     reason: reason || undefined,
+    // Fee at booking time, and the Partner Agreement commission on it.
+    fee: doctorUser.consultationFee || 0,
+    commission: commissionOn(doctorUser.consultationFee),
     status: 'scheduled'
   });
 

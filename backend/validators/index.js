@@ -39,6 +39,7 @@ const register = z
     address: optionalText(300),
     verificationChannel: z.literal('email', { message: 'Verification by SMS is not available yet. Please use email.' }).default('email'),
     acceptTerms: z.literal(true, { message: 'You must accept the Terms of Service and Privacy Policy' }),
+    acceptPartnerAgreement: z.boolean().optional(),
     // pharmacy
     pharmacyName: optionalText(150),
     pharmacyLocation: optionalText(300),
@@ -58,6 +59,9 @@ const register = z
     consultationFee: emptyToUndefined(money.optional()),
   })
   .superRefine((d, ctx) => {
+    if ((d.role === 'doctor' || d.role === 'pharmacy') && d.acceptPartnerAgreement !== true) {
+      ctx.addIssue({ code: 'custom', path: ['acceptPartnerAgreement'], message: 'Please accept the Partner Agreement (10% commission) to continue.' });
+    }
     if (d.role === 'pharmacy' && (!d.pharmacyName || !d.pharmacyLocation || !d.pharmacyOutsidePicture)) {
       ctx.addIssue({ code: 'custom', path: ['pharmacyName'], message: 'Missing pharmacy registration details: name, location, or outside picture.' });
     }
@@ -73,6 +77,7 @@ const auth = {
   register,
   verifyRegistration: z.object({ phone, code: otp }),
   resend: z.object({ phone }),
+  acceptPartnerAgreement: z.object({ version: z.string().trim().min(1).max(20) }),
   login: z
     .object({
       identifier: optionalText(254),
@@ -245,7 +250,8 @@ const admin = {
     address: optionalText(300),
   }),
   role: z.object({ role: z.enum(ALL_ROLES, { message: 'Invalid role.' }) }),
-  decline: z.object({ reason: optionalText(500) }),
+  decline: z.object({ reason: optionalText(500), subject: z.enum(['account', 'representative']).optional() }),
+  approve: z.object({ subject: z.enum(['account', 'representative']).optional() }),
 };
 
 module.exports = {

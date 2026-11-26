@@ -303,6 +303,19 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
+  // ── acceptPartnerAgreement ─────────────────────────────────────────────────
+  /** Record that a doctor or pharmacy owner accepted the given Partner Agreement version. */
+  const acceptPartnerAgreement = useCallback(async (version) => {
+    try {
+      const { data } = await api.post('/auth/partner-agreement', { version });
+      persistSession(token, null, data);
+      setUser(data);
+      return data;
+    } catch (err) {
+      throw new Error(parseApiError(err, 'Couldn’t save your acceptance. Please try again.'), { cause: err });
+    }
+  }, [token]);
+
   // ── clear transient error ──────────────────────────────────────────────────
   const clearAuthError = useCallback(() => setAuthError(null), []);
 
@@ -327,6 +340,7 @@ export function AuthProvider({ children }) {
     forgotPassword,
     resetPassword,
     changePassword,
+    acceptPartnerAgreement,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
